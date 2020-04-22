@@ -15,7 +15,7 @@ dirs = {'rawdata':'GrayLab/',
         'results':'Results/',
         'monkey' :['lucy', 'ethyl'],
         'session':'session01',
-        'date'   :[['141014', '141015', '141205', '150128', '150211', '150304'], []                                                            ]
+        'date'   :[['141014', '141015', '141205', '150128', '150211', '150304'], []]
         }
 
 def save_data_npy(nmonkey, ntype, nses):
