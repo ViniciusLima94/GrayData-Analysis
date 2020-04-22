@@ -6,7 +6,7 @@ import scipy.io      as scio
 import scipy.special as spe
 import h5py
 import glob
-from  .misc          import set_paths
+from  .io          import set_paths
 
 class LFP(set_paths):
 
