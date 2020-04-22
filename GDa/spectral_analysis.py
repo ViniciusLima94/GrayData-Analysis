@@ -4,18 +4,26 @@ import mne.filter
 
 class spectral_analysis():
 
-	def __init__(self, LFP = None, step = 25, dt = 250, fc = np.arange(6, 62, 2), df = 4):
+	def __init__(self, LFP = None, path = None, step = 25, dt = 250, fc = np.arange(6, 62, 2), df = 4):
+
+		self.step    = step
+		self.dt      = dt
+		self.fc      = fc
+		self.df      = df
 
 		if LFP == None:
-			None
+			LFP = np.load(path, allow_pickle=True).item()
+			self.nP      = LFP['info']['nP']
+			self.pairs   = LFP['info']['pairs']
+			self.tarray  = LFP['info']['tarray']
+			self.tidx    = np.arange(self.dt, LFP['data'].shape[2]-self.dt, self.step)
+			self.taxs    = LFP['info']['tarray'][self.tidx]
+			self.fsample = LFP['info']['fsample']
+			self.data    = LFP['data']
 		else:
 			self.nP      = LFP.nP
 			self.pairs   = LFP.pairs
 			self.tarray  = LFP.time[0]
-			self.step    = step
-			self.dt      = dt
-			self.fc      = fc
-			self.df      = df
 			self.tidx    = np.arange(self.dt, LFP.data.shape[2]-self.dt, self.step)
 			self.taxs    = LFP.time[0][self.tidx]
 			self.fsample = LFP.recording_info['fsample']
