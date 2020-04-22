@@ -16,12 +16,10 @@ class spectral_analysis():
 			self.dt      = dt
 			self.fc      = fc
 			self.df      = df
-			#self.indt   = np.arange(self.dt, LFP.data.shape[2]-self.dt+self.step-self.step, self.step)
 			self.tidx    = np.arange(self.dt, LFP.data.shape[2]-self.dt, self.step)
 			self.taxs    = LFP.time[0][self.tidx]
 			self.fsample = LFP.recording_info['fsample']
 			self.data    = LFP.data
-
 
 	def filter(self, signal = None, trial = None, index_channel = None, f_low = 30, f_high = 60, n_jobs = 1):
 
@@ -48,8 +46,6 @@ class spectral_analysis():
 			for nf in range( self.fc.shape[0] ):
 				bpfreq = np.array( [ self.fc[nf]-self.df, self.fc[nf]+self.df ] )
 				f_low, f_high  = bpfreq[0], bpfreq[1]
-				#sig1f  = mne.filter.filter_data(sig1, recording_info['fsample'], f_low, f_high, method = 'iir', verbose=False, n_jobs=1)
-				#sig2f  = mne.filter.filter_data(sig2, recording_info['fsample'], f_low, f_high, method = 'iir', verbose=False, n_jobs=1)
 				sig1f  = self.filter(signal = sig1, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
 				sig2f  = self.filter(signal = sig2, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
 				Sx     = sig.hilbert(sig1f)

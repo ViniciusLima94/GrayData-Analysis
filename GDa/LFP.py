@@ -2,11 +2,11 @@
 # Class to read and instantiate a LFP object
 #####################################################################################################
 import numpy         as np 
-import scipy.io      as scio
 import scipy.special as spe
-import h5py
 import glob
-from  .io          import set_paths
+from  .io          import set_paths, read_mat
+import scipy.io      as scio   # May be removed later
+import h5py                    # May be removed later
 
 class LFP(set_paths):
 
@@ -20,6 +20,7 @@ class LFP(set_paths):
 		> type     : Session type, should be either samplecor, sampleinc or samplecorinc. 
 		'''
 		super().__init__(raw_path = raw_path, monkey = monkey, date = date, session = session)
+		self.load_mat = read_mat()
 		self.stype    = stype
 		self.evt_dt   = evt_dt 
 
@@ -28,7 +29,12 @@ class LFP(set_paths):
 		Recording and trials info dicitionaries
 		'''
 		info = ['recording_info.mat', 'trial_info.mat']
-		ri = scio.loadmat(self.dir+info[0])['recording_info']
+		#ri   = scio.loadmat(self.dir+info[0])['recording_info']
+		#ti   = h5py.File(self.dir+info[1])['trial_info']
+		ri   = self.load_mat.read_mat(self.dir+info[0])['recording_info']
+		ti   = self.load_mat.read_HDF5(self.dir+info[1])['trial_info']
+
+		'''
 		with h5py.File(self.dir+info[1], 'r') as ti:
 			ti = ti['trial_info']
 			self.trial_info     = {'num_trials': int(ti['num_trials'][0,0]),
@@ -41,6 +47,19 @@ class LFP(set_paths):
 			                       'sample_on': ti['sample_on'][:].T[0], #1th image is shown
 			                       'match_on': ti['match_on'][:].T[0],   #2nd image is shown
 			                       'sample_off': ti['sample_off'][:].T[0],}
+		'''
+
+		'''
+		self.trial_info     = {'num_trials': int(ti['num_trials'][0,0]),
+							   'trial_type': ti['trial_type'][:].T[0],
+							   'behavioral_response': ti['behavioral_response'][:].T[0],
+							   'sample_image': ti['sample_image'][:].T[0],
+							   'nonmatch_image': ti['nonmatch_image'][:].T[0],
+							   'match_image': ti['match_image'][:].T[0],
+							   'reaction_time': ti['reaction_time'][:].T[0],
+							   'sample_on': ti['sample_on'][:].T[0], #1th image is shown
+							   'match_on': ti['match_on'][:].T[0],   #2nd image is shown
+							   'sample_off': ti['sample_off'][:].T[0],}
 
 		self.recording_info = {'channel_count': ri['channel_count'].astype(int)[0][0],
 		                       'channel_numbers':ri['channel_numbers'][0,0][0],
@@ -48,6 +67,19 @@ class LFP(set_paths):
 		                       'fsample': ri['lfp_sampling_rate'].astype(int)[0][0],
 		                       'ms_mod': ri['ms_mod'][0,0][0],                        
 		                       'slvr': ri['slvr'][0,0][0],}   
+		'''
+
+		self.trial_info     = {}
+		self.recording_info = {}
+
+		for key in ri._fieldnames:
+			if key == 'lfp_sampling_rate':
+				self.recording_info['fsample'] = np.squeeze(ri.__dict__[key])
+			else:
+				self.recording_info[key] = np.squeeze(ri.__dict__[key])
+
+		for key in ti.keys():
+			self.trial_info[key]     = np.squeeze(ti[key])
 
 	def read_lfp_data(self,):
 
@@ -61,20 +93,20 @@ class LFP(set_paths):
 
 		# Get only LFP channels does not contain slvr and ms_mod
 		self.indch  = (self.recording_info['slvr'] == 0) & (self.recording_info['ms_mod'] == 0)
-		self.indch  = np.arange(1, self.recording_info['channel_count']+1, 1)[self.indch]
+		self.indch  = np.arange(1, self.recording_info['channel_count']+1, 1, dtype=int)[self.indch]
 		# Trial type
 		if  self.stype == 'samplecor':
 			# Use only completed trials and correct
 			self.indt = (self.trial_info['trial_type'] == 1) & (self.trial_info['behavioral_response'] == 1)
-			self.indt = np.arange(1, self.trial_info['num_trials']+1, 1)[self.indt]
+			self.indt = np.arange(1, self.trial_info['num_trials']+1, 1, dtype=int)[self.indt]
 		elif self.stype == 'sampleinc':
 			# Use only completed trials and incorrect
 			self.indt = (self.trial_info['trial_type'] == 1) & (self.trial_info['behavioral_response'] == 0)
-			self.indt = np.arange(1, self.trial_info['num_trials']+1, 1)[self.indt]
+			self.indt = np.arange(1, self.trial_info['num_trials']+1, 1, dtype=int)[self.indt]
 		elif self.stype == 'samplecorinc':
 			# Use all completed correct and incorrect trials 
 			self.indt = (self.trial_info['trial_type'] == 1) 
-			self.indt = np.arange(1, self.trial_info['num_trials']+1, 1)[self.indt]   
+			self.indt = np.arange(1, self.trial_info['num_trials']+1, 1, dtype=int)[self.indt]   
 
 		# Stimulus presented
 		self.stimulus = self.trial_info['sample_image'][self.indt-1]-1
@@ -110,7 +142,8 @@ class LFP(set_paths):
 		for nt in self.indt:
 		    # Reading file with LFP data
 		    #print(nt)
-		    f     = h5py.File(self.files[nt-1], "r")
+		    #f     = h5py.File(self.files[nt-1], "r")
+		    f = self.load_mat.read_HDF5(self.files[nt-1])
 		    lfp_data = np.transpose( f['lfp_data'] )
 		    f.close()
 		    # Beginning and ending index
@@ -187,4 +220,7 @@ class LFP(set_paths):
 		np.save('raw_lfp/'+ self.monkey + '_' + self.session + '_' + self.date + '.npy', LFPdata)
 
 	def save_mat(self):
-		None
+		LFPdata = {}
+		LFPdata['data'] = self.data
+		LFPdata['info'] = self.readinfo
+		self.load_mat.save_mat('raw_lfp/'+ self.monkey + '_' + self.session + '_' + self.date + '.mat', LFPdata)
