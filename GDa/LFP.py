@@ -6,10 +6,11 @@ import scipy.io      as scio
 import scipy.special as spe
 import h5py
 import glob
+from  .misc          import set_paths
 
-class LFP:
+class LFP(set_paths):
 
-	def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', stype = 'samplecor', date = '150128', 
+	def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', stype = 'samplecor', 
 				 session = 'session01', evt_dt = [-0.65,3.00]):
 		'''
 		Constructor
@@ -18,19 +19,18 @@ class LFP:
 		> monkey   : Monkey name, should be either lucy or ethyl.
 		> type     : Session type, should be either samplecor, sampleinc or samplecorinc. 
 		'''
-		self.raw_path = raw_path
-		self.monkey   = monkey
+		super().__init__(raw_path = 'GrayLab/', monkey = 'lucy', date = '150128')
+		#self.raw_path = raw_path
+		#self.monkey   = monkey
+		#self.date     = date
 		self.stype    = stype
-		self.date     = date
 		self.session  = session
 		self.evt_dt   = evt_dt 
-		#self.dt       = dt
-		#self.step     = step 
 
 		self.define_paths()
 
 		# Save session info, such as paths
-
+	'''	
 	def define_paths(self,):
 		self.dir     = self.raw_path + self.monkey + '/' + self.date + '/' + self.session + '/' 
 		self.dir_out = 'Results/'    + self.monkey + '/' + self.date + '/' + self.session + '/' 
@@ -40,7 +40,7 @@ class LFP:
 		    os.makedirs(self.dir_out)
 		except:
 		    None
-
+	'''
 	def read_session_info(self,):
 		'''
 		Recording and trials info dicitionaries
