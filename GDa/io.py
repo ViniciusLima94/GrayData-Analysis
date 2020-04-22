@@ -1,5 +1,20 @@
 import numpy         as np 
+import scipy.io      as scio
+import h5py
 
+class read_mat:
+
+	def __init__(self,):
+		None
+
+	def read_HDF5(self, path = None):
+		return h5py.File(path, 'r')
+
+	def read_mat(self, path = None):
+		return scio.loadmat(path, squeeze_me=True, struct_as_record=False) 
+
+	def save_mat(self, path, dic):
+		scio.savemat(path, dic)
 
 class set_paths:
 
