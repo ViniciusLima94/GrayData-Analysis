@@ -19,12 +19,9 @@ class LFP(set_paths):
 		> monkey   : Monkey name, should be either lucy or ethyl.
 		> type     : Session type, should be either samplecor, sampleinc or samplecorinc. 
 		'''
-		super().__init__(raw_path = 'GrayLab/', monkey = 'lucy', date = '150128')
+		super().__init__(raw_path = raw_path, monkey = monkey, date = date, session = session)
 		self.stype    = stype
-		self.session  = session
 		self.evt_dt   = evt_dt 
-
-		self.define_paths()
 
 	def read_session_info(self,):
 		'''
@@ -145,9 +142,9 @@ class LFP(set_paths):
 
 		#self.indt = np.arange(self.dt, self.data.shape[2]-self.dt+self.step-self.step, self.step)
 		#self.taxs = self.time[0][self.indt]
-		self.readinfo = {'nP':self.nP, 'nT':self.nT, 'pairs':self.pairs, 'indt':self.indt, 'fsample': self.recording_info['fsample'],
+		self.readinfo = {'nC': self.C, 'nP':self.nP, 'nT':self.nT, 'pairs':self.pairs, 'indt':self.indt, 'fsample': self.recording_info['fsample'],
 		            'tarray': self.time[0], 'channels_labels': self.labels, 
-		            'dcue': self.dcue, 'dsm': self.dsm, 'stim':self.stimulus}      
+		            'dcue': self.dcue, 'dsm': self.dsm, 'stim':self.stimulus, 'indch': self.indch}      
 
 	def print_info(self,):
 		print('\n-------------------+-----------')

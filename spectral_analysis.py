@@ -13,7 +13,7 @@ import os
 import sys
 import mne.filter
 import matplotlib.pyplot as plt
-from joblib import Parallel, delayed
+from   joblib import Parallel, delayed
 import multiprocessing
 
 sys.path.insert(0, 'params/')
@@ -94,3 +94,4 @@ for trial_number in range(540):
     print('Trial = ' + str(trial_number))
     data   = np.load('raw_lfp/'+dirs['session']+'_'+dirs['date'][nmonkey][nses]+'.npy')[trial_number,:,:]
     Parallel(n_jobs=40)(delayed(coh_matrix)(data, trial_number, ip, session, taxs, data.shape[1], as_mat=True) for ip in range(nP))
+    #                                       data, nT, nP, session, time, L, as_mat=False
