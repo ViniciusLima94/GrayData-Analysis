@@ -20,27 +20,12 @@ class LFP(set_paths):
 		> type     : Session type, should be either samplecor, sampleinc or samplecorinc. 
 		'''
 		super().__init__(raw_path = 'GrayLab/', monkey = 'lucy', date = '150128')
-		#self.raw_path = raw_path
-		#self.monkey   = monkey
-		#self.date     = date
 		self.stype    = stype
 		self.session  = session
 		self.evt_dt   = evt_dt 
 
 		self.define_paths()
 
-		# Save session info, such as paths
-	'''	
-	def define_paths(self,):
-		self.dir     = self.raw_path + self.monkey + '/' + self.date + '/' + self.session + '/' 
-		self.dir_out = 'Results/'    + self.monkey + '/' + self.date + '/' + self.session + '/' 
-
-		# Create out folder in case it not exist yet
-		try:
-		    os.makedirs(self.dir_out)
-		except:
-		    None
-	'''
 	def read_session_info(self,):
 		'''
 		Recording and trials info dicitionaries
