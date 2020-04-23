@@ -1,15 +1,20 @@
 import numpy         as np
 import scipy.signal  as sig
 import mne.filter
+import neo
+import elephant
+from   quantities    import s, Hz
 
 class spectral_analysis():
 
-	def __init__(self, LFP = None, path = None, step = 25, dt = 250, fc = np.arange(6, 62, 2), df = 4):
+	def __init__(self, LFP = None, path = None, step = 25, dt = 250, fc = np.arange(6, 62, 2), df = 4, 
+				save_filtered = False, save_morlet = False, save_coh = True):
 
 		self.step    = step
 		self.dt      = dt
 		self.fc      = fc
 		self.df      = df
+		self.save_filtered = save_filtered
 
 		if LFP == None:
 			LFP = np.load(path, allow_pickle=True).item()
@@ -29,6 +34,17 @@ class spectral_analysis():
 			self.fsample = LFP.recording_info['fsample']
 			self.data    = LFP.data
 
+		self.results = {}	
+			
+	def compute_freq(self, ):
+		# Time length
+		N  = self.tarray.shape[0]
+		T = N / self.fsample
+		# Frequency array
+		f = np.linspace(1/T, self.fsample/2-1/T, N/2+1)
+
+		return f
+
 	def filter(self, signal = None, trial = None, index_channel = None, f_low = 30, f_high = 60, n_jobs = 1):
 
 		if trial == None and index_channel == None:
@@ -39,8 +55,33 @@ class spectral_analysis():
 			signal_filtered = mne.filter.filter_data(self.data[trial, index_channel, :], self.fsample, f_low, f_high, 
 												 method = 'iir', verbose=False, n_jobs=n_jobs)
 
+		if self.save_filtered == True:
+			self.results['sigf' + str(f_low) + '_' + str(f_high)] = signal_filtered
 
 		return signal_filtered
+
+	def wavelet_morlet(self, signal = None, trial = None, index_channel = None):
+
+		N = self.tarray.shape[0]
+		f = self.compute_freq()
+
+		if len(f) <= 100:
+			f = f
+		else:
+			delta = int( np.ceil(len(f) / 100) )
+			f = f[::delta]
+
+		if trial == None and index_channel == None:
+			X = neo.AnalogSignal(signal, t_start = 0*s, sampling_rate = self.fsample*Hz, units='dimensionless')
+		else:
+			X = neo.AnalogSignal(self.data[trial, index_channel, :], t_start = 0*s, sampling_rate = self.fsample*Hz, units='dimensionless')
+		
+		W = elephant.signal_processing.wavelet_transform(X, f, fs=self.fsample).reshape((N,len(f)))
+
+		if self.save_morlet == True:
+			self.results['morlet'] = W
+
+		return W
 
 	def pairwise_coherence(self, trial, index_pair, n_jobs = 1):
 			print('Trial: '+str(trial)+', Pair: '+str(index_pair))
@@ -64,6 +105,9 @@ class spectral_analysis():
 				Sm = sig.convolve2d(S.T, np.ones([self.dt, 1]), mode='same') 
 				Sm = Sm[self.tidx,:]
 				self.coh[:, nf] = ( Sm[:, 0]*np.conj(Sm[:, 0]) /(Sm[:, 1]*Sm[:,2]) ).real
+
+			if save_coh == True:
+				self.results['coherence'] = coh
 				'''
 				if as_mat==False:
 					file_name = session['dir_out']+dirs['session']+'_'+dirs['date'][nmonkey][nses]+'_trial_'+str(nT)+'_pair_'+str(pairs[nP, 0])+'_'+str(pairs[nP, 1])+'.dat'
