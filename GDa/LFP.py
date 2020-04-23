@@ -4,20 +4,21 @@
 import numpy         as np 
 import scipy.special as spe
 import glob
-from  .io          import set_paths, read_mat
-import scipy.io      as scio   # May be removed later
-import h5py                    # May be removed later
+from  .io            import set_paths, read_mat
 
 class LFP(set_paths):
 
 	def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', stype = 'samplecor', 
-				 session = 'session01', evt_dt = [-0.65,3.00]):
+				 session = 1, evt_dt = [-0.65,3.00]):
 		'''
-		Constructor
-		Inputs: 
-		> raw_path : Path containing the raw data.
-		> monkey   : Monkey name, should be either lucy or ethyl.
-		> type     : Session type, should be either samplecor, sampleinc or samplecorinc. 
+		Constructor method.
+		Inputs
+			> raw_path : Path containing the raw data.
+			> monkey   : Monkey name, should be either lucy or ethyl.
+			> date     : The date of the session to use.
+			> stype    : Session type, should be either samplecor, sampleinc or samplecorinc. 
+			> session  : The number of the session, should be either session01 or session02
+			> evt_dt   : The time window used to align the signal, shoud be a list with [ti, tf].
 		'''
 		super().__init__(raw_path = raw_path, monkey = monkey, date = date, session = session)
 		self.load_mat = read_mat()
@@ -26,48 +27,11 @@ class LFP(set_paths):
 
 	def read_session_info(self,):
 		'''
-		Recording and trials info dicitionaries
+		Method to read recording, and trials info dicitionaries.
 		'''
 		info = ['recording_info.mat', 'trial_info.mat']
-		#ri   = scio.loadmat(self.dir+info[0])['recording_info']
-		#ti   = h5py.File(self.dir+info[1])['trial_info']
 		ri   = self.load_mat.read_mat(self.dir+info[0])['recording_info']
 		ti   = self.load_mat.read_HDF5(self.dir+info[1])['trial_info']
-
-		'''
-		with h5py.File(self.dir+info[1], 'r') as ti:
-			ti = ti['trial_info']
-			self.trial_info     = {'num_trials': int(ti['num_trials'][0,0]),
-								   'trial_type': ti['trial_type'][:].T[0],
-			                       'behavioral_response': ti['behavioral_response'][:].T[0],
-			                       'sample_image': ti['sample_image'][:].T[0],
-			                       'nonmatch_image': ti['nonmatch_image'][:].T[0],
-			                       'match_image': ti['match_image'][:].T[0],
-			                       'reaction_time': ti['reaction_time'][:].T[0],
-			                       'sample_on': ti['sample_on'][:].T[0], #1th image is shown
-			                       'match_on': ti['match_on'][:].T[0],   #2nd image is shown
-			                       'sample_off': ti['sample_off'][:].T[0],}
-		'''
-
-		'''
-		self.trial_info     = {'num_trials': int(ti['num_trials'][0,0]),
-							   'trial_type': ti['trial_type'][:].T[0],
-							   'behavioral_response': ti['behavioral_response'][:].T[0],
-							   'sample_image': ti['sample_image'][:].T[0],
-							   'nonmatch_image': ti['nonmatch_image'][:].T[0],
-							   'match_image': ti['match_image'][:].T[0],
-							   'reaction_time': ti['reaction_time'][:].T[0],
-							   'sample_on': ti['sample_on'][:].T[0], #1th image is shown
-							   'match_on': ti['match_on'][:].T[0],   #2nd image is shown
-							   'sample_off': ti['sample_off'][:].T[0],}
-
-		self.recording_info = {'channel_count': ri['channel_count'].astype(int)[0][0],
-		                       'channel_numbers':ri['channel_numbers'][0,0][0],
-		                       'area':  ri['area'][0,0][0],
-		                       'fsample': ri['lfp_sampling_rate'].astype(int)[0][0],
-		                       'ms_mod': ri['ms_mod'][0,0][0],                        
-		                       'slvr': ri['slvr'][0,0][0],}   
-		'''
 
 		self.trial_info     = {}
 		self.recording_info = {}
@@ -76,14 +40,17 @@ class LFP(set_paths):
 			if key == 'lfp_sampling_rate':
 				self.recording_info['fsample'] = np.squeeze(ri.__dict__[key])
 			else:
-				self.recording_info[key] = np.squeeze(ri.__dict__[key])
+				self.recording_info[key]       = np.squeeze(ri.__dict__[key])
 
 		for key in ti.keys():
-			self.trial_info[key]     = np.squeeze(ti[key])
+			self.trial_info[key] = np.squeeze(ti[key])
 
 	def read_lfp_data(self,):
-
-		# Files to read
+		'''
+		Method to read the LFP data
+		'''
+		
+		# Get LFP file names for this session
 		self.files   = sorted(glob.glob(self.dir + '/' + self.date + '*' )) 
 
 		# Find zero time wrt to selected event
@@ -141,8 +108,6 @@ class LFP(set_paths):
 		delta_t   = 1.0 / self.recording_info['fsample']
 		for nt in self.indt:
 		    # Reading file with LFP data
-		    #print(nt)
-		    #f     = h5py.File(self.files[nt-1], "r")
 		    f = self.load_mat.read_HDF5(self.files[nt-1])
 		    lfp_data = np.transpose( f['lfp_data'] )
 		    f.close()
@@ -155,8 +120,6 @@ class LFP(set_paths):
 		    self.data[i] = lfp_data[self.indch-1, indb:inde+1]
 		    # Time vector, one for each trial, dimension NtrialsxTime
 		    self.time[i] = np.arange(self.evt_dt[0], self.evt_dt[1]+delta_t, delta_t)
-		    # Keep track of [ real trial number, sample image, choice, outcome (correct or incorrect), reaction time ]
-		    #self.trialinfo[i] = np.array([nt, self.trial_info['sample_image'][nt-1]-1, self.trial_info['choice'][nt-1], self.trial_info['behavioral_response'][nt-1], self.trial_info['reaction_time'][nt-1]/1000.0])
 		    i = i + 1
 
 		# Original channel's labels
@@ -173,8 +136,6 @@ class LFP(set_paths):
 		# Number of trials
 		self.nT = self.T      
 
-		#self.indt = np.arange(self.dt, self.data.shape[2]-self.dt+self.step-self.step, self.step)
-		#self.taxs = self.time[0][self.indt]
 		self.readinfo = {'nC': self.C, 'nP':self.nP, 'nT':self.nT, 'pairs':self.pairs, 'indt':self.indt, 'fsample': self.recording_info['fsample'],
 		            'tarray': self.time[0], 'channels_labels': self.labels, 
 		            'dcue': self.dcue, 'dsm': self.dsm, 'stim':self.stimulus, 'indch': self.indch}      

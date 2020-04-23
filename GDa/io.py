@@ -18,11 +18,11 @@ class read_mat:
 
 class set_paths:
 
-	def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', session = 'session01'):
+	def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', session = 1):
 		self.date     = date
 		self.monkey   = monkey
 		self.raw_path = raw_path
-		self.session  = session 
+		self.session  = 'session0' + str(session) #session 
 		
 		self.define_paths()
 
