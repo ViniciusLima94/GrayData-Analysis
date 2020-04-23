@@ -27,7 +27,7 @@ class spectral():
 
 	def wavelet_morlet(self, signal = None, fs = 20):
 
-		N = self.signal.shape[0]
+		N = signal.shape[0]
 		f = self.compute_freq(N, fs)
 
 		if len(f) <= 100:
@@ -90,7 +90,7 @@ class spectral_analysis(spectral):
 		'''
 		return super(spectral_analysis, self).filter(signal = self.data[trial, index_channel, :], fs = self.fsample, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
 
-	def wavelet_morlet(self, signal = None, trial = None, index_channel = None):
+	def wavelet_morlet(self, trial = None, index_channel = None):
 		'''
 		N = self.tarray.shape[0]
 		f = self.compute_freq()
@@ -138,7 +138,7 @@ class spectral_analysis(spectral):
 				Sm = Sm[self.tidx,:]
 				coh[:, nf] = ( Sm[:, 0]*np.conj(Sm[:, 0]) /(Sm[:, 1]*Sm[:,2]) ).real
 
-			if save_coh == True:
+			if self.save_coh == True:
 				self.results['coherence'] = coh
 				'''
 				if as_mat==False:
