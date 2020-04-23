@@ -49,7 +49,7 @@ class LFP(set_paths):
 		'''
 		Method to read the LFP data
 		'''
-		
+
 		# Get LFP file names for this session
 		self.files   = sorted(glob.glob(self.dir + '/' + self.date + '*' )) 
 
@@ -178,10 +178,16 @@ class LFP(set_paths):
 		LFPdata = {}
 		LFPdata['data'] = self.data
 		LFPdata['info'] = self.readinfo
+		LFPdata['path'] = {}
+		LFPdata['path']['dir'] = self.dir
+		LFPdata['path']['dir_out'] = self.dir_out
 		np.save('raw_lfp/'+ self.monkey + '_' + self.session + '_' + self.date + '.npy', LFPdata)
 
 	def save_mat(self):
 		LFPdata = {}
 		LFPdata['data'] = self.data
 		LFPdata['info'] = self.readinfo
+		LFPdata['path'] = {}
+		LFPdata['path']['dir'] = self.dir
+		LFPdata['path']['dir_out'] = self.dir_out
 		self.load_mat.save_mat('raw_lfp/'+ self.monkey + '_' + self.session + '_' + self.date + '.mat', LFPdata)
