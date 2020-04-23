@@ -4,7 +4,8 @@ import mne.filter
 import neo
 import elephant
 from   quantities    import s, Hz
-
+from   joblib        import Parallel, delayed
+import multiprocessing
 
 class spectral():
 
@@ -28,19 +29,18 @@ class spectral():
 	def wavelet_morlet(self, signal = None, fs = 20):
 
 		N = signal.shape[0]
-		f = self.compute_freq(N, fs)
+		#f = self.compute_freq(N, fs)
 
-		if len(f) <= 100:
-			f = f
-		else:
-			delta = int( np.ceil(len(f) / 100) )
-			f = f[::delta]
+		#if len(f) <= 100:
+		#	f = f
+		#else:
+		#	delta = int( np.ceil(len(f) / 100) )
+		#	f = f[::delta]
 
 		X = neo.AnalogSignal(signal, t_start = 0*s, sampling_rate = fs*Hz, units='dimensionless')
-		W = elephant.signal_processing.wavelet_transform(X, f, fs=self.fsample).reshape((N,len(f)))
+		W = elephant.signal_processing.wavelet_transform(X, np.range(100), fs=self.fsample).reshape((N,len(f)))
 
 		return W
-
 
 class spectral_analysis(spectral):
 
@@ -52,76 +52,58 @@ class spectral_analysis(spectral):
 		self.fc      = fc
 		self.df      = df
 		self.save_filtered = save_filtered
+		self.save_morlet   = save_morlet
+		self.save_coh      = save_coh
 
 		if LFP == None:
 			LFP = np.load(path, allow_pickle=True).item()
 			self.nP      = LFP['info']['nP']
+			self.nT      = LFP['info']['nT']
 			self.pairs   = LFP['info']['pairs']
 			self.tarray  = LFP['info']['tarray']
 			self.tidx    = np.arange(self.dt, LFP['data'].shape[2]-self.dt, self.step)
 			self.taxs    = LFP['info']['tarray'][self.tidx]
 			self.fsample = LFP['info']['fsample']
 			self.data    = LFP['data']
+			self.dir     = LFP['path']['dir']
+			self.dir_out = LFP['path']['dir_out']
 		else:
 			self.nP      = LFP.nP
+			self.nT      = LFP.nT
 			self.pairs   = LFP.pairs
 			self.tarray  = LFP.time[0]
 			self.tidx    = np.arange(self.dt, LFP.data.shape[2]-self.dt, self.step)
 			self.taxs    = LFP.time[0][self.tidx]
 			self.fsample = LFP.recording_info['fsample']
 			self.data    = LFP.data
+			self.dir     = LFP.dir
+			self.dir_out = LFP.dir_out
 
-		self.results = {}	
+		self.results = {}
+		self.results['coherence'] = {}
 
 	def filter(self, trial = None, index_channel = None, f_low = 30, f_high = 60, n_jobs = 1):
-		'''
-		if trial == None and index_channel == None:
-			signal_filtered = mne.filter.filter_data(signal, self.fsample, f_low, f_high, 
-												 method = 'iir', verbose=False, n_jobs=n_jobs)
 
-		else:
-			signal_filtered = mne.filter.filter_data(self.data[trial, index_channel, :], self.fsample, f_low, f_high, 
-												 method = 'iir', verbose=False, n_jobs=n_jobs)
+		signal_filtered = super(spectral_analysis, self).filter(signal = self.data[trial, index_channel, :], fs = self.fsample, 
+			                                         f_low = f_low, f_high = f_high, n_jobs = n_jobs)
 
-		if self.save_filtered == True:
-			self.results['sigf' + str(f_low) + '_' + str(f_high)] = signal_filtered
+		#if self.save_filtered == True:
+		#	self.results['filtered_'+str(f_low)+'_'+str(f_high)][str(trial)][str(index_channel)] = signal_filtered
 
 		return signal_filtered
-		'''
-		return super(spectral_analysis, self).filter(signal = self.data[trial, index_channel, :], fs = self.fsample, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
 
 	def wavelet_morlet(self, trial = None, index_channel = None):
-		'''
-		N = self.tarray.shape[0]
-		f = self.compute_freq()
 
-		if len(f) <= 100:
-			f = f
-		else:
-			delta = int( np.ceil(len(f) / 100) )
-			f = f[::delta]
+		W = super(spectral_analysis, self).wavelet_morlet(signal = self.data[trial, index_channel, :], fs = self.fsample)
 
-		if trial == None and index_channel == None:
-			X = neo.AnalogSignal(signal, t_start = 0*s, sampling_rate = self.fsample*Hz, units='dimensionless')
-		else:
-			X = neo.AnalogSignal(self.data[trial, index_channel, :], t_start = 0*s, sampling_rate = self.fsample*Hz, units='dimensionless')
-		
-		W = elephant.signal_processing.wavelet_transform(X, f, fs=self.fsample).reshape((N,len(f)))
-
-		if self.save_morlet == True:
-			self.results['morlet'] = W
+		#if self.save_morlet == True:
+		#	self.results['morlet'][str(trial)][str(index_channel)] = W
 
 		return W
-		'''
-		return super(spectral_analysis, self).wavelet_morlet(signal = self.data[trial, index_channel, :], fs = self.fsample)
 
-	def pairwise_coherence(self, trial, index_pair, n_jobs = 1):
+	def pairwise_coherence(self, trial, index_pair, n_jobs = 1, save_to_file = True):
 			print('Trial: '+str(trial)+', Pair: '+str(index_pair))
 			coh = np.empty( [len(self.taxs), len(self.fc)] )
-			# First LFP
-			#sig1 = self.data[trial, self.pairs[index_pair, 0], :].copy()
-			# Second LFP
-			#sig2 = self.data[trial, self.pairs[index_pair, 1], :].copy()
 
 			S = (1+1j)*np.zeros([3, self.data.shape[2]])
 			for nf in range( self.fc.shape[0] ):
@@ -139,13 +121,18 @@ class spectral_analysis(spectral):
 				coh[:, nf] = ( Sm[:, 0]*np.conj(Sm[:, 0]) /(Sm[:, 1]*Sm[:,2]) ).real
 
 			if self.save_coh == True:
-				self.results['coherence'] = coh
-				'''
-				if as_mat==False:
-					file_name = session['dir_out']+dirs['session']+'_'+dirs['date'][nmonkey][nses]+'_trial_'+str(nT)+'_pair_'+str(pairs[nP, 0])+'_'+str(pairs[nP, 1])+'.dat'
-					np.savetxt(file_name, coh.T)
-				elif as_mat==True:
-					file_name = session['dir_out']+dirs['session']+'_'+dirs['date'][nmonkey][nses]+'_trial_'+str(nT)+'_pair_'+str(pairs[nP, 0])+'_'+str(pairs[nP, 1])+'.mat'
-					coh = {'trial':coh.T}
-					scio.savemat(file_name, coh )
-				'''
+				self.results['coherence'][str(trial)] = {}
+				self.results['coherence'][str(trial)][str(index_pair)] = coh
+
+			if save_to_file == True:
+				file_name = self.dir_out + 'trial_' +str(trial) + '_pair_' + str(self.pairs[index_pair, 0]) + '_' + str(self.pairs[index_pair, 1]) + '.npy'
+				np.save(file_name, {'coherence' : coh})
+
+	def compute_coherences(self, n_jobs = 1):
+		for trial in range(self.nT):
+			Parallel(n_jobs=n_jobs, backend='loky', max_nbytes=1e6)(
+				delayed(self.pairwise_coherence)
+				(trial, index_pair, n_jobs = 1, save_to_file = True)  
+				for index_pair in range(self.nP)
+				)
+		
