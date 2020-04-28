@@ -134,11 +134,13 @@ class LFP(set_paths):
 				self.pairs[count, 1] = j
 				count += 1
 		# Number of trials
-		self.nT = self.T      
+		self.nT   = self.T  
+		# Saving areas only for the channels used
+		self.area = self.recording_info['area'][self.indch-1]     
 
 		self.readinfo = {'nC': self.C, 'nP':self.nP, 'nT':self.nT, 'pairs':self.pairs, 'indt':self.indt, 'fsample': self.recording_info['fsample'],
 		            'tarray': self.time[0], 'channels_labels': self.labels, 
-		            'dcue': self.dcue, 'dsm': self.dsm, 'stim':self.stimulus, 'indch': self.indch}      
+		            'dcue': self.dcue, 'dsm': self.dsm, 'stim':self.stimulus, 'indch': self.indch, 'areas': self.area}      
 
 	def print_info(self,):
 		print('\n-------------------+-----------')
