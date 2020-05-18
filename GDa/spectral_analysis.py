@@ -26,7 +26,7 @@ class spectral():
 
 		return signal_filtered
 
-	def wavelet_morlet(self, signal = None, fs = 20):
+	def wavelet_morlet(self, signal = None, fs = 20, fmax=100, nfreq=100):
 
 		N = signal.shape[0]
 		#f = self.compute_freq(N, fs)
@@ -38,7 +38,7 @@ class spectral():
 		#	f = f[::delta]
 
 		X = neo.AnalogSignal(signal, t_start = 0*s, sampling_rate = fs*Hz, units='dimensionless')
-		W = elephant.signal_processing.wavelet_transform(X, np.range(100), fs=self.fsample).reshape((N,len(f)))
+		W = elephant.signal_processing.wavelet_transform(X, np.linspace(fs/N, fmax, nfreq), fs=fs).reshape((N,nfreq))
 
 		return W
 
@@ -92,9 +92,9 @@ class spectral_analysis(spectral):
 
 		return signal_filtered
 
-	def wavelet_morlet(self, trial = None, index_channel = None):
+	def wavelet_morlet(self, trial = None, index_channel = None,  fmax=100, nfreq=100):
 
-		W = super(spectral_analysis, self).wavelet_morlet(signal = self.data[trial, index_channel, :], fs = self.fsample)
+		W = super(spectral_analysis, self).wavelet_morlet(signal = self.data[trial, index_channel, :], fs = self.fsample, fmax=fmax, nfreq=nfreq)
 
 		#if self.save_morlet == True:
 		#	self.results['morlet'][str(trial)][str(index_channel)] = W
