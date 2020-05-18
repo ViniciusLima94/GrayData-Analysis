@@ -1,4 +1,4 @@
-# Package for  pair-wise coherence computation of the Gray's data
+# Package for  pairwise coherence computation of the Gray's data
 
 For details on how to use it see the notebooks one to three:
 
