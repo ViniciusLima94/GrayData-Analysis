@@ -42,6 +42,15 @@ class spectral():
 
 		return W
 
+	def instantaneous_power(self, signal = None, fs = 20, f_low = 30, f_high = 60, n_jobs = 1):
+		# Filter the signal
+		signal_filtered = self.filter(signal = signal, fs = fs, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
+		# Hilbert transform
+		S               = sig.hilbert(signal_filtered)
+		# Power 
+		P               = np.multiply( S, np.conj(S) )
+		return P
+
 class spectral_analysis(spectral):
 
 	def __init__(self, LFP = None, path = None, step = 25, dt = 250, fc = np.arange(6, 62, 2), df = 4, 
@@ -101,8 +110,11 @@ class spectral_analysis(spectral):
 
 		return W
 
+	def instantaneous_power(self, ):
+		None
+
 	def pairwise_coherence(self, trial, index_pair, n_jobs = 1, save_to_file = True):
-			print('Trial: '+str(trial)+', Pair: '+str(index_pair))
+			#print('Trial: '+str(trial)+', Pair: '+str(index_pair))
 			coh = np.empty( [len(self.taxs), len(self.fc)] )
 
 			S = (1+1j)*np.zeros([3, self.data.shape[2]])
