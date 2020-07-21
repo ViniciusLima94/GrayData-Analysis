@@ -29,7 +29,7 @@ F, Z  = ZAP(10.0, 2.0, 620.0, 0.001, 20.001).evaluate(t)
 
 spec = spectral()
 f    = spec.compute_freq(len(Z), 1/dt)
-P    = spec.instantaneous_power(signal = Z, fs = fs, f_low = 3, f_high = 6, n_jobs = 10)
+P    = spec.instantaneous_power(signal = Z, fs = 1/dt, f_low = 3, f_high = 6, n_jobs = 10)
 
 plt.subplot2grid((2,2),(0,0),colspan=2)
 plt.plot(t, Z, lw=.3)
