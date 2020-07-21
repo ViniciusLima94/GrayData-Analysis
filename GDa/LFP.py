@@ -139,8 +139,9 @@ class LFP(set_paths):
 		self.area = self.recording_info['area'][self.indch-1]     
 
 		self.readinfo = {'nC': self.C, 'nP':self.nP, 'nT':self.nT, 'pairs':self.pairs, 'indt':self.indt, 'fsample': self.recording_info['fsample'],
-		            'tarray': self.time[0], 'channels_labels': self.labels, 
-		            'dcue': self.dcue, 'dsm': self.dsm, 'stim':self.stimulus, 'indch': self.indch, 'areas': self.area}      
+		                 'tarray': self.time[0], 'channels_labels': self.labels, 'dcue': self.dcue, 'dsm': self.dsm, 'stim':self.stimulus, 
+		                 'indch': self.indch, 'areas': self.area, 't_cue_on': self.t0 , 't_cue_off': self.t0_f, 't_match_on': self.t1
+		            	}      
 
 	def print_info(self,):
 		print('\n-------------------+-----------')
