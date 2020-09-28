@@ -28,8 +28,11 @@ class set_paths:
 		self.define_paths()
 
 	def define_paths(self,):
-		self.dir     = self.raw_path + self.monkey + '/' + self.date + '/' + self.session + '/' 
-		self.dir_out = 'Results/'    + self.monkey + '/' + self.date + '/' + self.session + '/' 
+		#self.dir     = self.raw_path + self.monkey + '/' + self.date + '/' + self.session + '/' 
+		#self.dir_out = 'Results/'    + self.monkey + '/' + self.date + '/' + self.session + '/' 
+		# Using os join
+		self.dir     = os.path.join(self.raw_path, self.monkey, self.date, self.session)
+		self.dir_out = os.path.join('Results', self.monkey, self.date, self.session)
 
 		# Create out folder in case it not exist yet
 		try:

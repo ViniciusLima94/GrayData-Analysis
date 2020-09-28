@@ -21,7 +21,7 @@ class spectral():
 		return f
 
 	def filter(self, signal = None, fs = 20, f_low = 30, f_high = 60, n_jobs = 1):
-		signal_filtered = mne.filter.filter_data(signal, fs, f_low, f_high, 
+		signal_filtered = mne.filter.filter_data(signal, fs, f_low, f_high,
 												 method = 'iir', verbose=False, n_jobs=n_jobs)
 
 		return signal_filtered
@@ -47,13 +47,13 @@ class spectral():
 		signal_filtered = self.filter(signal = signal, fs = fs, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
 		# Hilbert transform
 		S               = sig.hilbert(signal_filtered)
-		# Power 
+		# Power
 		P               = np.multiply( S, np.conj(S) )
 		return P
 
 class spectral_analysis(spectral):
 
-	def __init__(self, LFP = None, path = None, step = 25, dt = 250, fc = np.arange(6, 62, 2), df = 4, 
+	def __init__(self, LFP = None, path = None, step = 25, dt = 250, fc = np.arange(6, 62, 2), df = 4,
 				save_filtered = False, save_morlet = False, save_coh = True):
 
 		self.step    = step
@@ -93,7 +93,7 @@ class spectral_analysis(spectral):
 
 	def filter(self, trial = None, index_channel = None, f_low = 30, f_high = 60, n_jobs = 1):
 
-		signal_filtered = super(spectral_analysis, self).filter(signal = self.data[trial, index_channel, :], fs = self.fsample, 
+		signal_filtered = super(spectral_analysis, self).filter(signal = self.data[trial, index_channel, :], fs = self.fsample,
 			                                         f_low = f_low, f_high = f_high, n_jobs = n_jobs)
 
 		#if self.save_filtered == True:
@@ -128,7 +128,7 @@ class spectral_analysis(spectral):
 				S[0, :] = np.multiply( Sx, np.conj(Sy) )
 				S[1, :] = np.multiply( Sx, np.conj(Sx) )
 				S[2, :] = np.multiply( Sy, np.conj(Sy) )
-				Sm = sig.convolve2d(S.T, np.ones([self.dt, 1]), mode='same') 
+				Sm = sig.convolve2d(S.T, np.ones([self.dt, 1]), mode='same')
 				Sm = Sm[self.tidx,:]
 				coh[:, nf] = ( Sm[:, 0]*np.conj(Sm[:, 0]) /(Sm[:, 1]*Sm[:,2]) ).real
 
@@ -144,7 +144,6 @@ class spectral_analysis(spectral):
 		for trial in range(self.nT):
 			Parallel(n_jobs=n_jobs, backend='loky', max_nbytes=1e6)(
 				delayed(self.pairwise_coherence)
-				(trial, index_pair, n_jobs = 1, save_to_file = True)  
+				(trial, index_pair, n_jobs = 1, save_to_file = True)
 				for index_pair in range(self.nP)
 				)
-		
