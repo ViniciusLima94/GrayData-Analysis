@@ -12,6 +12,7 @@ class spectral():
 	def __init__(self, ):
 		None
 
+	'''
 	def compute_freq(self, N, fs):
 		# Time length
 		T = N / fs
@@ -19,12 +20,16 @@ class spectral():
 		f = np.linspace(1/T, fs/2-1/T, N/2+1)
 
 		return f
+	'''
 
 	def filter(self, signal = None, fs = 20, f_low = 30, f_high = 60, n_jobs = 1):
 		signal_filtered = mne.filter.filter_data(signal, fs, f_low, f_high,
 												 method = 'iir', verbose=False, n_jobs=n_jobs)
 
 		return signal_filtered
+
+	def spectogram(self, signal = None, method = 'morlet'):
+		None
 
 	'''
 	def wavelet_morlet(self, signal = None, fs = 20, fmax=100, nfreq=100):
