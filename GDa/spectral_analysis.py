@@ -26,6 +26,7 @@ class spectral():
 
 		return signal_filtered
 
+	'''
 	def wavelet_morlet(self, signal = None, fs = 20, fmax=100, nfreq=100):
 
 		N = signal.shape[0]
@@ -41,6 +42,8 @@ class spectral():
 		W = elephant.signal_processing.wavelet_transform(X, np.linspace(fs/N, fmax, nfreq), fs=fs).reshape((N,nfreq))
 
 		return W
+
+	'''
 
 	def instantaneous_power(self, signal = None, fs = 20, f_low = 30, f_high = 60, n_jobs = 1):
 		# Filter the signal
