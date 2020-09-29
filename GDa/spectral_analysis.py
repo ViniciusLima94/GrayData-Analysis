@@ -28,8 +28,13 @@ class spectral():
 
 		return signal_filtered
 
-	def spectogram(self, signal = None, method = 'morlet'):
-		None
+	def spectogram(self, signal = None, fs = 20, freqs = np.arange(6,60,1), method = 'morlet', n_jobs = 1):
+		if method == 'morlet':
+			out = mne.time_frequency.tfr_array_morlet(signal, fs, freqs, output='power', n_jobs=n_jobs)
+		if method == 'multitaper'
+			out = mne.time_frequency.tfr_array_multitaper(signal, fs, freqs, output='power', n_jobs=n_jobs)
+		return out
+
 
 	'''
 	def wavelet_morlet(self, signal = None, fs = 20, fmax=100, nfreq=100):
