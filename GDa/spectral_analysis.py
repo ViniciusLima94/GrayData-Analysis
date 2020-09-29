@@ -1,3 +1,7 @@
+#####################################################################################################
+# Class to perform spectral analysis on the LFP data
+#####################################################################################################
+
 import numpy         as np
 import scipy.signal  as sig
 import mne.filter
@@ -12,48 +16,18 @@ class spectral():
 	def __init__(self, ):
 		None
 
-	'''
-	def compute_freq(self, N, fs):
-		# Time length
-		T = N / fs
-		# Frequency array
-		f = np.linspace(1/T, fs/2-1/T, N/2+1)
-
-		return f
-	'''
-
 	def filter(self, signal = None, fs = 20, f_low = 30, f_high = 60, n_jobs = 1):
 		signal_filtered = mne.filter.filter_data(signal, fs, f_low, f_high,
-							 method = 'iir', verbose=False, n_jobs=n_jobs)
+							 				     method = 'iir', verbose=False, n_jobs=n_jobs)
 
 		return signal_filtered
 
 	def spectogram(self, signal = None, fs = 20, freqs = np.arange(6,60,1), method = 'morlet', n_jobs = 1):
 		if method == 'morlet':
 			out = mne.time_frequency.tfr_array_morlet(signal, fs, freqs, output='power', n_jobs=n_jobs)
-		if method == 'multitaper'
+		if method == 'multitaper':
 			out = mne.time_frequency.tfr_array_multitaper(signal, fs, freqs, output='power', n_jobs=n_jobs)
 		return out
-
-
-	'''
-	def wavelet_morlet(self, signal = None, fs = 20, fmax=100, nfreq=100):
-
-		N = signal.shape[0]
-		#f = self.compute_freq(N, fs)
-
-		#if len(f) <= 100:
-		#	f = f
-		#else:
-		#	delta = int( np.ceil(len(f) / 100) )
-		#	f = f[::delta]
-
-		X = neo.AnalogSignal(signal, t_start = 0*s, sampling_rate = fs*Hz, units='dimensionless')
-		W = elephant.signal_processing.wavelet_transform(X, np.linspace(fs/N, fmax, nfreq), fs=fs).reshape((N,nfreq))
-
-		return W
-
-	'''
 
 	def instantaneous_power(self, signal = None, fs = 20, f_low = 30, f_high = 60, n_jobs = 1):
 		# Filter the signal
@@ -66,7 +40,7 @@ class spectral():
 
 class spectral_analysis(spectral):
 
-	def __init__(self, LFP = None, path = None, step = 25, dt = 250, fc = np.arange(6, 62, 2), df = 4,
+	def __init__(self, session = None, path = None, step = 25, dt = 250, fc = np.arange(6, 62, 2), df = 4,
 				save_filtered = False, save_morlet = False, save_coh = True):
 
 		self.step    = step
@@ -77,29 +51,29 @@ class spectral_analysis(spectral):
 		self.save_morlet   = save_morlet
 		self.save_coh      = save_coh
 
-		if LFP == None:
-			LFP = np.load(path, allow_pickle=True).item()
-			self.nP      = LFP['info']['nP']
-			self.nT      = LFP['info']['nT']
-			self.pairs   = LFP['info']['pairs']
-			self.tarray  = LFP['info']['tarray']
-			self.tidx    = np.arange(self.dt, LFP['data'].shape[2]-self.dt, self.step)
-			self.taxs    = LFP['info']['tarray'][self.tidx]
-			self.fsample = LFP['info']['fsample']
-			self.data    = LFP['data']
-			self.dir     = LFP['path']['dir']
-			self.dir_out = LFP['path']['dir_out']
+		if session == None:
+			session = np.load(path, allow_pickle=True).item()
+			self.nP      = session['info']['nP']
+			self.nT      = session['info']['nT']
+			self.pairs   = session['info']['pairs']
+			self.tarray  = session['info']['tarray']
+			self.tidx    = np.arange(self.dt, session['data'].shape[2]-self.dt, self.step)
+			self.taxs    = session['info']['tarray'][self.tidx]
+			self.fsample = session['info']['fsample']
+			self.data    = session['data']
+			self.dir     = session['path']['dir']
+			self.dir_out = session['path']['dir_out']
 		else:
-			self.nP      = LFP.nP
-			self.nT      = LFP.nT
-			self.pairs   = LFP.pairs
-			self.tarray  = LFP.time[0]
-			self.tidx    = np.arange(self.dt, LFP.data.shape[2]-self.dt, self.step)
-			self.taxs    = LFP.time[0][self.tidx]
-			self.fsample = LFP.recording_info['fsample']
-			self.data    = LFP.data
-			self.dir     = LFP.dir
-			self.dir_out = LFP.dir_out
+			self.nP      = session.nP
+			self.nT      = session.nT
+			self.pairs   = session.pairs
+			self.tarray  = session.time[0]
+			self.tidx    = np.arange(self.dt, session.data.shape[2]-self.dt, self.step)
+			self.taxs    = session.time[0][self.tidx]
+			self.fsample = session.recording_info['fsample']
+			self.data    = session.data
+			self.dir     = session.dir
+			self.dir_out = session.dir_out
 
 		self.results = {}
 		self.results['coherence'] = {}
