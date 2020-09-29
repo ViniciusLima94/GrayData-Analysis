@@ -107,7 +107,7 @@ class session(set_paths):
 		self.trialinfo = np.empty([self.T, 5])         # Info about each trial
 
 		# Loop over trials
-		print('Reading data...')
+		#print('Reading data...')
 		i = 0
 		delta_t   = 1.0 / self.recording_info['fsample']
 		for nt in self.indt:
