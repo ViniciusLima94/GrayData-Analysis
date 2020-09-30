@@ -1,7 +1,6 @@
 #####################################################################################################
 # Class to perform spectral analysis on the LFP data
 #####################################################################################################
-
 import numpy         as np
 import scipy.signal  as sig
 import mne.filter
@@ -78,19 +77,30 @@ class spectral_analysis(spectral):
 		self.results = {}
 		self.results['coherence'] = {}
 
-	def filter(self, trial = None, index_channel = None, f_low = 30, f_high = 60, n_jobs = 1):
+	def filter(self, trial = None, index_channel = None, apply_to_all = False, f_low = 30, f_high = 60, n_jobs = 1):
 
-		signal_filtered = super(spectral_analysis, self).filter(signal = self.data[trial, index_channel, :], fs = self.fsample,
-			                                         f_low = f_low, f_high = f_high, n_jobs = n_jobs)
+		if apply_to_all == True:
+			signal_filtered = super(spectral_analysis, self).filter(signal = self.data, 
+																fs = self.fsample, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
+
+		else:
+			signal_filtered = super(spectral_analysis, self).filter(signal = self.data[trial, index_channel, :], 
+																fs = self.fsample, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
 
 		#if self.save_filtered == True:
 		#	self.results['filtered_'+str(f_low)+'_'+str(f_high)][str(trial)][str(index_channel)] = signal_filtered
 
 		return signal_filtered
 
-	def wavelet_morlet(self, trial = None, index_channel = None,  fmax=100, nfreq=100):
+	def spectogram(self, trial = None, index_channel = None,  apply_to_all = False, freqs = np.arange(6,60,1), method = 'morlet', n_jobs = 1):
 
-		W = super(spectral_analysis, self).wavelet_morlet(signal = self.data[trial, index_channel, :], fs = self.fsample, fmax=fmax, nfreq=nfreq)
+		if apply_to_all == True:
+			W = super(spectral_analysis, self).spectogram(signal = self.data, fs = float(self.fsample), 
+									                      freqs=freqs, method=method, n_jobs = n_jobs)			
+		else:
+			W = super(spectral_analysis, self).spectogram(signal = self.data[trial, index_channel, :][np.newaxis, np.newaxis, :], 
+														  fs = float(self.fsample), 
+									                      freqs=freqs, method=method, n_jobs = n_jobs)
 
 		#if self.save_morlet == True:
 		#	self.results['morlet'][str(trial)][str(index_channel)] = W
