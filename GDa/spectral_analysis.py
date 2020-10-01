@@ -20,11 +20,15 @@ class spectral():
 
 		return signal_filtered
 
-	def spectogram(self, signal = None, fs = 20, freqs = np.arange(6,60,1), method = 'morlet', n_jobs = 1):
+	def spectogram(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
+		           time_bandwidth = None, method = 'morlet', n_jobs = 1):
 		if method == 'morlet':
-			out = mne.time_frequency.tfr_array_morlet(signal, fs, freqs, output='power', n_jobs=n_jobs)
+			out = mne.time_frequency.tfr_array_morlet(signal, fs, freqs, n_cycles = n_cycles, 
+				                                      output='complex', n_jobs=n_jobs)
 		if method == 'multitaper':
-			out = mne.time_frequency.tfr_array_multitaper(signal, fs, freqs, output='power', n_jobs=n_jobs)
+			out = mne.time_frequency.tfr_array_multitaper(signal, fs, freqs, n_cycles = n_cycles, 
+													      time_bandwidth = time_bandwidth, output='complex', 
+													      n_jobs=n_jobs)
 		return out
 
 	def instantaneous_power(self, signal = None, fs = 20, f_low = 30, f_high = 60, n_jobs = 1):
@@ -35,6 +39,26 @@ class spectral():
 		# Power
 		P               = np.multiply( S, np.conj(S) )
 		return P
+
+	def coherence(self, signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
+		           time_bandwidth = None, method = 'morlet', n_jobs = 1):
+
+		if method == 'morlet':
+			Wx = self.spectogram(signal = signal1, fs = fs, freqs = freqs, 
+				                 n_cycles = n_cycles, method = method, n_jobs = n_jobs)
+			Wy = self.spectogram(signal = signal2, fs = fs, freqs = freqs, 
+				                 n_cycles = n_cycles, method = method, n_jobs = n_jobs)			
+		if method == 'multitaper':
+			Wx = self.spectogram(signal = signal1, fs = fs, freqs = freqs, time_bandwidth = time_bandwidth,
+				                 n_cycles = n_cycles, method = method, n_jobs = n_jobs)
+			Wy = self.spectogram(signal = signal2, fs = fs, freqs = freqs, time_bandwidth = time_bandwidth,
+				                 n_cycles = n_cycles, method = method, n_jobs = n_jobs)	
+
+		Sxy = Wx*np.conj(Wy)	
+		Sxx = Wx*np.conj(Wx)
+		Syy = Wy*np.conj(Wy)		
+
+		return Sxy * np.conj(Sxy) / np.sqrt( np.multiply(Sxx, Syy) )
 
 class spectral_analysis(spectral):
 
@@ -169,7 +193,7 @@ class spectral_analysis(spectral):
 		self.tidx    = np.arange(self.dt, self.data.shape[2]-self.dt, self.step)
 
 		# Coherence matrix
-		coh = np.empty( [len(self.tarray), len(self.fc)] )
+		coh = np.empty( [len(self.tidx), len(self.fc)] )
 		# Instantaneous power spectrum matrices
 		S = (1+1j)*np.zeros([3, self.data.shape[2]])
 		# Computing coherences
