@@ -158,12 +158,15 @@ class spectral_analysis(spectral):
 			return coh
 		'''
 
-	def pairwise_coherence(self, trial = None, index_pair = None, dt = 250, 
+	def pairwise_coherence(self, trial = None, index_pair = None, step = 25, dt = 250, 
 				       	   fc = np.arange(6, 62, 2), df = 4, n_jobs = 1, save_to_file = True):
 
+		self.step    = step
 		self.dt      = dt
 		self.fc      = fc
 		self.df      = df
+
+		self.tidx    = np.arange(self.dt, self.data.shape[2]-self.dt, self.step)
 
 		# Coherence matrix
 		coh = np.empty( [len(self.tarray), len(self.fc)] )
@@ -187,6 +190,7 @@ class spectral_analysis(spectral):
 			S[1, :] = np.multiply( Sx, np.conj(Sx) )
 			S[2, :] = np.multiply( Sy, np.conj(Sy) )
 			Sm = sig.convolve2d(S.T, np.ones([self.dt, 1]), mode='same')
+			Sm = Sm[self.tidx,:]
 			coh[:, i] = ( Sm[:, 0]*np.conj(Sm[:, 0]) / (Sm[:, 1]*Sm[:,2]) ).real
 
 		if save_to_file == True:
