@@ -54,11 +54,14 @@ class spectral():
 			Wy = self.spectogram(signal = signal2, fs = fs, freqs = freqs, time_bandwidth = time_bandwidth,
 				                 n_cycles = n_cycles, method = method, n_jobs = n_jobs)	
 
-		Sxy = Wx*np.conj(Wy)	
-		Sxx = Wx*np.conj(Wx)
-		Syy = Wy*np.conj(Wy)		
+		Wx = np.squeeze(Wx)
+		Wy = np.squeeze(Wy)
 
-		return Sxy * np.conj(Sxy) / np.sqrt( np.multiply(Sxx, Syy) )
+		Sxx = np.abs(Wx)**2
+		Syy = np.abs(Wy)**2
+		Sxy = np.multiply(Wx, np.conj(Wy))
+		#abs(Cxy_sm./(sqrt(Cxx_sm).*sqrt(Cyy_sm)))
+		return np.abs( Sxy )**2 / np.sqrt( Sxx.real * Syy.real )
 
 class spectral_analysis(spectral):
 
