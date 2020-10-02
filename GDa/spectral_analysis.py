@@ -96,7 +96,7 @@ class spectral():
 		Sxx, Syy, Sxy = self.wavelet_spectrum(signal1 = signal1, signal2 = signal2, fs = fs, 
 			 								  freqs = freqs, n_cycles = n_cycles, 
 									          smooth_window = smooth_window, time_bandwidth = time_bandwidth, 
-									          method = 'method', n_jobs = n_jobs)
+									          method = method, n_jobs = n_jobs)
 		# Return coherence
 		return Sxy * np.conj(Sxy) / (Sxx * Syy)
 
