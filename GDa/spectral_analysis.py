@@ -20,7 +20,7 @@ class spectral():
 
 		return signal_filtered
 
-	def spectogram(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
+	def wavelet_transform(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
 		           time_bandwidth = None, method = 'morlet', n_jobs = 1):
 		if method == 'morlet':
 			out = mne.time_frequency.tfr_array_morlet(signal, fs, freqs, n_cycles = n_cycles, 
@@ -31,18 +31,76 @@ class spectral():
 													      n_jobs=n_jobs)
 		return out
 
-	def instantaneous_power(self, signal = None, fs = 20, f_low = 30, f_high = 60, n_jobs = 1):
-		# Filter the signal
-		signal_filtered = self.filter(signal = signal, fs = fs, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
-		# Hilbert transform
-		S               = sig.hilbert(signal_filtered)
-		# Power
-		P               = np.multiply( S, np.conj(S) )
-		return P
+	def wavelet_spectrum(self, signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
+						 smooth_window = 1, time_bandwidth = None, method = 'morlet', n_jobs = 1):
 
-	def coherence(self, signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
+		# If signal2 is None compute the autospectra of signal1
+		if type(signal2) != np.ndarray:
+			if method == 'morlet':
+				Wx = self.wavelet_transform(signal = signal1, fs = fs, freqs = freqs, 
+					                 n_cycles = n_cycles, method = 'morlet', n_jobs = n_jobs)	
+
+			if method == 'multitaper':
+				Wx = self.wavelet_transform(signal = signal1, fs = fs, freqs = freqs, time_bandwidth = time_bandwidth,
+					                 n_cycles = n_cycles, method = 'multitaper', n_jobs = n_jobs)		
+			Wx = np.squeeze(Wx)
+			# Computing spectra
+			Sxx = Wx * np.conj(Wx)
+			# Smoothing spectra
+			kernel = np.ones([smooth_window, 1])
+			Sxx = sig.convolve2d(Sxx.T, kernel, mode='same').T
+			return Sxx
+		# Otherwise compute the autospectra of signal1, signal2, and their cros-spectra
+		else:
+			if method == 'morlet':
+				Wx = self.wavelet_transform(signal = signal1, fs = fs, freqs = freqs, 
+					                 n_cycles = n_cycles, method = 'morlet', n_jobs = n_jobs)
+				Wy = self.wavelet_transform(signal = signal2, fs = fs, freqs = freqs, 
+					                 n_cycles = n_cycles, method = 'morlet', n_jobs = n_jobs)			
+			if method == 'multitaper':
+				Wx = self.wavelet_transform(signal = signal1, fs = fs, freqs = freqs, time_bandwidth = time_bandwidth,
+					                 n_cycles = n_cycles, method = 'multitaper', n_jobs = n_jobs)
+				Wy = self.wavelet_transform(signal = signal2, fs = fs, freqs = freqs, time_bandwidth = time_bandwidth,
+					                 n_cycles = n_cycles, method = 'multitaper', n_jobs = n_jobs)	
+
+			Wx = np.squeeze(Wx)
+			Wy = np.squeeze(Wy)
+
+			# Computing spectra
+			Sxx = Wx * np.conj(Wx)
+			Syy = Wy * np.conj(Wy)
+			Sxy = Wx * np.conj(Wy)
+
+			# Smoothing spectra
+			kernel = np.ones([smooth_window, 1])
+
+			Sxx = sig.convolve2d(Sxx.T, kernel, mode='same').T
+			Syy = sig.convolve2d(Syy.T, kernel, mode='same').T
+			Sxy = sig.convolve2d(Sxy.T, kernel, mode='same').T
+			return Sxx, Syy, Sxy
+
+
+	#def instantaneous_power(self, signal = None, fs = 20, f_low = 30, f_high = 60, n_jobs = 1):
+	#	# Filter the signal
+	#	signal_filtered = self.filter(signal = signal, fs = fs, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
+	#	# Hilbert transform
+	#	S               = sig.hilbert(signal_filtered)
+	#	# Power
+	#	P               = np.multiply( S, np.conj(S) )
+	#	return P
+
+	def coherence(self, signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, smooth_window = 1,
 		           time_bandwidth = None, method = 'morlet', n_jobs = 1):
 
+		# Compute auto- and cross-spectra
+		Sxx, Syy, Sxy = self.wavelet_spectrum(signal1 = signal1, signal2 = signal2, fs = fs, 
+			 								  freqs = freqs, n_cycles = n_cycles, 
+									          smooth_window = smooth_window, time_bandwidth = time_bandwidth, 
+									          method = 'method', n_jobs = n_jobs)
+		# Return coherence
+		return Sxy * np.conj(Sxy) / (Sxx * Syy)
+
+		'''
 		if method == 'morlet':
 			Wx = self.spectogram(signal = signal1, fs = fs, freqs = freqs, 
 				                 n_cycles = n_cycles, method = method, n_jobs = n_jobs)
@@ -57,11 +115,18 @@ class spectral():
 		Wx = np.squeeze(Wx)
 		Wy = np.squeeze(Wy)
 
-		Sxx = np.abs(Wx)**2
-		Syy = np.abs(Wy)**2
-		Sxy = np.multiply(Wx, np.conj(Wy))
-		#abs(Cxy_sm./(sqrt(Cxx_sm).*sqrt(Cyy_sm)))
-		return np.abs( Sxy )**2 / np.sqrt( Sxx.real * Syy.real )
+		# Computing spectra
+		Sxx = Wx * np.conj(Wx)
+		Syy = Wy * np.conj(Wy)
+		Sxy = Wx * np.conj(Wy)
+
+		# Smoothing spectra
+		kernel = np.ones([smooth_window, 1])
+
+		Sxx = sig.convolve2d(Sxx.T, kernel, mode='same').T
+		Syy = sig.convolve2d(Syy.T, kernel, mode='same').T
+		Sxy = sig.convolve2d(Sxy.T, kernel, mode='same').T
+		'''
 
 class spectral_analysis(spectral):
 
@@ -129,17 +194,17 @@ class spectral_analysis(spectral):
 
 		return W
 
-	def instantaneous_power(self, trial = None, index_channel = None, f_low = 30, f_high = 60, n_jobs = 1):
-		
-		signal_filtered = self.filter(trial = trial, index_channel = index_channel, 
-									  apply_to_all = False, f_low = f_low, f_high = f_high, 
-									  n_jobs = n_jobs)
-
-		# Hilbert transform
-		S               = sig.hilbert(signal_filtered)
-		# Power
-		P               = np.multiply( S, np.conj(S) )
-		return P
+	#def instantaneous_power(self, trial = None, index_channel = None, f_low = 30, f_high = 60, n_jobs = 1):
+	#	
+	#	signal_filtered = self.filter(trial = trial, index_channel = index_channel, 
+	#								  apply_to_all = False, f_low = f_low, f_high = f_high, 
+	#								  n_jobs = n_jobs)
+	#
+	#	# Hilbert transform
+	#	S               = sig.hilbert(signal_filtered)
+	#	# Power
+	#	P               = np.multiply( S, np.conj(S) )
+	#	return P
 
 	'''
 	def pairwise_coherence(self, trial = None, index_pair = None, step = 25, dt = 250, 
