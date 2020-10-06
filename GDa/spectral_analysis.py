@@ -251,7 +251,7 @@ class spectral_analysis(spectral):
 			return Sxx, Syy, Sxy			
 
 	def _coherence(self, trial = None, index_pair = None, n_cycles = 7.0, smooth_window = 1,
-		           time_bandwidth = None, method = 'morlet', n_jobs = 1):
+		           time_bandwidth = None, method = 'morlet', save_to_file = False, n_jobs = 1):
 		index_channel1 = self.pairs[index_pair, 0]
 		index_channel2 = self.pairs[index_pair, 1]
 		out = super().coherence(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
@@ -260,15 +260,23 @@ class spectral_analysis(spectral):
 								time_bandwidth = None, method = method, n_jobs = n_jobs)
 		# Resize time axis
 		out = np.squeeze(out)[:,::self.delta]
-		return out
 
-	def session_coherence(method = 'morlet', n_jobs=1):
+		if save_to_file == False:
+			return out
+		else:
+			file_name = os.path.join( self.dir_out, 
+							          'trial_' +str(trial) + '_pair_' + str(self.pairs[index_pair, 0]) + '_' + str(self.pairs[index_pair, 1]) + '.npy')
+			np.save(file_name, {'coherence' : coh, 'freqs': self.freqs, 'time': self.tarray})
+
+	def session_coherence(self, n_cycles = 7.0, smooth_window = 1, time_bandwidth = None, method = 'morlet'):
 		for trial in range(self.nT):
 			Parallel(n_jobs=n_jobs, backend='loky', max_nbytes=1e6)(
-				delayed(self._coherence)
-				(trial, index_pair, n_jobs = 1, save_to_file = True)
-				for index_pair in range(self.nP)
-				)
+				     delayed(self._coherence)
+				     (trial = trial, index_pair = index_pair, n_cycles = n_cycles, 
+				      smooth_window = smooth_window, time_bandwidth = time_bandwidth, 
+				      method = method, save_to_file = True, n_jobs = 1)
+				     for index_pair in range(self.nP)
+					 )
 
 	#def instantaneous_power(self, trial = None, index_channel = None, f_low = 30, f_high = 60, n_jobs = 1):
 	#	
