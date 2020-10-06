@@ -1,3 +1,4 @@
+*.out
 *.mat
 *.npy
 __pychache__/
