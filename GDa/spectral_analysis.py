@@ -130,7 +130,10 @@ class spectral():
 
 class spectral_analysis(spectral):
 
-	def __init__(self, session = None, path = None,):
+	def __init__(self, session = None, path = None, freqs = np.arange(6,60,1), delta=1):
+
+		self.freqs = freqs
+		self.delta = delta
 
 		#self.save_filtered = save_filtered
 		#self.save_morlet   = save_morlet
@@ -141,10 +144,10 @@ class spectral_analysis(spectral):
 			self.nP      = session['info']['nP']
 			self.nT      = session['info']['nT']
 			self.pairs   = session['info']['pairs']
-			self.tarray  = session['info']['tarray']
+			self.tarray  = session['info']['tarray'][::delta]
 			#self.tidx    = np.arange(self.dt, session['data'].shape[2]-self.dt, self.step)
 			#self.taxs    = session['info']['tarray'][self.tidx]
-			self.fsample = session['info']['fsample']
+			self.fsample = float(session['info']['fsample'])
 			self.data    = session['data']
 			self.dir     = session['path']['dir']
 			self.dir_out = session['path']['dir_out']
@@ -152,10 +155,10 @@ class spectral_analysis(spectral):
 			self.nP      = session.nP
 			self.nT      = session.nT
 			self.pairs   = session.pairs
-			self.tarray  = session.time[0]
+			self.tarray  = session.time[0][::delta]
 			#self.tidx    = np.arange(self.dt, session.data.shape[2]-self.dt, self.step)
 			#self.taxs    = session.time[0][self.tidx]
-			self.fsample = session.recording_info['fsample']
+			self.fsample = float(session.recording_info['fsample'])
 			self.data    = session.data
 			self.dir     = session.dir
 			self.dir_out = session.dir_out
@@ -167,11 +170,11 @@ class spectral_analysis(spectral):
 
 		if apply_to_all == True:
 			signal_filtered = super().filter(signal = self.data, 
-																fs = self.fsample, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
+											 fs = self.fsample, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
 
 		else:
 			signal_filtered = super().filter(signal = self.data[trial, index_channel, :], 
-																fs = self.fsample, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
+											 fs = self.fsample, f_low = f_low, f_high = f_high, n_jobs = n_jobs)
 
 		#if self.save_filtered == True:
 		#	self.results['filtered_'+str(f_low)+'_'+str(f_high)][str(trial)][str(index_channel)] = signal_filtered
@@ -195,57 +198,77 @@ class spectral_analysis(spectral):
 		return W
 	'''
 
-	def _wavelet_transform(self, trial = None, index_channel = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
-		           		  time_bandwidth = None, method = 'morlet', n_jobs = 1):
+	def _wavelet_transform(self, trial = None, index_channel = None, n_cycles = 7.0, 
+		           		   time_bandwidth = None, method = 'morlet', n_jobs = 1):
 		if method == 'morlet':
 			out = super().wavelet_transform(signal = self.data[trial, index_channel, :][np.newaxis, np.newaxis, :], 
-												  				   fs = fs, freqs = freqs, n_cycles = n_cycles,
-												   				   time_bandwidth = None, method = 'morlet', n_jobs = n_jobs)
+											fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles,
+											time_bandwidth = None, method = 'morlet', n_jobs = n_jobs)
 		if method == 'multitaper':
 			out = super().wavelet_transform(signal = self.data[trial, index_channel, :][np.newaxis, np.newaxis, :], 
-												                   fs = fs, freqs = freqs, n_cycles = n_cycles,
-												                   time_bandwidth = time_bandwidth, method = 'multitaper', n_jobs = n_jobs)
+											fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles,
+											time_bandwidth = time_bandwidth, method = 'multitaper', n_jobs = n_jobs)
+		# Resize time axis
+		out = np.squeeze(out)[:,::self.delta]
 		return out
 
-	def _wavelet_spectrum(self, trial = None, index_channel1 = None, index_channel2 = None, fs = 20, freqs = np.arange(6,60,1), 
-						 n_cycles = 7.0, smooth_window = 1, time_bandwidth = None, method = 'morlet', n_jobs = 1):
+	def _wavelet_spectrum(self, trial = None, index_channel1 = None, index_channel2 = None, 
+						  n_cycles = 7.0, smooth_window = 1, time_bandwidth = None, method = 'morlet', n_jobs = 1):
 		if type(index_channel2) == type(None):
 			if method == 'morlet':
 				#print(self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :].shape)
 				Sxx = super().wavelet_spectrum(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
-											   signal2 = None, fs = fs, freqs = freqs, n_cycles = n_cycles, 
+											   signal2 = None, fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles, 
 							 				   smooth_window = smooth_window, time_bandwidth = None, 
 							 				   method = 'morlet', n_jobs = n_jobs)
 
 			if method == 'multitaper':
 				Sxx = super().wavelet_spectrum(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
-											   signal2 = None, fs = fs, freqs = freqs, n_cycles = n_cycles, 
+											   signal2 = None, fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles, 
 							 				   smooth_window = smooth_window, time_bandwidth = time_bandwidth, 
 							 				   method = 'multitaper', n_jobs = n_jobs)
+			# Resize time axis
+			Sxx = np.squeeze(Sxx)[:,::self.delta]
 			return Sxx
 		else:
 			if method == 'morlet':
 				Sxx, Syy, Sxy = super().wavelet_spectrum(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
 														 signal2 = self.data[trial, index_channel2, :][np.newaxis, np.newaxis, :],
-														 fs = fs, freqs = freqs, n_cycles = n_cycles, 
+														 fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles, 
 							 							 smooth_window = smooth_window, time_bandwidth = None, 
 							 							 method = 'morlet', n_jobs = n_jobs)
 
 			if method == 'multitaper':
 				Sxx, Syy, Sxy = super().wavelet_spectrum(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
 														 signal2 = self.data[trial, index_channel2, :][np.newaxis, np.newaxis, :],
-														 fs = fs, freqs = freqs, n_cycles = n_cycles, 
+														 fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles, 
 							 							 smooth_window = smooth_window, time_bandwidth = time_bandwidth, 
 							 							 method = 'multitaper', n_jobs = n_jobs)
+			# Resize time axis
+			Sxx = np.squeeze(Sxx)[:,::self.delta]
+			Syy = np.squeeze(Syy)[:,::self.delta]
+			Sxy = np.squeeze(Sxy)[:,::self.delta]
 			return Sxx, Syy, Sxy			
 
-	def _coherence(self, trial = None, index_channel1 = None, index_channel2 = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, smooth_window = 1,
-		          time_bandwidth = None, method = 'morlet', n_jobs = 1):
+	def _coherence(self, trial = None, index_pair = None, n_cycles = 7.0, smooth_window = 1,
+		           time_bandwidth = None, method = 'morlet', n_jobs = 1):
+		index_channel1 = self.pairs[index_pair, 0]
+		index_channel2 = self.pairs[index_pair, 1]
 		out = super().coherence(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
-											  signal2 = self.data[trial, index_channel2, :][np.newaxis, np.newaxis, :], 
-											  fs = fs, freqs = freqs, n_cycles = n_cycles, smooth_window = smooth_window,
-											  time_bandwidth = None, method = method, n_jobs = n_jobs)
+								signal2 = self.data[trial, index_channel2, :][np.newaxis, np.newaxis, :], 
+								fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles, smooth_window = smooth_window,
+								time_bandwidth = None, method = method, n_jobs = n_jobs)
+		# Resize time axis
+		out = np.squeeze(out)[:,::self.delta]
 		return out
+
+	def session_coherence(method = 'morlet', n_jobs=1):
+		for trial in range(self.nT):
+			Parallel(n_jobs=n_jobs, backend='loky', max_nbytes=1e6)(
+				delayed(self._coherence)
+				(trial, index_pair, n_jobs = 1, save_to_file = True)
+				for index_pair in range(self.nP)
+				)
 
 	#def instantaneous_power(self, trial = None, index_channel = None, f_low = 30, f_high = 60, n_jobs = 1):
 	#	
