@@ -1,13 +1,12 @@
 #####################################################################################################
 # Class to perform spectral analysis on the LFP data
 #####################################################################################################
-import numpy         as np
-import scipy.signal  as sig
+import numpy            as np
+import scipy.signal     as sig
 import mne.filter
 import os
-from   quantities    import s, Hz
-from   joblib        import Parallel, delayed
 import multiprocessing
+from   joblib           import Parallel, delayed
 
 class spectral():
 
@@ -21,7 +20,7 @@ class spectral():
 		return signal_filtered
 
 	def wavelet_transform(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
-		           time_bandwidth = None, method = 'morlet', n_jobs = 1):
+		                  time_bandwidth = None, method = 'morlet', n_jobs = 1):
 		if method == 'morlet':
 			out = mne.time_frequency.tfr_array_morlet(signal, fs, freqs, n_cycles = n_cycles, 
 				                                      output='complex', n_jobs=n_jobs)
@@ -31,8 +30,71 @@ class spectral():
 													      n_jobs=n_jobs)
 		return out
 
+	def gabor_transform(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0):
+		n      = len(signal)
+		sigma2 = 1
+		omega  = np.concatenate( (np.arange(0, n/2), np.arange(-np.ceil(n/2)+1, 0) ) ) * fs/n
+
+		fftx   = np.fft.fft(signal)
+
+		tolerance = 0.5
+
+		mincenterfreq = 2*tolerance*np.sqrt(sigma2)*fs*n_cycles/n
+		maxcenterfreq = fs*n_cycles/(n_cycles+tolerance/np.sqrt(sigma2))
+
+		s_array  = n_cycles/freqs
+		minscale = n_cycles/maxcenterfreq
+		maxscale = n_cycles/mincenterfreq
+
+		nscale = len(freqs)
+		wt     = np.zeros([n,nscale]) * (1+1j)
+		scaleindices = np.arange(0,len(s_array))[(s_array>=minscale)*(s_array<=maxscale)]
+		psi_array = np.zeros([n, nscale]) * (1+1j)
+
+		for kscale in scaleindices:
+			s    = s_array[kscale]
+			freq = (s*omega - n_cycles)
+			Psi  = (4*np.pi*sigma2)**(1/4) * np.sqrt(s) * np.exp(-sigma2/2*freq**2)
+			wt[:,kscale] = np.fft.ifft(fftx*Psi)
+			psi_array[:,kscale]=np.fft.ifft(Psi)
+
+		return wt
+
+	def gabor_spectrum(self, signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1),  
+		                win_time = 1, win_freq = 1, n_cycles = 7.0):
+		if type(signal2) != np.ndarray:
+			wt1    = self.gabor_transform(signal=signal1,fs=fs,freqs=freqs,n_cycles=n_cycles)
+			Sxx    = wt1*np.conj(wt1)
+			kernel = np.ones([win_time, win_freq])		
+			return sig.convolve2d(Sxx, kernel, mode='same').T
+		else:
+			wt1 = self.gabor_transform(signal=signal1,fs=fs,freqs=freqs,n_cycles=n_cycles)
+			wt2 = self.gabor_transform(signal=signal2,fs=fs,freqs=freqs,n_cycles=n_cycles)
+
+			npts  = wt1.shape[0]
+			nfreq = len(freqs)
+
+			Sxy    = wt1*np.conj(wt2)
+			Sxx    = wt1*np.conj(wt1)
+			Syy    = wt2*np.conj(wt2)
+
+			# Smoothing spectra
+			kernel = np.ones([win_time, win_freq])		
+			Sxx = sig.convolve2d(Sxx, kernel, mode='same')
+			Syy = sig.convolve2d(Syy, kernel, mode='same')
+			Sxy = sig.convolve2d(Sxy, kernel, mode='same')
+			return Sxx.T, Syy.T, Sxy.T
+
+
+	def gabor_coherence(self, signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1),  
+		                 win_time = 1, win_freq = 1, n_cycles = 7.0):
+		Sxx, Syy, Sxy = self.gabor_spectrum(signal1 = signal1, signal2 = signal2, fs = fs, freqs = freqs,  
+		                win_time = win_time, win_freq = win_freq, n_cycles = n_cycles)
+
+		return Sxy * np.conj(Sxy) / (Sxx * Syy)
+
 	def wavelet_spectrum(self, signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
-						 smooth_window = 1, time_bandwidth = None, method = 'morlet', n_jobs = 1):
+						 win_time = 1, win_freq = 1, time_bandwidth = None, method = 'morlet', n_jobs = 1):
 
 		# If signal2 is None compute the autospectra of signal1
 		if type(signal2) != np.ndarray:
@@ -47,7 +109,7 @@ class spectral():
 			# Computing spectra
 			Sxx = Wx * np.conj(Wx)
 			# Smoothing spectra
-			kernel = np.ones([smooth_window, 1])
+			kernel = np.ones([win_time, win_freq])
 			Sxx = sig.convolve2d(Sxx.T, kernel, mode='same').T
 			return Sxx
 		# Otherwise compute the autospectra of signal1, signal2, and their cros-spectra
@@ -72,20 +134,21 @@ class spectral():
 			Sxy = Wx * np.conj(Wy)
 
 			# Smoothing spectra
-			kernel = np.ones([smooth_window, 1])
+			kernel = np.ones([win_time, win_freq])
 
 			Sxx = sig.convolve2d(Sxx.T, kernel, mode='same').T
 			Syy = sig.convolve2d(Syy.T, kernel, mode='same').T
 			Sxy = sig.convolve2d(Sxy.T, kernel, mode='same').T
 			return Sxx, Syy, Sxy
 
-	def coherence(self, signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, smooth_window = 1,
-				  time_bandwidth = None, method = 'morlet', n_jobs = 1):
+	def wavelet_coherence(self, signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1), 
+						  n_cycles = 7.0, win_time = 1, win_freq = 1, time_bandwidth = None, 
+						  method = 'morlet', n_jobs = 1):
 
 		# Compute auto- and cross-spectra
 		Sxx, Syy, Sxy = self.wavelet_spectrum(signal1 = signal1, signal2 = signal2, fs = fs, 
 			 								  freqs = freqs, n_cycles = n_cycles, 
-									          smooth_window = smooth_window, time_bandwidth = time_bandwidth, 
+									          win_time = win_time, win_freq = win_freq, time_bandwidth = time_bandwidth, 
 									          method = method, n_jobs = n_jobs)
 		# Return coherence
 		return Sxy * np.conj(Sxy) / (Sxx * Syy)
@@ -117,9 +180,6 @@ class spectral_analysis(spectral):
 			self.dir     = session.dir
 			self.dir_out = session.dir_out
 
-		#self.results = {}
-		#self.results['coherence'] = {}
-
 	def _filter(self, trial = None, index_channel = None, apply_to_all = False, f_low = 30, f_high = 60, n_jobs = 1):
 
 		if apply_to_all == True:
@@ -147,19 +207,19 @@ class spectral_analysis(spectral):
 		return out
 
 	def _wavelet_spectrum(self, trial = None, index_channel1 = None, index_channel2 = None, 
-						  n_cycles = 7.0, smooth_window = 1, time_bandwidth = None, method = 'morlet', n_jobs = 1):
+						  n_cycles = 7.0, win_time = 1, win_freq = 1, time_bandwidth = None, method = 'morlet', n_jobs = 1):
 		if type(index_channel2) == type(None):
 			if method == 'morlet':
 				#print(self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :].shape)
 				Sxx = super().wavelet_spectrum(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
 											   signal2 = None, fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles, 
-							 				   smooth_window = smooth_window, time_bandwidth = None, 
+							 				   win_time = win_time, win_freq = win_freq, time_bandwidth = None, 
 							 				   method = 'morlet', n_jobs = n_jobs)
 
 			if method == 'multitaper':
 				Sxx = super().wavelet_spectrum(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
 											   signal2 = None, fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles, 
-							 				   smooth_window = smooth_window, time_bandwidth = time_bandwidth, 
+							 				   win_time = win_time, win_freq = win_freq, time_bandwidth = time_bandwidth, 
 							 				   method = 'multitaper', n_jobs = n_jobs)
 			# Resize time axis
 			Sxx = np.squeeze(Sxx)[:,::self.delta]
@@ -169,14 +229,14 @@ class spectral_analysis(spectral):
 				Sxx, Syy, Sxy = super().wavelet_spectrum(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
 														 signal2 = self.data[trial, index_channel2, :][np.newaxis, np.newaxis, :],
 														 fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles, 
-							 							 smooth_window = smooth_window, time_bandwidth = None, 
+							 							 win_time = win_time, win_freq = win_freq, time_bandwidth = None, 
 							 							 method = 'morlet', n_jobs = n_jobs)
 
 			if method == 'multitaper':
 				Sxx, Syy, Sxy = super().wavelet_spectrum(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
 														 signal2 = self.data[trial, index_channel2, :][np.newaxis, np.newaxis, :],
 														 fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles, 
-							 							 smooth_window = smooth_window, time_bandwidth = time_bandwidth, 
+							 							 win_time = win_time, win_freq = win_freq,  time_bandwidth = time_bandwidth, 
 							 							 method = 'multitaper', n_jobs = n_jobs)
 			# Resize time axis
 			Sxx = np.squeeze(Sxx)[:,::self.delta]
@@ -184,13 +244,13 @@ class spectral_analysis(spectral):
 			Sxy = np.squeeze(Sxy)[:,::self.delta]
 			return Sxx, Syy, Sxy			
 
-	def _coherence(self, trial = None, index_pair = None, n_cycles = 7.0, smooth_window = 1,
+	def _coherence(self, trial = None, index_pair = None, n_cycles = 7.0, win_time = 1, win_freq = 1,
 		           time_bandwidth = None, method = 'morlet', save_to_file = False, n_jobs = 1):
 		index_channel1 = self.pairs[index_pair, 0]
 		index_channel2 = self.pairs[index_pair, 1]
 		out = super().coherence(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
 								signal2 = self.data[trial, index_channel2, :][np.newaxis, np.newaxis, :], 
-								fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles, smooth_window = smooth_window,
+								fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles, win_time = win_time, win_freq = win_freq, 
 								time_bandwidth = None, method = method, n_jobs = n_jobs)
 		# Resize time axis
 		out = np.squeeze(out)[:,::self.delta]
@@ -202,12 +262,12 @@ class spectral_analysis(spectral):
 							          'trial_' +str(trial) + '_pair_' + str(self.pairs[index_pair, 0]) + '_' + str(self.pairs[index_pair, 1]) + '.npy')
 			np.save(file_name, {'coherence' : coh, 'freqs': self.freqs, 'time': self.tarray})
 
-	def session_coherence(self, n_cycles = 7.0, smooth_window = 1, time_bandwidth = None, method = 'morlet'):
+	def session_coherence(self, n_cycles = 7.0, win_time = 1, win_freq = 1, time_bandwidth = None, method = 'morlet'):
 		for trial in range(self.nT):
 			Parallel(n_jobs=n_jobs, backend='loky', max_nbytes=1e6)(
 				     delayed(self._coherence)
 				     (trial = trial, index_pair = index_pair, n_cycles = n_cycles, 
-				      smooth_window = smooth_window, time_bandwidth = time_bandwidth, 
+				      win_time = win_time, win_freq = win_freq,  time_bandwidth = time_bandwidth, 
 				      method = method, save_to_file = True, n_jobs = 1)
 				     for index_pair in range(self.nP)
 					 )
