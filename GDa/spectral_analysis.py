@@ -19,17 +19,6 @@ class spectral():
 
 		return signal_filtered
 
-	def wavelet_transform(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
-		                  time_bandwidth = None, method = 'morlet', n_jobs = 1):
-		if method == 'morlet':
-			out = mne.time_frequency.tfr_array_morlet(signal, fs, freqs, n_cycles = n_cycles, 
-				                                      output='complex', n_jobs=n_jobs)
-		if method == 'multitaper':
-			out = mne.time_frequency.tfr_array_multitaper(signal, fs, freqs, n_cycles = n_cycles, 
-													      time_bandwidth = time_bandwidth, output='complex', 
-													      n_jobs=n_jobs)
-		return out
-
 	def gabor_transform(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0):
 		n      = len(signal)
 		sigma2 = 1
@@ -92,6 +81,18 @@ class spectral():
 		                win_time = win_time, win_freq = win_freq, n_cycles = n_cycles)
 
 		return Sxy * np.conj(Sxy) / (Sxx * Syy)
+
+
+	def wavelet_transform(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
+		                  time_bandwidth = None, method = 'morlet', n_jobs = 1):
+		if method == 'morlet':
+			out = mne.time_frequency.tfr_array_morlet(signal, fs, freqs, n_cycles = n_cycles, 
+				                                      output='complex', n_jobs=n_jobs)
+		if method == 'multitaper':
+			out = mne.time_frequency.tfr_array_multitaper(signal, fs, freqs, n_cycles = n_cycles, 
+													      time_bandwidth = time_bandwidth, output='complex', 
+													      n_jobs=n_jobs)
+		return out
 
 	def wavelet_spectrum(self, signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
 						 win_time = 1, win_freq = 1, time_bandwidth = None, method = 'morlet', n_jobs = 1):
@@ -192,6 +193,42 @@ class spectral_analysis(spectral):
 
 		return signal_filtered
 
+	def _gabor_transform(self, trial = None, index_channel = None, n_cycles = 7.0):
+		wt = super().gabor_transform(signal = self.data[trial, index_channel, :], 
+									 fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles)
+		wt = wt[:,::self.delta]
+		return wt
+
+	def _gabor_spectrum(self, trial = None, index_channel1 = None, index_channel2 = None, 
+		                win_time = 1, win_freq = 1, n_cycles = 7.0):
+		if type(index_channel2) == type(None):
+			Sxx = super().gabor_spectrum(signal1 = self.data[trial, index_channel1, :], signal2 = None, fs = self.fsample, 
+						                 freqs = self.freqs, win_time = win_time, win_freq = win_freq, n_cycles = n_cycles)
+			Sxx = Sxx[:,::self.delta]
+			return Sxx
+
+		else:
+			Sxx, Syy, Sxy = super().gabor_spectrum(signal1 = self.data[trial, index_channel1, :], 
+											       signal2 = self.data[trial, index_channel2, :], 
+											       fs = self.fsample, freqs = self.freqs, win_time = win_time, 
+											       win_freq = win_freq, n_cycles = n_cycles)
+
+			Sxx = Sxx[:,::self.delta]
+			Syy = Syy[:,::self.delta]
+			Sxy = Sxy[:,::self.delta]
+			return Sxx, Syy, Sxy	
+
+	def _gabor_coherence(self, trial = None, index_pair = None, 
+		                 win_time = 1, win_freq = 1, n_cycles = 7.0):
+		index_channel1 = self.pairs[index_pair, 0]
+		index_channel2 = self.pairs[index_pair, 1]
+		coh = super().gabor_coherence(signal1 = self.data[trial, index_channel1, :], 
+									  signal2 = self.data[trial, index_channel2, :], 
+									  fs = self.fsample, freqs = self.freqs,  
+		                 			  win_time = win_time, win_freq = win_freq, n_cycles = n_cycles)
+		coh = coh[:,::self.delta]
+		return coh
+
 	def _wavelet_transform(self, trial = None, index_channel = None, n_cycles = 7.0, 
 		           		   time_bandwidth = None, method = 'morlet', n_jobs = 1):
 		if method == 'morlet':
@@ -244,11 +281,11 @@ class spectral_analysis(spectral):
 			Sxy = np.squeeze(Sxy)[:,::self.delta]
 			return Sxx, Syy, Sxy			
 
-	def _coherence(self, trial = None, index_pair = None, n_cycles = 7.0, win_time = 1, win_freq = 1,
+	def _wavelet_coherence(self, trial = None, index_pair = None, n_cycles = 7.0, win_time = 1, win_freq = 1,
 		           time_bandwidth = None, method = 'morlet', save_to_file = False, n_jobs = 1):
 		index_channel1 = self.pairs[index_pair, 0]
 		index_channel2 = self.pairs[index_pair, 1]
-		out = super().coherence(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
+		out = super().wavelet_coherence(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
 								signal2 = self.data[trial, index_channel2, :][np.newaxis, np.newaxis, :], 
 								fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles, win_time = win_time, win_freq = win_freq, 
 								time_bandwidth = None, method = method, n_jobs = n_jobs)
