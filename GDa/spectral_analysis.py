@@ -7,6 +7,7 @@ import mne.filter
 import os
 import multiprocessing
 from   joblib           import Parallel, delayed
+from   .misc            import smooth_spectra, downsample   
 
 class spectral():
 
@@ -54,8 +55,8 @@ class spectral():
 		if type(signal2) != np.ndarray:
 			wt1    = self.gabor_transform(signal=signal1,fs=fs,freqs=freqs,n_cycles=n_cycles)
 			Sxx    = wt1*np.conj(wt1)
-			kernel = np.ones([win_time, win_freq])		
-			return sig.convolve2d(Sxx, kernel, mode='same').T
+			#kernel = np.ones([win_time, win_freq])		
+			return smooth_spectra.smooth_spectra(Sxx, win_time, win_freq, fft=True)#sig.convolve2d(Sxx, kernel, mode='same').T
 		else:
 			wt1 = self.gabor_transform(signal=signal1,fs=fs,freqs=freqs,n_cycles=n_cycles)
 			wt2 = self.gabor_transform(signal=signal2,fs=fs,freqs=freqs,n_cycles=n_cycles)
@@ -68,10 +69,10 @@ class spectral():
 			Syy    = wt2*np.conj(wt2)
 
 			# Smoothing spectra
-			kernel = np.ones([win_time, win_freq])		
-			Sxx = sig.convolve2d(Sxx, kernel, mode='same')
-			Syy = sig.convolve2d(Syy, kernel, mode='same')
-			Sxy = sig.convolve2d(Sxy, kernel, mode='same')
+			#kernel = np.ones([win_time, win_freq])		
+			Sxx = smooth_spectra.smooth_spectra(Sxx, win_time, win_freq, fft=True)#sig.convolve2d(Sxx, kernel, mode='same')
+			Syy = smooth_spectra.smooth_spectra(Syy, win_time, win_freq, fft=True)#sig.convolve2d(Syy, kernel, mode='same')
+			Sxy = smooth_spectra.smooth_spectra(Sxy, win_time, win_freq, fft=True)#sig.convolve2d(Sxy, kernel, mode='same')
 			return Sxx.T, Syy.T, Sxy.T
 
 
@@ -110,8 +111,8 @@ class spectral():
 			# Computing spectra
 			Sxx = Wx * np.conj(Wx)
 			# Smoothing spectra
-			kernel = np.ones([win_time, win_freq])
-			Sxx = sig.convolve2d(Sxx.T, kernel, mode='same').T
+			#kernel = np.ones([win_time, win_freq])
+			Sxx = smooth_spectra.smooth_spectra(Sxx.T, win_time, win_freq, fft=True).T#sig.convolve2d(Sxx.T, kernel, mode='same').T
 			return Sxx
 		# Otherwise compute the autospectra of signal1, signal2, and their cros-spectra
 		else:
@@ -135,11 +136,11 @@ class spectral():
 			Sxy = Wx * np.conj(Wy)
 
 			# Smoothing spectra
-			kernel = np.ones([win_time, win_freq])
+			#kernel = np.ones([win_time, win_freq])
 
-			Sxx = sig.convolve2d(Sxx.T, kernel, mode='same').T
-			Syy = sig.convolve2d(Syy.T, kernel, mode='same').T
-			Sxy = sig.convolve2d(Sxy.T, kernel, mode='same').T
+			Sxx = smooth_spectra.smooth_spectra(Sxx.T, win_time, win_freq, fft=True).T#sig.convolve2d(Sxx.T, kernel, mode='same').T
+			Syy = smooth_spectra.smooth_spectra(Syy.T, win_time, win_freq, fft=True).T#sig.convolve2d(Syy.T, kernel, mode='same').T
+			Sxy = smooth_spectra.smooth_spectra(Sxy.T, win_time, win_freq, fft=True).T#sig.convolve2d(Sxy.T, kernel, mode='same').T
 			return Sxx, Syy, Sxy
 
 	def wavelet_coherence(self, signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1), 
@@ -196,7 +197,7 @@ class spectral_analysis(spectral):
 	def _gabor_transform(self, trial = None, index_channel = None, n_cycles = 7.0):
 		wt = super().gabor_transform(signal = self.data[trial, index_channel, :], 
 									 fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles)
-		wt = wt[:,::self.delta]
+		wt = downsample.downsample(wt,self.delta, axis=1)#wt[:,::self.delta]
 		return wt
 
 	def _gabor_spectrum(self, trial = None, index_channel1 = None, index_channel2 = None, 
@@ -213,9 +214,9 @@ class spectral_analysis(spectral):
 											       fs = self.fsample, freqs = self.freqs, win_time = win_time, 
 											       win_freq = win_freq, n_cycles = n_cycles)
 
-			Sxx = Sxx[:,::self.delta]
-			Syy = Syy[:,::self.delta]
-			Sxy = Sxy[:,::self.delta]
+			Sxx = downsample.downsample(np.squeeze(Sxx),self.delta,axis=1)#Sxx[:,::self.delta]
+			Syy = downsample.downsample(np.squeeze(Syy),self.delta,axis=1)#Syy[:,::self.delta]
+			Sxy = downsample.downsample(np.squeeze(Sxy),self.delta,axis=1)#Sxy[:,::self.delta]
 			return Sxx, Syy, Sxy	
 
 	def _gabor_coherence(self, trial = None, index_pair = None, 
@@ -226,7 +227,7 @@ class spectral_analysis(spectral):
 									  signal2 = self.data[trial, index_channel2, :], 
 									  fs = self.fsample, freqs = self.freqs,  
 		                 			  win_time = win_time, win_freq = win_freq, n_cycles = n_cycles)
-		coh = coh[:,::self.delta]
+		coh = downsample.downsample(coh, self.delta, axis=1)#coh[:,::self.delta]
 		return coh
 
 	def _wavelet_transform(self, trial = None, index_channel = None, n_cycles = 7.0, 
@@ -240,7 +241,7 @@ class spectral_analysis(spectral):
 											fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles,
 											time_bandwidth = time_bandwidth, method = 'multitaper', n_jobs = n_jobs)
 		# Resize time axis
-		out = np.squeeze(out)[:,::self.delta]
+		out = downsample.downsample(np.squeeze(out), self.delta, axis=1)#np.squeeze(out)[:,::self.delta]
 		return out
 
 	def _wavelet_spectrum(self, trial = None, index_channel1 = None, index_channel2 = None, 
@@ -259,7 +260,7 @@ class spectral_analysis(spectral):
 							 				   win_time = win_time, win_freq = win_freq, time_bandwidth = time_bandwidth, 
 							 				   method = 'multitaper', n_jobs = n_jobs)
 			# Resize time axis
-			Sxx = np.squeeze(Sxx)[:,::self.delta]
+			Sxx = downsample.downsample(np.squeeze(Sxx), self.delta, axis=1)#np.squeeze(Sxx)[:,::self.delta]
 			return Sxx
 		else:
 			if method == 'morlet':
@@ -276,9 +277,9 @@ class spectral_analysis(spectral):
 							 							 win_time = win_time, win_freq = win_freq,  time_bandwidth = time_bandwidth, 
 							 							 method = 'multitaper', n_jobs = n_jobs)
 			# Resize time axis
-			Sxx = np.squeeze(Sxx)[:,::self.delta]
-			Syy = np.squeeze(Syy)[:,::self.delta]
-			Sxy = np.squeeze(Sxy)[:,::self.delta]
+			Sxx = downsample.downsample(np.squeeze(Sxx),self.delta,axis=1)#np.squeeze(Sxx)[:,::self.delta]
+			Syy = downsample.downsample(np.squeeze(Syy),self.delta,axis=1)#np.squeeze(Syy)[:,::self.delta]
+			Sxy = downsample.downsample(np.squeeze(Sxy),self.delta,axis=1)#np.squeeze(Sxy)[:,::self.delta]
 			return Sxx, Syy, Sxy			
 
 	def _wavelet_coherence(self, trial = None, index_pair = None, n_cycles = 7.0, win_time = 1, win_freq = 1,
@@ -290,7 +291,7 @@ class spectral_analysis(spectral):
 								fs = self.fsample, freqs = self.freqs, n_cycles = n_cycles, win_time = win_time, win_freq = win_freq, 
 								time_bandwidth = None, method = method, n_jobs = n_jobs)
 		# Resize time axis
-		out = np.squeeze(out)[:,::self.delta]
+		out = downsample.downsample(np.squeeze(out), self.delta, axis=1)#[:,::self.delta]
 
 		if save_to_file == False:
 			return out
