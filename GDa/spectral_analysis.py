@@ -296,9 +296,11 @@ class spectral_analysis(spectral):
 		if save_to_file == False:
 			return out
 		else:
+			#file_name = os.path.join( self.dir_out, 
+			#				          'trial_' +str(trial) + '_pair_' + str(self.pairs[index_pair, 0]) + '_' + str(self.pairs[index_pair, 1]) + '.npy')
 			file_name = os.path.join( self.dir_out, 
-							          'trial_' +str(trial) + '_pair_' + str(self.pairs[index_pair, 0]) + '_' + str(self.pairs[index_pair, 1]) + '.npy')
-			np.save(file_name, {'coherence' : coh, 'freqs': self.freqs, 'time': self.tarray})
+				'trial_' +str(trial) + '_pair_' + str(int(index_pair)) + '.npy')
+			np.save(file_name, {'coherence' : out, 'freqs': self.freqs, 'time': self.tarray})
 
 '''
 	def session_coherence(self, n_cycles = 7.0, win_time = 1, win_freq = 1, time_bandwidth = None, method = 'morlet'):
