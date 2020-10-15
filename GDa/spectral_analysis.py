@@ -284,6 +284,7 @@ class spectral_analysis(spectral):
 
 	def _wavelet_coherence(self, trial = None, index_pair = None, n_cycles = 7.0, win_time = 1, win_freq = 1,
 		           time_bandwidth = None, method = 'morlet', save_to_file = False, n_jobs = 1):
+		print('index pair =' + str(index_pair))
 		index_channel1 = self.pairs[index_pair, 0]
 		index_channel2 = self.pairs[index_pair, 1]
 		out = super().wavelet_coherence(signal1 = self.data[trial, index_channel1, :][np.newaxis, np.newaxis, :], 
@@ -301,6 +302,28 @@ class spectral_analysis(spectral):
 			file_name = os.path.join( self.dir_out, 
 				'trial_' +str(trial) + '_pair_' + str(int(index_pair)) + '.npy')
 			np.save(file_name, {'coherence' : out, 'freqs': self.freqs, 'time': self.tarray})
+
+	def parallel_wavelet_coherence(self, n_cycles = 7.0, win_time = 1, win_freq = 1,
+		           	               time_bandwidth = None, method = 'morlet', n_jobs=1):
+		if method == 'morlet':
+			for trial in range(self.nT):
+				Parallel(n_jobs=n_jobs, backend='loky', max_nbytes=1e6)(
+				     delayed(self._wavelet_coherence)
+				     (trial = trial, index_pair = index_pair, n_cycles = n_cycles, 
+				      win_time = win_time, win_freq = win_freq, 
+				      method = 'morlet', save_to_file = True, n_jobs = 1)
+				     for index_pair in range(self.nP)
+					 )
+		elif method == 'multitaper':
+			for trial in range(self.nT):
+				Parallel(n_jobs=n_jobs, backend='loky', max_nbytes=1e6)(
+				     delayed(self._wavelet_coherence)
+				     (trial = trial, index_pair = index_pair, n_cycles = n_cycles, 
+				      win_time = win_time, win_freq = win_freq, time_bandwidth = time_bandwidth,
+				      method = 'multitaper', save_to_file = True, n_jobs = 1)
+				     for index_pair in range(self.nP)
+					 )
+
 
 '''
 	def session_coherence(self, n_cycles = 7.0, win_time = 1, win_freq = 1, time_bandwidth = None, method = 'morlet'):

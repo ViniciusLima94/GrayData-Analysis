@@ -26,20 +26,18 @@ freqs = np.arange(6,100,1)
 delta = 15
 # Instantiating spectral analysis class
 spec = spectral_analysis(session = None, path = path, freqs = freqs, delta=delta)
-
-#def save_coherences(trial_number, index_pair):
-#	spec._wavelet_coherence(trial = trial_number, 
- #                           index_pair = index_pair,
-  #                          n_cycles=freqs / 2.0,
-   #                         win_time=500, win_freq=1, time_bandwidth = 8.0,
-    #                        method='multitaper', save_to_file = True, n_jobs=1)
+'''
+def save_coherences(trial_number, index_pair):
+	spec._wavelet_coherence(trial = trial_number, 
+                            index_pair = index_pair,
+                            n_cycles=freqs / 2.0,
+                            win_time=500, win_freq=1, time_bandwidth = 8.0,
+                            method='multitaper', save_to_file = True, n_jobs=1)
 
 # Computing in parallel for each pair
 for trial in range(spec.nT):
 	print('Trial = ' + str(trial))
-	Parallel(n_jobs=-1, backend='loky', max_nbytes=1e6)(
-		     delayed(spec._wavelet_coherence)(trial = trial, 
-                            index_pair = index_pair,
-                            n_cycles=spec.freqs / 2.0,
-                            win_time=500, win_freq=1, time_bandwidth = 8.0,
-                            method='multitaper', save_to_file = True, n_jobs=1) for index_pair in range(spec.nP) )
+	Parallel(n_jobs=-1, backend='loky', max_nbytes=1e6)(delayed(save_coherences)(trial, index_pair) for index_pair in range(spec.nP) )
+'''
+
+spec.parallel_wavelet_coherence(n_cycles = freqs/2.0, win_time = 500, win_freq = 1, time_bandwidth = 8.0, method = 'multitaper', n_jobs=-1)
