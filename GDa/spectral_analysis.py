@@ -300,6 +300,7 @@ class spectral_analysis(spectral):
 							          'trial_' +str(trial) + '_pair_' + str(self.pairs[index_pair, 0]) + '_' + str(self.pairs[index_pair, 1]) + '.npy')
 			np.save(file_name, {'coherence' : coh, 'freqs': self.freqs, 'time': self.tarray})
 
+'''
 	def session_coherence(self, n_cycles = 7.0, win_time = 1, win_freq = 1, time_bandwidth = None, method = 'morlet'):
 		for trial in range(self.nT):
 			Parallel(n_jobs=n_jobs, backend='loky', max_nbytes=1e6)(
@@ -309,3 +310,4 @@ class spectral_analysis(spectral):
 				      method = method, save_to_file = True, n_jobs = 1)
 				     for index_pair in range(self.nP)
 					 )
+'''
