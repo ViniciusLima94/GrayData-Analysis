@@ -221,6 +221,7 @@ class spectral_analysis(spectral):
 
 	def _gabor_coherence(self, trial = None, index_pair = None, 
 		                 win_time = 1, win_freq = 1, n_cycles = 7.0, save_to_file=False):
+		print('index pair =' + str(index_pair))
 		index_channel1 = self.pairs[index_pair, 0]
 		index_channel2 = self.pairs[index_pair, 1]
 		coh = super().gabor_coherence(signal1 = self.data[trial, index_channel1, :], 

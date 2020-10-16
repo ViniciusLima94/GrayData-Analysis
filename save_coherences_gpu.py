@@ -1,7 +1,7 @@
 import sys
 import numpy                           as     np
 from   GDa.spectral_analysis           import spectral_analysis
-from   joblib import Parallel, delayed
+from   numba import vectorize
 
 idx = 3#int(sys.argv[-1])
 
@@ -26,20 +26,17 @@ freqs = np.arange(4,60,2)
 delta = 15
 # Instantiating spectral analysis class
 spec = spectral_analysis(session = None, path = path, freqs = freqs, delta=delta)
-'''
+
+@vectorize(['void(int32, int32)'], target='cuda')
 def save_coherences(trial_number, index_pair):
-    ch1, ch2 = pairs[index_pair,0], pairs[index_pair,1]
-    lfp1 = data[trial_number, ch1,:]
-    lfp2 = data[trial_number, ch2,:]
-    coh =  gabor_coherence(signal1 = lfp1, signal2 = lfp2, fs = fsample, freqs = freqs, win_time = 500, win_freq = 1, n_cycles = 6.0)
-    file_name = os.path.join( dir_out, 'trial_' +str(trial) + '_pair_' + str(int(index_pair)) + '.npy')
-    np.save(file_name, {'coherence' : coh, 'freqs': freqs, 'time': tarray})
-'''
-# Computing in parallel for each pair
-#for trial in range(nT):
-#    print('Trial = ' + str(trial))
-#    Parallel(n_jobs=-1, backend='loky', max_nbytes=1e6)(delayed(save_coherences)(trial, index_pair) for index_pair in range(nP) )
+    spec._gabor_coherence(trial = trial_number, index_pair = index_pair, 
+		                  win_time = 500, win_freq = 1, n_cycles = 6.0, save_to_file=True) 
+    #file_name = os.path.join( dir_out, 'trial_' +str(trial) + '_pair_' + str(int(index_pair)) + '.npy')
+    #np.save(file_name, {'coherence' : coh, 'freqs': freqs, 'time': tarray})
 
 if  __name__ == '__main__':
-	spec.parallel_wavelet_coherence(n_cycles =6, win_time = 500, win_freq = 1, 
-                                        time_bandwidth = 8.0, method = 'gabor', backend = 'threading', n_jobs=-1)
+
+	trial_array = np.arange(0,spec.nT)
+	pairs_array = np.arange(0, spec.nP)
+
+	save_coherences(trial_array, pairs_array)
