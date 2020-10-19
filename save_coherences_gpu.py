@@ -1,7 +1,7 @@
 import sys
 import numpy                           as     np
 from   GDa.spectral_analysis           import spectral_analysis
-from   numba import vectorize
+from   numba import vectorize, cuda
 
 idx = 3#int(sys.argv[-1])
 
