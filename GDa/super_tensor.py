@@ -5,7 +5,7 @@ from  .io    import set_paths
 class super_tensor(set_paths):
 
 	def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', 
-		         session = 1, delta = 1, freqs = np.arange(6,60,1)):
+		         session = 1, delta = 1, freqs = np.arange(6,60,1), trial_subset = None):
 		'''
 		Constructor method.
 		Inputs
@@ -15,34 +15,31 @@ class super_tensor(set_paths):
 			> session  : The number of the session, should be either session01 or session02
 		'''
 		super().__init__(raw_path = raw_path, monkey = monkey, date = date, session = session)
+		###
+		self.monkey   = monkey
+		self.raw_path = raw_path
+		self.date     = date 
+		self.session  = 'session0' + str(session)
+
 		# Path to the raw LPF in npy format
 		npy_raw_lfp_path = os.path.join('raw_lfp', monkey+'_'+'session0'+str(session)+'_'+str(date)+'.npy')
 		# Loading session data
-		session = np.load(npy_raw_lfp_path, allow_pickle=True).item()
+		session_data = np.load(npy_raw_lfp_path, allow_pickle=True).item()
 		# Data is deleted to not use memory
-		del session['data']
+		del session_data['data']
+		# Copy info in session to the object
+		self.session_data = session_data
 		# Loading session info
-		self.nC      = session['info']['nC']
-		self.nP      = session['info']['nP']
-		self.nT      = session['info']['nT']
-		self.pairs   = session['info']['pairs']
-		self.indt    = session['info']['indt']
-		self.indch   = session['info']['indch'] 
-		self.areas   = session['info']['areas']  
-		self.dir     = session['path']['dir']
-		self.dir_out = session['path']['dir_out']
-		self.dcue    = session['info']['dcue']
-		self.dsm     = session['info']['dsm']
-		self.stim    = session['info']['stim']
-		self.fsample = float(session['info']['fsample'])
+		self.nP      = session_data['info']['nP']
+		if trial_subset == None:
+			self.nT      = session_data['info']['nT']
+		else:
+			self.nT = 10
+		self.dir_out = session_data['path']['dir_out']
 		self.freqs   = freqs
-		self.tarray  = session['info']['tarray'][::delta]
-		self.channel_labels = session['info']['channels_labels']
-		self.t_cue_on       = session['info']['t_cue_on'] 
-		self.t_cue_off      = session['info']['t_cue_off'] 
-		self.t_match_on     = session['info']['t_match_on'] 
+		self.tarray  = session_data['info']['tarray'][::delta]
 		
-	def load_super_tensor(self, concatenate_trials = False):
+	def load_super_tensor(self, bands = None, average_bands=True):
 
 		self._super_tensor = np.zeros([self.nP, self.freqs.shape[0], self.nT, self.tarray.shape[0]])
 		for i in range(self.nT):
@@ -51,12 +48,20 @@ class super_tensor(set_paths):
 				path                        = os.path.join( self.dir_out, 'trial_'+str(i)+'_pair_'+str(j)+'.npy' )
 				self._super_tensor[j,:,i,:] = np.load(path, allow_pickle=True).item()['coherence'].real
 
-	def average_bands(self, bands):
-		self.averaged_super_tensor = np.zeros([self.nP, len(bands), self.nT, self.tarray.shape[0]])
+		if average_bands == True:
+			temp = np.zeros([self.nP, len(bands), self.nT, self.tarray.shape[0]])
 
-		for i in range( len(bands) ):
-			idx = (self.freqs>=bands[i][0])*(self.freqs<bands[i][1])
-			self.averaged_super_tensor[:,i,:,:] = self._super_tensor[:,i,:,:].mean(axis=2)
+			for i in range( len(bands) ):
+				idx = (self.freqs>=bands[i][0])*(self.freqs<bands[i][1])
+				temp[:,i,:,:] = self._super_tensor[:,idx,:,:].mean(axis=1)
+
+			self._super_tensor = temp
+			del temp
+
+	def save_npy(self):
+		path = os.path.join('super_tensors', self.monkey + '_' + self.session + '_' + self.date + '.npy')
+		self.session_data['super_tensor'] = self._super_tensor
+		np.save(path, self.session_data)
 
 	def separate_task_stages(self, ):
 		None
