@@ -4,7 +4,8 @@ from  .io    import set_paths
 
 class super_tensor(set_paths):
 
-	def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', session = 1, delta = 1, freqs = np.arange(6,60,1)):
+	def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', 
+		         session = 1, delta = 1, freqs = np.arange(6,60,1)):
 		'''
 		Constructor method.
 		Inputs
@@ -41,11 +42,21 @@ class super_tensor(set_paths):
 		self.t_cue_off      = session['info']['t_cue_off'] 
 		self.t_match_on     = session['info']['t_match_on'] 
 		
-	def load_super_tensor(self, use_gpu = False):
+	def load_super_tensor(self, concatenate_trials = False):
 
-		self._super_tensor = np.zeros([self.nT, self.nP, self.freqs.shape[0], self.tarray.shape[0]])
+		self._super_tensor = np.zeros([self.nP, self.freqs.shape[0], self.nT, self.tarray.shape[0]])
 		for i in range(self.nT):
 			for j in range(self.nP):
 				#print('Trial = ' + str(i) + ', pair = ' + str(j))
 				path                        = os.path.join( self.dir_out, 'trial_'+str(i)+'_pair_'+str(j)+'.npy' )
-				self._super_tensor[i,j,:,:] = np.load(path, allow_pickle=True).item()['coherence'].real
+				self._super_tensor[j,:,i,:] = np.load(path, allow_pickle=True).item()['coherence'].real
+
+	def average_bands(self, bands):
+		self.averaged_super_tensor = np.zeros([self.nP, len(bands), self.nT, self.tarray.shape[0]])
+
+		for i in range( len(bands) ):
+			idx = (self.freqs>=bands[i][0])*(self.freqs<bands[i][1])
+			self.averaged_super_tensor[:,i,:,:] = self._super_tensor[:,i,:,:].mean(axis=2)
+
+	def separate_task_stages(self, ):
+		None
