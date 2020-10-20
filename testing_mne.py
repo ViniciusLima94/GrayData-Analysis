@@ -1,53 +1,38 @@
 #####################################################################################################
 # Read and save the LFP data and information for each trial in numpy format
 #####################################################################################################
-from   GDa.LFP              import LFP
-from   joblib               import Parallel, delayed
-import multiprocessing
 import mne
-import numpy                as     np 
-import matplotlib.animation as     animation
+import numpy                as np 
+import matplotlib.animation as animation
+import matplotlib.pyplot    as plt
 
-nmonkey = 0
-nses    = 3
-ntype   = 0
 #####################################################################################################
-# Directories
+# Loading session data
 #####################################################################################################
-dirs = {'rawdata':'GrayLab/',
-        'results':'Results/',
-        'monkey' :['lucy', 'ethyl'],
-        'session':'session01',
-        'date'   :[['141014', '141015', '141205', '150128', '150211', '150304'], []]
-        }
+session_data = np.load('raw_lfp/lucy_session01_150128.npy', allow_pickle=True).item()
+LFP          = session_data['data']
+fsample      = int(session_data['info']['fsample'])
+T,C,N        = LFP.shape
 
-# Instatiate LFP object
-lfp_data = LFP(raw_path = dirs['rawdata'], monkey = dirs['monkey'][nmonkey], stype = 'samplecor', date = dirs['date'][nmonkey][nses], 
-               session  = 1, evt_dt = [-0.65,3.00])
-# Read session info
-lfp_data.read_session_info()
-# Read LFP data
-lfp_data.read_lfp_data()
-# Saving npy file
-lfp_data.save_npy()
+freqs = np.arange(4,60,1)
 
+W_ml = mne.time_frequency.tfr_array_morlet(LFP, fsample, freqs, n_cycles=5.0, zero_mean=False, 
+                                           use_fft=True, decim=15, output='complex', n_jobs=-1, verbose=None)
 
-info = mne.create_info(ch_names = lfp_data.readinfo['areas'].tolist(),   sfreq= lfp_data.readinfo['fsample'])   
-raw = mne.EpochsArray(lfp_data.data, info)
-#raw = mne.Epochs(lfp_data.data[0,:,:], info)
-#con, freqs, times, n_epochs, n_tapers = mne.connectivity.spectral_connectivity(raw, sfre = info['sfreq'], fmin=6, fmax=60, n_jobs=-1)  
-st_power, itc, freqs = mne.time_frequency.tfr_array_stockwell(lfp_data.data[0,:,:][np.newaxis, :, :], info['sfreq'], fmin=6, fmax=60, n_jobs=-1)
+W_mt = mne.time_frequency.tfr_array_multitaper(LFP, fsample, freqs, n_cycles=5.0, zero_mean=False, 
+                                               time_bandwidth=None, use_fft=True, decim=15, output='complex', 
+                                               n_jobs=-1, verbose=None)
 
-fig = plt.figure()
-ims = []
-for i in range(49):
-	plt.title('Area: ' + info['ch_names'][i])
-	plt.ylabel('Frequency [Hz]')
-	plt.xlabel('Time [ms]')
-	im = plt.imshow(st_power[i], aspect='auto', cmap='jet', origin='lower', extent=[0,3.51, 6, 60]) 
-	ims.append([im])
-ani = animation.ArtistAnimation(fig, ims, interval=100, blit=True,
-                                repeat_delay=1000)
-
-writergif = animation.PillowWriter(fps=1)
-ani.save('power.gif',writer=writergif)
+#####################################################################################################
+# Computing spectra
+#####################################################################################################
+trial    = 0
+ch1, ch2 = 10, 30
+# Morlet
+Sxx_ml = W_ml[trial,ch1,:,:] * np.conj(W_ml[trial,ch1,:,:])
+Syy_ml = W_ml[trial,ch2,:,:] * np.conj(W_ml[trial,ch2,:,:]) 
+Sxy_ml = W_ml[trial,ch1,:,:] * np.conj(W_ml[trial,ch2,:,:]) 
+# Multitaper
+Sxx_mt = W_mt[trial,ch1,:,:] * np.conj(W_mt[trial,ch1,:,:])
+Syy_mt = W_mt[trial,ch2,:,:] * np.conj(W_mt[trial,ch2,:,:]) 
+Sxy_mt = W_mt[trial,ch1,:,:] * np.conj(W_mt[trial,ch2,:,:]) 
