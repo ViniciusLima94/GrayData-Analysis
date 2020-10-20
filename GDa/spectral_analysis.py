@@ -9,17 +9,18 @@ import multiprocessing
 from   joblib           import Parallel, delayed
 from   .misc            import smooth_spectra, downsample   
 
-class spectral():
+class spectral_analysis():
 
-	def __init__(self, ):
-		None
+	def __init__(self, dir_out = None):
+		self.dir_out = dir_out
 
-	def filter(self, signal = None, fs = 20, f_low = 30, f_high = 60, n_jobs = 1):
-		signal_filtered = mne.filter.filter_data(signal, fs, f_low, f_high,
-							 				     method = 'iir', verbose=False, n_jobs=n_jobs)
+	def filter(self, data = None, fs = 20, f_low = 30, f_high = 60, n_jobs = 1):
+
+		signal_filtered = mne.filter.filter_data(data, fs, f_low, f_high,
+		                                         method = 'iir', verbose=False, n_jobs=n_jobs)
 
 		return signal_filtered
-
+	'''
 	def gabor_transform(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0):
 		n      = len(signal)
 		sigma2 = 1
@@ -75,15 +76,56 @@ class spectral():
 			Sxy = smooth_spectra.smooth_spectra(Sxy, win_time, win_freq, fft=True)#sig.convolve2d(Sxy, kernel, mode='same')
 			return Sxx.T, Syy.T, Sxy.T
 
-
 	def gabor_coherence(self, signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1),  
 		                 win_time = 1, win_freq = 1, n_cycles = 7.0):
 		Sxx, Syy, Sxy = self.gabor_spectrum(signal1 = signal1, signal2 = signal2, fs = fs, freqs = freqs,  
 		                win_time = win_time, win_freq = win_freq, n_cycles = n_cycles)
 
 		return Sxy * np.conj(Sxy) / (Sxx * Syy)
+	'''
 
+	def wavelet_transform(self, data = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
+		                  time_bandwidth = None, delta = 1, method = 'morlet', n_jobs = 1):
+		if method == 'morlet':
+			out = mne.time_frequency.tfr_array_morlet(data, fs, freqs, n_cycles = n_cycles, zero_mean=False,
+				                                      output='complex', decim = delta, n_jobs=n_jobs)
+		if method == 'multitaper':
+			out = mne.time_frequency.tfr_array_multitaper(data, fs, freqs, n_cycles = n_cycles, zero_mean=False,
+													      time_bandwidth = time_bandwidth, output='complex', 
+													      decim = delta, n_jobs=n_jobs)
+		return out
 
+	def wavelet_coherence(self, data = None, pairs = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
+		                  time_bandwidth = None, delta = 1, method = 'morlet', win_time = 1, win_freq = 1, 
+		                  n_jobs = 1):
+
+		# Data dimension
+		T, C, L = data.shape
+		# All possible pairs of channels
+
+		# Computing wavelets
+		W = self.wavelet_transform(data = data, fs = fs, freqs = freqs, n_cycles = n_cycles, 
+		                           time_bandwidth = time_bandwidth, delta = delta, 
+		                           method = method, n_jobs = n_jobs)
+
+		S_auto = W * np.conj(W)
+
+		def pairwise_coherence(trial_number, index_pair, win_time, win_freq):
+			channel1, channel2 = pairs[index_pair,0], pairs[index_pair,1]
+			Sxy = W[trial_number, channel1, :, :] * np.conj(W[trial_number, channel2, :, :])
+			Sxx = smooth_spectra.smooth_spectra(S_auto[trial_number,channel1, :, :].T, win_time, win_freq, fft=True).T
+			Syy = smooth_spectra.smooth_spectra(S_auto[trial_number,channel2, :, :].T, win_time, win_freq, fft=True).T
+			Sxy = smooth_spectra.smooth_spectra(Sxy.T, win_time, win_freq, fft=True).T
+			coh = Sxy * np.conj(Sxy) / (Sxx * Syy )
+			file_name = os.path.join( self.dir_out, 'trial_' +str(trial_number) + '_pair_' + str(int(index_pair)) + '.npy')
+			np.save(path, {'coherence' : coh})
+
+		for trial_index in range(T):
+			Parallel(n_jobs=n_jobs, prefer="threads", backend='loky', timeout=1e6)(
+	        delayed(pairwise_coherence)(trial_index, index_pair, win_time, win_freq)
+	                for index_pair in range(pairs.shape[0]) )
+				
+'''
 	def wavelet_transform(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
 		                  time_bandwidth = None, method = 'morlet', n_jobs = 1):
 		if method == 'morlet':
@@ -340,4 +382,4 @@ class spectral_analysis(spectral):
 				      save_to_file = True)
 				     for index_pair in range(self.nP)
 					 )			
-
+'''
