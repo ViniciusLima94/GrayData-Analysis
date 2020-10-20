@@ -1,4 +1,4 @@
-import scipy
+import scipy.signal
 import numpy as np
 
 def smooth_spectra(spectra, win_time, win_freq, fft=False):
