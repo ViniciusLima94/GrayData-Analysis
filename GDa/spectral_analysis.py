@@ -1,8 +1,7 @@
 #####################################################################################################
 # Class to perform spectral analysis on the LFP data
 #####################################################################################################
-import numpy            as np
-import scipy.signal     as sig
+import numpy            as     np
 import mne.filter
 import os
 import multiprocessing
@@ -66,7 +65,7 @@ class spectral_analysis():
 	        delayed(pairwise_coherence)(trial_index, pair[0], pair[1], win_time, win_freq)
 	                for pair in pairs )
 	
-	'''
+
 	def gabor_transform(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0):
 		n      = len(signal)
 		sigma2 = 1
@@ -128,7 +127,7 @@ class spectral_analysis():
 		                win_time = win_time, win_freq = win_freq, n_cycles = n_cycles)
 
 		return Sxy * np.conj(Sxy) / (Sxx * Syy)
-	'''
+
 
 
 '''

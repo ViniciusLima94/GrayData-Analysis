@@ -1,4 +1,5 @@
 import sys
+import time
 import numpy                           as     np
 from   GDa.spectral_analysis           import spectral_analysis
 from   joblib import Parallel, delayed
@@ -24,22 +25,28 @@ path = 'raw_lfp/'+dirs['monkey'][nmonkey]+'_'+'session01'+'_'+dirs['date'][nmonk
 freqs = np.arange(4,60,2)
 # Delta for downsampling
 delta = 15
+# Number of cycles for the wavelet
+n_cycles = 5
 # Instantiating spectral analysis class
-spec = spectral_analysis(session = None, path = path, freqs = freqs, delta=delta)
-'''
-def save_coherences(trial_number, index_pair):
-    ch1, ch2 = pairs[index_pair,0], pairs[index_pair,1]
-    lfp1 = data[trial_number, ch1,:]
-    lfp2 = data[trial_number, ch2,:]
-    coh =  gabor_coherence(signal1 = lfp1, signal2 = lfp2, fs = fsample, freqs = freqs, win_time = 500, win_freq = 1, n_cycles = 6.0)
-    file_name = os.path.join( dir_out, 'trial_' +str(trial) + '_pair_' + str(int(index_pair)) + '.npy')
-    np.save(file_name, {'coherence' : coh, 'freqs': freqs, 'time': tarray})
-'''
-# Computing in parallel for each pair
-#for trial in range(nT):
-#    print('Trial = ' + str(trial))
-#    Parallel(n_jobs=-1, backend='loky', max_nbytes=1e6)(delayed(save_coherences)(trial, index_pair) for index_pair in range(nP) )
+spec = spectral_analysis()
+# Loading data info
+session_data = np.load(path, allow_pickle = True).item()
+# LFP data
+LFP          = session_data['data']
+# Index of all pair of channels
+pairs        = session_data['info']['pairs']
+# Sample frequency
+fsample      = int(session_data['info']['fsample'])
+# Directory were to save the coherence data
+dir_out      = session_data['path']['dir_out']
 
 if  __name__ == '__main__':
-	spec.parallel_wavelet_coherence(n_cycles =6, win_time = 500, win_freq = 1, 
-                                        time_bandwidth = 8.0, method = 'gabor', backend = 'threading', n_jobs=-1)
+
+    start = time.time()
+
+    spec.wavelet_coherence(data = LFP, pairs = pairs, fs = fsample, freqs = freqs, 
+                           n_cycles = n_cycles, time_bandwidth = None, delta = delta, method = 'morlet', 
+                           win_time = 34, win_freq = 1, dir_out = dir_out, n_jobs = -1)
+
+    end = time.time()
+    print('Elapsed time to compute coherences: ' +str((end - start)/60.0) + ' min.' )
