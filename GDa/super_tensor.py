@@ -38,6 +38,7 @@ class super_tensor(set_paths):
 		self.dir_out = session_data['path']['dir_out']
 		self.freqs   = freqs
 		self.tarray  = session_data['info']['tarray'][::delta]
+		self.pairs   = session_data['info']['pairs']
 		
 	def load_super_tensor(self, bands = None, average_bands=True):
 
@@ -45,7 +46,8 @@ class super_tensor(set_paths):
 		for i in range(self.nT):
 			for j in range(self.nP):
 				#print('Trial = ' + str(i) + ', pair = ' + str(j))
-				path                        = os.path.join( self.dir_out, 'trial_'+str(i)+'_pair_'+str(j)+'.npy' )
+				path                        = os.path.join(self.dir_out, 
+					                                       'trial_'+str(i)+'_ch1_'+str(self.pairs[j,0])+'_ch2_'+str(self.pairs[j,1])+'.npy' )
 				self._super_tensor[j,:,i,:] = np.load(path, allow_pickle=True).item()['coherence'].real
 
 		if average_bands == True:
