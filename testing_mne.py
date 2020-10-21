@@ -1,38 +1,30 @@
 #####################################################################################################
-# Read and save the LFP data and information for each trial in numpy format
+# Compare the coherence matrices
 #####################################################################################################
-import mne
+import os
 import numpy                as np 
-import matplotlib.animation as animation
 import matplotlib.pyplot    as plt
 
 #####################################################################################################
 # Loading session data
 #####################################################################################################
 session_data = np.load('raw_lfp/lucy_session01_150128.npy', allow_pickle=True).item()
-LFP          = session_data['data']
-fsample      = int(session_data['info']['fsample'])
-T,C,N        = LFP.shape
+pairs        = session_data['info']['pairs']
+dir_out      = session_data['path']['dir_out']
 
-freqs = np.arange(4,60,1)
+trial        = np.random.randint(0, 540)
+pair         = np.random.randint(0, 1176)
+ch1, ch2     = pairs[pair,0], pairs[pair,1]
 
-W_ml = mne.time_frequency.tfr_array_morlet(LFP, fsample, freqs, n_cycles=5.0, zero_mean=False, 
-                                           use_fft=True, decim=15, output='complex', n_jobs=-1, verbose=None)
+path1        = os.path.join(dir_out, 'trial_' +str(trial) + '_ch1_' + str(ch1) + '_ch2_' + str(ch2) +'.npy')
+path2        = os.path.join(dir_out, 'trial_' +str(trial) + '_pair_'+ str(pair) +'.npy')
 
-W_mt = mne.time_frequency.tfr_array_multitaper(LFP, fsample, freqs, n_cycles=5.0, zero_mean=False, 
-                                               time_bandwidth=None, use_fft=True, decim=15, output='complex', 
-                                               n_jobs=-1, verbose=None)
+coh1         = np.load(path1, allow_pickle=True).item()['coherence']
+coh2         = np.load(path2, allow_pickle=True).item()['coherence']
 
-#####################################################################################################
-# Computing spectra
-#####################################################################################################
-trial    = 0
-ch1, ch2 = 10, 30
-# Morlet
-Sxx_ml = W_ml[trial,ch1,:,:] * np.conj(W_ml[trial,ch1,:,:])
-Syy_ml = W_ml[trial,ch2,:,:] * np.conj(W_ml[trial,ch2,:,:]) 
-Sxy_ml = W_ml[trial,ch1,:,:] * np.conj(W_ml[trial,ch2,:,:]) 
-# Multitaper
-Sxx_mt = W_mt[trial,ch1,:,:] * np.conj(W_mt[trial,ch1,:,:])
-Syy_mt = W_mt[trial,ch2,:,:] * np.conj(W_mt[trial,ch2,:,:]) 
-Sxy_mt = W_mt[trial,ch1,:,:] * np.conj(W_mt[trial,ch2,:,:]) 
+plt.figure(figsize=(12,6))
+plt.subplot(1,2,1)
+plt.imshow(coh1.real, aspect='auto',cmap='jet',origin='lower')
+plt.subplot(1,2,2)
+plt.imshow(coh2.real, aspect='auto',cmap='jet',origin='lower')
+plt.show()
