@@ -32,7 +32,7 @@ class super_tensor(set_paths):
 		# Loading session info
 		self.nP      = session_data['info']['nP']
 		if trial_subset == None:
-			print(session_data['info']['nT'])
+			#print(session_data['info']['nT'])
 			self.nT      = session_data['info']['nT']
 		else:
 			self.nT = trial_subset
@@ -45,7 +45,7 @@ class super_tensor(set_paths):
 
 		self._super_tensor = np.zeros([self.nP, self.freqs.shape[0], self.nT, self.tarray.shape[0]])
 		for i in range(self.nT):
-			print('Trial = ' + str(i) + '/540')
+			#print('Trial = ' + str(i) + '/540')
 			for j in range(self.nP):
 				#print('Trial = ' + str(i) + ', pair = ' + str(j))
 				path                        = os.path.join(self.dir_out, 
