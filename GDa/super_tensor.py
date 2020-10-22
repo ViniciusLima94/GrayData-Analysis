@@ -1,7 +1,7 @@
-import numpy as np 
+import numpy  as      np 
 import os
-from  .io    import set_paths 
-
+from  .io     import set_paths 
+from   joblib import Parallel, delayed
 class super_tensor(set_paths):
 
 	def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', 
@@ -32,9 +32,10 @@ class super_tensor(set_paths):
 		# Loading session info
 		self.nP      = session_data['info']['nP']
 		if trial_subset == None:
+			print(session_data['info']['nT'])
 			self.nT      = session_data['info']['nT']
 		else:
-			self.nT = 10
+			self.nT = trial_subset
 		self.dir_out = session_data['path']['dir_out']
 		self.freqs   = freqs
 		self.tarray  = session_data['info']['tarray'][::delta]
@@ -44,6 +45,7 @@ class super_tensor(set_paths):
 
 		self._super_tensor = np.zeros([self.nP, self.freqs.shape[0], self.nT, self.tarray.shape[0]])
 		for i in range(self.nT):
+			print('Trial = ' + str(i) + '/540')
 			for j in range(self.nP):
 				#print('Trial = ' + str(i) + ', pair = ' + str(j))
 				path                        = os.path.join(self.dir_out, 
