@@ -38,3 +38,5 @@ if  __name__ == '__main__':
 	end = time.time()
 
 	print('Elapsed time to load super-tensor: ' +str((end - start)/60) + ' min.' )
+
+	st.save_npy()

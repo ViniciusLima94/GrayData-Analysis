@@ -58,7 +58,7 @@ class spectral_analysis():
 			file_name = os.path.join( dir_out, 
 				'trial_' +str(trial_number) + '_ch1_' + str(channel1) + '_ch2_' + str(channel2) +'.npy')
 			#print(file_name)
-			np.save(file_name, {'coherence' : coh})
+			np.save(file_name, {'coherence' : np.abs(coh).astype(np.float32) })
 
 		for trial_index in range(T):
 			Parallel(n_jobs=n_jobs, backend='loky', timeout=1e6)(
