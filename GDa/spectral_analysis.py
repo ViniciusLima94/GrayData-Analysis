@@ -45,11 +45,8 @@ class spectral_analysis():
 		                           method = method, n_jobs = -1)
 		# Auto spectra
 		S_auto = W * np.conj(W)
-
 		def pairwise_coherence(channel1, channel2, win_time, win_freq):
-			#channel1, channel2 = pairs[index_pair,0], pairs[index_pair,1]
-			#print(str(channel1) + ', ' + str(channel2))
-			Sxy = W[:, channel1, :, :] * np.conj(W[, channel2, :, :])
+			Sxy = W[:, channel1, :, :] * np.conj(W[:, channel2, :, :])
 			Sxx = smooth_spectra.smooth_spectra(S_auto[:,channel1, :, :], win_time, win_freq, fft=True, axes = (1,2))
 			Syy = smooth_spectra.smooth_spectra(S_auto[:,channel2, :, :], win_time, win_freq, fft=True, axes = (1,2))
 			Sxy = smooth_spectra.smooth_spectra(Sxy, win_time, win_freq, fft=True, axes = (1,2))
@@ -62,8 +59,7 @@ class spectral_analysis():
 
 		#for trial_index in range(T):
 		Parallel(n_jobs=n_jobs, backend='loky', timeout=1e6)(
-	        delayed(pairwise_coherence)(trial_index, pair[0], pair[1], win_time, win_freq)
-	                for pair in pairs )
+			delayed(pairwise_coherence)(pair[0], pair[1], win_time, win_freq) for pair in pairs )
 	
 
 	def gabor_transform(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0):

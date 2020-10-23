@@ -7,4 +7,4 @@
 #SBATCH -N 1
 ##SBATCH --array=1:5
 
-python3 save_coherences.py
+python3  -O save_coherences.py $SLURM_ARRAY_TASK_ID
