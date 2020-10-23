@@ -46,22 +46,22 @@ class spectral_analysis():
 		# Auto spectra
 		S_auto = W * np.conj(W)
 
-		def pairwise_coherence(trial_number, channel1, channel2, win_time, win_freq):
+		def pairwise_coherence(channel1, channel2, win_time, win_freq):
 			#channel1, channel2 = pairs[index_pair,0], pairs[index_pair,1]
 			#print(str(channel1) + ', ' + str(channel2))
-			Sxy = W[trial_number, channel1, :, :] * np.conj(W[trial_number, channel2, :, :])
-			Sxx = smooth_spectra.smooth_spectra(S_auto[trial_number,channel1, :, :].T, win_time, win_freq, fft=True).T
-			Syy = smooth_spectra.smooth_spectra(S_auto[trial_number,channel2, :, :].T, win_time, win_freq, fft=True).T
-			Sxy = smooth_spectra.smooth_spectra(Sxy.T, win_time, win_freq, fft=True).T
+			Sxy = W[:, channel1, :, :] * np.conj(W[, channel2, :, :])
+			Sxx = smooth_spectra.smooth_spectra(S_auto[:,channel1, :, :], win_time, win_freq, fft=True, axes = (1,2))
+			Syy = smooth_spectra.smooth_spectra(S_auto[:,channel2, :, :], win_time, win_freq, fft=True, axes = (1,2))
+			Sxy = smooth_spectra.smooth_spectra(Sxy, win_time, win_freq, fft=True, axes = (1,2))
 			coh = Sxy * np.conj(Sxy) / (Sxx * Syy)
 			# Saving to file
 			file_name = os.path.join( dir_out, 
-				'trial_' +str(trial_number) + '_ch1_' + str(channel1) + '_ch2_' + str(channel2) +'.npy')
+				'ch1_' + str(channel1) + '_ch2_' + str(channel2) +'.npy')
 			#print(file_name)
 			np.save(file_name, {'coherence' : np.abs(coh).astype(np.float32) })
 
-		for trial_index in range(T):
-			Parallel(n_jobs=n_jobs, backend='loky', timeout=1e6)(
+		#for trial_index in range(T):
+		Parallel(n_jobs=n_jobs, backend='loky', timeout=1e6)(
 	        delayed(pairwise_coherence)(trial_index, pair[0], pair[1], win_time, win_freq)
 	                for pair in pairs )
 	
