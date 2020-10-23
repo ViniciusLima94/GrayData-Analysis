@@ -43,21 +43,20 @@ class super_tensor(set_paths):
 		
 	def load_super_tensor(self, bands = None, average_bands=True):
 
-		self._super_tensor = np.zeros([self.nP, self.freqs.shape[0], self.nT, self.tarray.shape[0]])
-		for i in range(self.nT):
-			#print('Trial = ' + str(i) + '/540')
-			for j in range(self.nP):
-				#print('Trial = ' + str(i) + ', pair = ' + str(j))
-				path                        = os.path.join(self.dir_out, 
-					                                       'trial_'+str(i)+'_ch1_'+str(self.pairs[j,0])+'_ch2_'+str(self.pairs[j,1])+'.npy' )
-				self._super_tensor[j,:,i,:] = np.load(path, allow_pickle=True).item()['coherence'].real
+		self._super_tensor = np.zeros([self.nP, self.nT, self.freqs.shape[0], self.tarray.shape[0]])
+		#print('Trial = ' + str(i) + '/540')
+		for j in range(self.nP):
+			#print('pair = ' + str(j))
+			path                        = os.path.join(self.dir_out, 
+				                                       'ch1_'+str(self.pairs[j,0])+'_ch2_'+str(self.pairs[j,1])+'.npy' )
+			self._super_tensor[j,:,:,:] = np.load(path, allow_pickle=True).item()['coherence']
 
 		if average_bands == True:
-			temp = np.zeros([self.nP, len(bands), self.nT, self.tarray.shape[0]])
+			temp = np.zeros([self.nP, self.nT, len(bands), self.tarray.shape[0]])
 
 			for i in range( len(bands) ):
 				idx = (self.freqs>=bands[i][0])*(self.freqs<bands[i][1])
-				temp[:,i,:,:] = self._super_tensor[:,idx,:,:].mean(axis=1)
+				temp[:,:,i,:] = self._super_tensor[:,:,idx,:].mean(axis=2)
 
 			self._super_tensor = temp
 			del temp
