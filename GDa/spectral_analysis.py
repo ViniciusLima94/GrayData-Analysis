@@ -56,9 +56,9 @@ class spectral_analysis():
 			coh = Sxy * np.conj(Sxy) / (Sxx * Syy)
 			# Saving to file
 			file_name = os.path.join( dir_out, 
-				'ch1_' + str(channel1) + '_ch2_' + str(channel2) +'.npy')
+				'ch1_' + str(channel1) + '_ch2_' + str(channel2) +'.h5')
 			#print(file_name)
-			np.save(file_name, {'coherence' : np.abs(coh).astype(np.float32) })
+			#np.save(file_name, {'coherence' : np.abs(coh).astype(np.float32) })
 			# Using HDF5 file format
 			#dataset_name = 'ch1_' + str(channel1) + '_ch2_' + str(channel2)
 			#hf.create_dataset(dataset_name, data=coh)
@@ -67,6 +67,8 @@ class spectral_analysis():
 			#hf = h5py.File(file_name, 'w')
 			#hf.create_dataset('coherence', data=np.abs(coh).astype(np.float32))
 			#hf.close()
+			with h5py.File(file_name, 'w') as hf:
+				hf.create_dataset('coherence', data=np.abs(coh).astype(np.float32))
 
 		#for trial_index in range(T):
 		Parallel(n_jobs=n_jobs, backend='loky', timeout=1e6)(
