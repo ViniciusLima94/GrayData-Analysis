@@ -2,6 +2,8 @@ import numpy  as      np
 import os
 from  .io     import set_paths 
 from   joblib import Parallel, delayed
+import h5py
+
 class super_tensor(set_paths):
 
 	def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', 
@@ -47,9 +49,13 @@ class super_tensor(set_paths):
 		#print('Trial = ' + str(i) + '/540')
 		for j in range(self.nP):
 			#print('pair = ' + str(j))
-			path                        = os.path.join(self.dir_out, 
-				                                       'ch1_'+str(self.pairs[j,0])+'_ch2_'+str(self.pairs[j,1])+'.npy' )
-			self._super_tensor[j,:,:,:] = np.load(path, allow_pickle=True).item()['coherence']
+			#path                        = os.path.join(self.dir_out, 
+			#	                                       'ch1_'+str(self.pairs[j,0])+'_ch2_'+str(self.pairs[j,1])+'.npy' )
+			#self._super_tensor[j,:,:,:] = np.load(path, allow_pickle=True).item()['coherence']
+			path = os.path.join(self.dir_out, 
+				                'ch1_'+str(self.pairs[j,0])+'_ch2_'+str(self.pairs[j,1])+'.h5' )
+			with h5py.File(path, 'r') as hf:
+				self._super_tensor[j,:,:,:] = hf['coherence'][:]
 
 		if average_bands == True:
 			temp = np.zeros([self.nP, self.nT, len(bands), self.tarray.shape[0]])
@@ -65,6 +71,11 @@ class super_tensor(set_paths):
 		path = os.path.join('super_tensors', self.monkey + '_' + self.session + '_' + self.date + '.npy')
 		self.session_data['super_tensor'] = self._super_tensor
 		np.save(path, self.session_data)
+
+	def save_h5(self):
+		path = os.path.join('super_tensors', self.monkey + '_' + self.session + '_' + self.date + '.h5')
+		with h5py.File(path, 'w') as hf:
+			hf.create_dataset('supertensor', data=self._super_tensor)
 
 	def separate_task_stages(self, ):
 		None
