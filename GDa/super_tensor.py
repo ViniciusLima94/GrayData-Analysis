@@ -42,6 +42,11 @@ class super_tensor(set_paths):
 		self.freqs   = freqs
 		self.tarray  = session_data['info']['tarray'][::delta]
 		self.pairs   = session_data['info']['pairs']
+		self.areas   = session_data['info']['areas']
+		self.t_cue_on   = session_data['info']['t_cue_on']
+		self.t_cue_off  = session_data['info']['t_cue_off']
+		self.t_match_on = session_data['info']['t_match_on']
+
 		
 	def load_super_tensor(self, bands = None, average_bands=True):
 
