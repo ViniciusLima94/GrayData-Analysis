@@ -1,6 +1,9 @@
+*.gif
 *.h5
 *.out
 *.mat
 *.npy
+*.png
+*.pdf
 __pychache__/
 .ipynb_checkpoints
