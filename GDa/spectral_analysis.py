@@ -50,6 +50,7 @@ class spectral_analysis():
 		def pairwise_coherence(index_pair, win_time, win_freq):
 			channel1, channel2 = pairs[index_pair, 0], pairs[index_pair, 1]
 			Sxy = W[:, channel1, :, :] * np.conj(W[:, channel2, :, :])
+			print(len(Sxy.shape))
 			Sxx = smooth_spectra.smooth_spectra(S_auto[:,channel1, :, :], win_time, win_freq, fft=True, axes = (1,2))
 			Syy = smooth_spectra.smooth_spectra(S_auto[:,channel2, :, :], win_time, win_freq, fft=True, axes = (1,2))
 			Sxy = smooth_spectra.smooth_spectra(Sxy, win_time, win_freq, fft=True, axes = (1,2))
@@ -110,7 +111,7 @@ class spectral_analysis():
 			wt1    = self.gabor_transform(signal=signal1,fs=fs,freqs=freqs,n_cycles=n_cycles)
 			Sxx    = wt1*np.conj(wt1)
 			#kernel = np.ones([win_time, win_freq])		
-			return smooth_spectra.smooth_spectra(Sxx, win_time, win_freq, fft=True)#sig.convolve2d(Sxx, kernel, mode='same').T
+			return smooth_spectra.smooth_spectra(Sxx.T, win_time, win_freq, fft=True, axes=(0,1))#sig.convolve2d(Sxx, kernel, mode='same').T
 		else:
 			wt1 = self.gabor_transform(signal=signal1,fs=fs,freqs=freqs,n_cycles=n_cycles)
 			wt2 = self.gabor_transform(signal=signal2,fs=fs,freqs=freqs,n_cycles=n_cycles)
@@ -121,13 +122,14 @@ class spectral_analysis():
 			Sxy    = wt1*np.conj(wt2)
 			Sxx    = wt1*np.conj(wt1)
 			Syy    = wt2*np.conj(wt2)
+			print(len(Sxy.shape))
 
 			# Smoothing spectra
 			#kernel = np.ones([win_time, win_freq])		
-			Sxx = smooth_spectra.smooth_spectra(Sxx, win_time, win_freq, fft=True)#sig.convolve2d(Sxx, kernel, mode='same')
-			Syy = smooth_spectra.smooth_spectra(Syy, win_time, win_freq, fft=True)#sig.convolve2d(Syy, kernel, mode='same')
-			Sxy = smooth_spectra.smooth_spectra(Sxy, win_time, win_freq, fft=True)#sig.convolve2d(Sxy, kernel, mode='same')
-			return Sxx.T, Syy.T, Sxy.T
+			Sxx = smooth_spectra.smooth_spectra(Sxx.T, win_time, win_freq, fft=True, axes=(0,1))#sig.convolve2d(Sxx, kernel, mode='same')
+			Syy = smooth_spectra.smooth_spectra(Syy.T, win_time, win_freq, fft=True, axes=(0,1))#sig.convolve2d(Syy, kernel, mode='same')
+			Sxy = smooth_spectra.smooth_spectra(Sxy.T, win_time, win_freq, fft=True, axes=(0,1))#sig.convolve2d(Sxy, kernel, mode='same')
+			return Sxx, Syy, Sxy
 
 	def gabor_coherence(self, signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1),  
 		                 win_time = 1, win_freq = 1, n_cycles = 7.0):
