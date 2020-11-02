@@ -50,7 +50,7 @@ class spectral_analysis():
 		def pairwise_coherence(index_pair, win_time, win_freq):
 			channel1, channel2 = pairs[index_pair, 0], pairs[index_pair, 1]
 			Sxy = W[:, channel1, :, :] * np.conj(W[:, channel2, :, :])
-			print(len(Sxy.shape))
+			#print(len(Sxy.shape))
 			Sxx = smooth_spectra.smooth_spectra(S_auto[:,channel1, :, :], win_time, win_freq, fft=True, axes = (1,2))
 			Syy = smooth_spectra.smooth_spectra(S_auto[:,channel2, :, :], win_time, win_freq, fft=True, axes = (1,2))
 			Sxy = smooth_spectra.smooth_spectra(Sxy, win_time, win_freq, fft=True, axes = (1,2))
@@ -122,7 +122,7 @@ class spectral_analysis():
 			Sxy    = wt1*np.conj(wt2)
 			Sxx    = wt1*np.conj(wt1)
 			Syy    = wt2*np.conj(wt2)
-			print(len(Sxy.shape))
+			#print(len(Sxy.shape))
 
 			# Smoothing spectra
 			#kernel = np.ones([win_time, win_freq])		

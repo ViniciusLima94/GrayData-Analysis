@@ -7,7 +7,7 @@ def smooth_spectra(spectra, win_time, win_freq, fft=False, axes = 0):
 	elif len(spectra.shape) == 3:
 		kernel = np.ones([1, win_freq, win_time])
 
-	print(kernel.shape)
+	#print(kernel.shape)
 
 	if fft == True:
 		return scipy.signal.fftconvolve(spectra, kernel, mode='same', axes= axes)
