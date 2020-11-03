@@ -78,7 +78,10 @@ class spectral_analysis():
 	def gabor_transform(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0):
 		n      = len(signal)
 		sigma2 = 1
-		omega  = np.concatenate( (np.arange(0, n/2), np.arange(-np.ceil(n/2)+1, 0) ) ) * fs/n
+		if n%2 == 0:
+			omega  = np.concatenate( (np.arange(0, n/2), np.arange(-np.ceil(n/2), 0) ) ) * fs/n
+		else:
+			omega  = np.concatenate( (np.arange(0, n/2), np.arange(-np.ceil(n/2)+1, 0) ) ) * fs/n
 
 		fftx   = np.fft.fft(signal)
 
