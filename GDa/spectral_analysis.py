@@ -50,30 +50,19 @@ class spectral_analysis():
 		def pairwise_coherence(index_pair, win_time, win_freq):
 			channel1, channel2 = pairs[index_pair, 0], pairs[index_pair, 1]
 			Sxy = W[:, channel1, :, :] * np.conj(W[:, channel2, :, :])
-			#print(len(Sxy.shape))
 			Sxx = smooth_spectra.smooth_spectra(S_auto[:,channel1, :, :], win_time, win_freq, fft=True, axes = (1,2))
 			Syy = smooth_spectra.smooth_spectra(S_auto[:,channel2, :, :], win_time, win_freq, fft=True, axes = (1,2))
 			Sxy = smooth_spectra.smooth_spectra(Sxy, win_time, win_freq, fft=True, axes = (1,2))
 			coh = Sxy * np.conj(Sxy) / (Sxx * Syy)
-			# Saving to file
-			file_name = os.path.join( dir_out, 
-				'ch1_' + str(channel1) + '_ch2_' + str(channel2) +'.h5')
-			#print(file_name)
-			#np.save(file_name, {'coherence' : np.abs(coh).astype(np.float32) })
-			# Using HDF5 file format
-			#dataset_name = 'ch1_' + str(channel1) + '_ch2_' + str(channel2)
-			#hf.create_dataset(dataset_name, data=coh)
-			#file_name = os.path.join( dir_out, 
-			#	'ch1_' + str(channel1) + '_ch2_' + str(channel2) +'.h5')
-			#hf = h5py.File(file_name, 'w')
-			#hf.create_dataset('coherence', data=np.abs(coh).astype(np.float32))
-			#hf.close()
+
+			file_name = os.path.join( dir_out, 'ch1_' + str(channel1) + '_ch2_' + str(channel2) +'.h5')
 			with h5py.File(file_name, 'w') as hf:
 				hf.create_dataset('coherence', data=np.abs(coh).astype(np.float32))
+				hf.create_dataset('frequency', data=freqs)
+				hf.create_dataset('delta',	 data=delta) 
 
-		#for trial_index in range(T):
-		Parallel(n_jobs=n_jobs, backend='loky', timeout=1e6)(
-			delayed(pairwise_coherence)(i, win_time, win_freq) for i in range(pairs.shape[0]) )
+        #for trial_index in range(T):
+		Parallel(n_jobs=n_jobs, backend='loky', timeout=1e6)(delayed(pairwise_coherence)(i, win_time, win_freq) for i in range(pairs.shape[0]) )
 
 	def gabor_transform(self, signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0):
 		n      = len(signal)
