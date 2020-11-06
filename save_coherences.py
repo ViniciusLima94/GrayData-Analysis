@@ -81,6 +81,7 @@ if  __name__ == '__main__':
         hf.create_dataset('supertensor', data=super_tensor)
         hf.create_dataset('freqs', data=freqs)
         hf.create_dataset('tarray', data=tarray)
+        hf.create_dataset('bands', data=bands)
 
     end = time.time()
     print('Elapsed time to compute coherences: ' +str((end - start)/60.0) + ' min.' )
