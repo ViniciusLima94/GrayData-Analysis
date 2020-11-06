@@ -58,8 +58,8 @@ class spectral_analysis():
 			file_name = os.path.join( dir_out, 'ch1_' + str(channel1) + '_ch2_' + str(channel2) +'.h5')
 			with h5py.File(file_name, 'w') as hf:
 				hf.create_dataset('coherence', data=np.abs(coh).astype(np.float32))
-				hf.create_dataset('frequency', data=freqs)
-				hf.create_dataset('delta',	 data=delta) 
+				#  hf.create_dataset('frequency', data=freqs)
+				#  hf.create_dataset('delta',	 data=delta) 
 
         #for trial_index in range(T):
 		Parallel(n_jobs=n_jobs, backend='loky', timeout=1e6)(delayed(pairwise_coherence)(i, win_time, win_freq) for i in range(pairs.shape[0]) )
