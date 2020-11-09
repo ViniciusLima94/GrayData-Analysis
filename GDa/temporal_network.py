@@ -6,8 +6,6 @@ import multiprocessing
 from   tqdm             import tqdm
 from   joblib           import Parallel, delayed
 
-
-
 class temporal_network():
 
     def __init__(self, monkey='lucy', date=150128, session=1):
@@ -43,15 +41,50 @@ class temporal_network():
     def compute_nodes_strength(self,):
         self.node_degree = self.A.sum(axis=1)
 
-    def compute_nodes_degree(self, band):
-        self.degree = np.zeros([self.A.shape[0], self.A.shape[3]])
-        for t in tqdm(range(self.A.shape[3])):
-            g = nx.Graph(self.A[:,:,band,t])
-            self.degree[:,t] = list( dict( g.degree(weight='weight') ).values() )
-
-
-    def compute_nodes_clustering(self,):
+    def compute_thresholds(self,):
         None
+
+    def compute_nodes_degree(self, band, thr = None):
+        self.degree = {}
+        self.degree[str(band)] = {}
+        if thr == None:
+            self.degree[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
+            for t in tqdm(range(self.A.shape[3])):
+                g = nx.Graph(self.A[:,:,band,t])
+                self.degree['w'][:,t] = list( dict( g.degree(weight='weight') ).values() )
+        else:
+            self.degree[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
+            for t in tqdm(range(self.A.shape[3])):
+                g = nx.Graph(self.A[:,:,band,t]>thr)
+                self.degree[str(band)]['b'][:,t] = list( dict( g.degree() ).values() )
+
+    def compute_nodes_clustering(self, band, thr = None):
+        self.clustering = {}
+        self.clustering[str(band)] = {}
+        if thr == None:
+            self.clustering[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
+            for t in tqdm(range(self.A.shape[3])):
+                g = nx.Graph(self.A[:,:,band,t])
+                self.clustering[str(band)]['w'][:,t] = list( dict( nx.clustering(g, weight='weight') ).values() )
+        else:
+            self.clustering[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
+            for t in tqdm(range(self.A.shape[3])):
+                g = nx.Graph(self.A[:,:,band,t]>thr)
+                self.clustering[str(band)]['b'][:,t] = list( dict( nx.clustering(g) ).values() )
+
+    def compute_nodes_coreness(self, band, thr = None):
+        self.coreness = {}
+        self.coreness[str(band)] = {}
+        if thr == None:
+            self.coreness[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
+            for t in tqdm(range(self.A.shape[3])):
+                g = nx.Graph(self.A[:,:,band,t])
+                self.coreness[str(band)]['w'][:,t] = list( dict( nx.core_number(g, weight='weight') ).values() )
+        else:
+            self.coreness[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
+            for t in tqdm(range(self.A.shape[3])):
+                g = nx.Graph(self.A[:,:,band,t]>thr)
+                self.coreness[str(band)]['b'][:,t] = list( dict( nx.core_number(g) ).values() )
 
     def instantiate_graph(self, band, observation):
         return nx.Graph(self.A[:,:,band,observation])
