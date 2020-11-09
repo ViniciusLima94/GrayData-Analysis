@@ -3,7 +3,9 @@ import networkx         as     nx
 import os
 import h5py
 import multiprocessing
+import tqdm
 from   joblib           import Parallel, delayed
+
 
 
 class temporal_network():
@@ -44,8 +46,29 @@ class temporal_network():
     def compute_nodes_clustering(self,):
         None
 
-    def instantiate_graph(self, ):
-        None
+    def instantiate_graph(self, band, observation):
+        return nx.Graph(self.A[:,:,band,observation])
+
+    def reshape_trials(self, tensor):
+        #  Reshape the tensor to have trials and time as two separeted dimension
+        print(len(tensor.shape))
+        if len(tensor.shape) == 2:
+            aux = tensor.reshape([tensor.shape[0], self.session_info['nT'], len(self.tarray)])
+        if len(tensor.shape) == 3:
+            aux = tensor.reshape([tensor.shape[0], tensor.shape[1], self.session_info['nT'], len(self.tarray)])
+        if len(tensor.shape) == 4:
+            aux = tensor.reshape([tensor.shape[0], tensor.shape[1], tensor.shape[2], self.session_info['nT'], len(self.tarray)])
+        return aux
+
+    def reshape_observations(self, tensor):
+        #  Reshape the tensor to have all the trials concatenated in the same dimension
+        if len(tensor.shape) == 3:
+            aux = tensor.reshape([tensor.shape[0], self.session_info['nT'] * len(self.tarray)])
+        if len(tensor.shape) == 4:
+            aux = tensor.reshape([tensor.shape[0], tensor.shape[1], self.session_info['nT'] * len(self.tarray)])
+        if len(tensor.shape) == 5:
+            aux = tensor.reshape([tensor.shape[0], tensor.shape[1], tensor.shape[2], self.session_info['nt'] * len(self.tarray)])
+        return aux
 
     def create_stages_time_grid(self, ):
         t_cue_off  = (self.session_info['t_cue_off']-self.session_info['t_cue_on'])/self.session_info['fsample']
