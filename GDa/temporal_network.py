@@ -3,7 +3,7 @@ import networkx         as     nx
 import os
 import h5py
 import multiprocessing
-import tqdm
+from   tqdm             import tqdm
 from   joblib           import Parallel, delayed
 
 
@@ -42,6 +42,13 @@ class temporal_network():
 
     def compute_nodes_strength(self,):
         self.node_degree = self.A.sum(axis=1)
+
+    def compute_nodes_degree(self, band):
+        self.degree = np.zeros([self.A.shape[0], self.A.shape[3]])
+        for t in tqdm(range(self.A.shape[3])):
+            g = nx.Graph(self.A[:,:,band,t])
+            self.degree[:,t] = list( dict( g.degree(weight='weight') ).values() )
+
 
     def compute_nodes_clustering(self,):
         None
