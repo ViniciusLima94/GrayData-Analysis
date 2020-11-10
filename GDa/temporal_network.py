@@ -105,8 +105,24 @@ class temporal_network():
                 g = nx.Graph(self.A[:,:,band,t]>thr)
                 self.coreness[str(band)]['b'][:,t] = list( dict( nx.core_number(g) ).values() )
 
-    def instantiate_graph(self, band = 0, observation = 0):
-        return nx.Graph(self.A[:,:,band,observation])
+    def compute_nodes_clustering_layerwise(self, band = 0, observation = 0, thr = None):
+        self.clustering[str(band)] = {}
+        if thr == None:
+            self.clustering[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
+            #  g = nx.Graph(self.A[:,:,band,t])
+            g = self.instantiate(band=band, observation=observation, thr = None)
+            self.clustering[str(band)]['w'][:,observation] = list( dict( nx.clustering(g, weight='weight') ).values() )
+        else:
+            self.clustering[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
+            #  g = nx.Graph(self.A[:,:,band,t]>thr)
+            g = self.instantiate(band=band, observation=observation, thr = thr)
+            self.clustering[str(band)]['b'][:,observation] = list( dict( nx.clustering(g) ).values() )
+
+    def instantiate_graph(self, band = 0, observation = 0, thr = None):
+        if thr == None:
+            return nx.Graph(self.A[:,:,band,observation])
+        else:
+            return nx.Graph(self.A[:,:,band,observation]>thr)
 
     def reshape_trials(self, tensor):
         #  Reshape the tensor to have trials and time as two separeted dimension
