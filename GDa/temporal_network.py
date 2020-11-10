@@ -114,6 +114,9 @@ class temporal_network():
                 g = nx.Graph(self.A[:,:,band,t]>thr)
                 self.coreness[1,:,band,t] = list( dict( nx.core_number(g) ).values() )
 
+    def NMF_decomposition(self, band = 0, k = 2):
+        None
+
     def instantiate_graph(self, band = 0, observation = 0, thr = None):
         if thr == None:
             return nx.Graph(self.A[:,:,band,observation])
