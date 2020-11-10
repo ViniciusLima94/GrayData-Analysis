@@ -37,7 +37,6 @@ class temporal_network():
         #  Creating variables that will store network analysis quantities
         self.__instantiate_dictionaries()
 
-
     def convert_to_adjacency(self,):
         self.A = np.zeros([self.session_info['nC'], self.session_info['nC'], len(self.bands), self.session_info['nT']*len(self.tarray)]) 
         for p in range(self.session_info['pairs'].shape[0]):
@@ -50,14 +49,15 @@ class temporal_network():
         self.coh_thr = {}
         for i in range(len(self.bands)):
             self.coh_thr[str(i)] = stats.mstats.mquantiles( self.super_tensor[:,i,:].flatten(), prob = q )
-        
+
+        #  self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
     def compute_nodes_degree(self, band = 0, thr = None):
         A_tmp = self.A[:,:,band,:] + np.transpose( self.A[:,:,band,:], (1,0,2) )
         if thr == None:
-            self.node_degree['w'][str(band)] = A_tmp.sum(axis=1) 
+            self.node_degree[0,:,band,:] = A_tmp.sum(axis=1) 
         else:
             A_tmp = A_tmp > thr
-            self.node_degree['b'][str(band)] = A_tmp.sum(axis=1)  
+            self.node_degree[1,:,band,:] = A_tmp.sum(axis=1)  
             #  del A_tmp
         del A_tmp
 
@@ -74,17 +74,18 @@ class temporal_network():
     #              g = nx.Graph(self.A[:,:,band,t]>thr)
     #              self.degree[str(band)]['b'][:,t] = list( dict( g.degree() ).values() )
 
+        #  self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
     def compute_nodes_clustering_layerwise(self, band = 0, observation = 0, thr = None):
-        self.clustering[str(band)] = {}
+        #  self.clustering[str(band)] = {}
         if thr == None:
             #  g = nx.Graph(self.A[:,:,band,t])
             g = self.instantiate_graph(band=band, observation=observation, thr = None)
-            self.clustering['w'][str(band)][:,observation] = list( dict( nx.clustering(g, weight='weight') ).values() )
+            self.clustering[0,:,band,observation] = list( dict( nx.clustering(g, weight='weight') ).values() )
         else:
             #  self.clustering[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             #  g = nx.Graph(self.A[:,:,band,t]>thr)
             g = self.instantiate_graph(band=band, observation=observation, thr = thr)
-            self.clustering['b'][str(band)][:,observation] = list( dict( nx.clustering(g) ).values() )
+            self.clustering[1,:,band,observation] = list( dict( nx.clustering(g) ).values() )
 
     def compute_nodes_clustering(self, band = 0, thr = None):
         #  self.clustering[str(band)] = {}
@@ -92,26 +93,26 @@ class temporal_network():
             #  self.clustering[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
                 g = nx.Graph(self.A[:,:,band,t])
-                self.clustering['w'][str(band)][:,t] = list( dict( nx.clustering(g, weight='weight') ).values() )
+                self.clustering[0,:,band,t] = list( dict( nx.clustering(g, weight='weight') ).values() )
         else:
             #  self.clustering[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
                 g = nx.Graph(self.A[:,:,band,t]>thr)
-                self.clustering['b'][str(band)][:,t] = list( dict( nx.clustering(g) ).values() )
+                self.clustering[1,:,band,t] = list( dict( nx.clustering(g) ).values() )
 
+        #  self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
     def compute_nodes_coreness(self, band = 0, thr = None):
         #  self.coreness[str(band)] = {}
         if thr == None:
             #  self.coreness[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
                 g = nx.Graph(self.A[:,:,band,t])
-                self.coreness['w'][str(band)][:,t] = list( dict( nx.core_number(g, weight='weight') ).values() )
+                self.coreness[0,:,band,t] = list( dict( nx.core_number(g, weight='weight') ).values() )
         else:
             #  self.coreness[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
                 g = nx.Graph(self.A[:,:,band,t]>thr)
-                self.coreness['b'][str(band)][:,t] = list( dict( nx.core_number(g) ).values() )
-
+                self.coreness[1,:,band,t] = list( dict( nx.core_number(g) ).values() )
 
     def instantiate_graph(self, band = 0, observation = 0, thr = None):
         if thr == None:
@@ -151,31 +152,11 @@ class temporal_network():
         self.t_match    = ( (tt>=t_match_on[:,None]) ).reshape(self.session_info['nT']*len(self.tarray))
 
     def __instantiate_dictionaries(self,):
-        #  This method creates the dictionaries where network measurements will be stored
+        #  This method creates the arrays where network measurements will be stored
         #  Network degree 
-        self.node_degree = {}
-        #  Weighted degree
-        self.node_degree['w'] = {}
-        #  Binarized degree
-        self.node_degree['b'] = {}
-        for band in range( len(self.bands) ):
-            self.node_degree['w'][str(band)] = np.zeros([self.session_info['nC'], self.super_tensor.shape[2]])
-            self.node_degree['b'][str(band)] = np.zeros([self.session_info['nC'], self.super_tensor.shape[2]])
+        self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
         #  Network clustering
-        self.clustering = {}
-        #  Weighted clustering
-        self.clustering['w'] = {}
-        #  Binarized clustering
-        self.clustering['b'] = {}
-        for band in range( len(self.bands) ):
-            self.clustering['w'][str(band)] = np.zeros([self.session_info['nC'], self.super_tensor.shape[2]])
-            self.clustering['b'][str(band)] = np.zeros([self.session_info['nC'], self.super_tensor.shape[2]])
+        self.clustering  = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
         #  Network coreness
-        self.coreness = {}
-        #  Weighted coreness
-        self.coreness['w'] = {}
-        #  Binarized coreness
-        self.coreness['b'] = {}
-        for band in range( len(self.bands) ):
-            self.coreness['w'][str(band)] = np.zeros([self.session_info['nC'], self.super_tensor.shape[2]])
-            self.coreness['b'][str(band)] = np.zeros([self.session_info['nC'], self.super_tensor.shape[2]])
+        self.coreness    = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
+
