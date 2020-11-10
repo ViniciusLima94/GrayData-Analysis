@@ -3,6 +3,7 @@ import networkx         as     nx
 import os
 import h5py
 import multiprocessing
+from   scipy            import stats
 from   tqdm             import tqdm
 from   joblib           import Parallel, delayed
 
@@ -30,36 +31,55 @@ class temporal_network():
             
         # Concatenate trials in the super tensor
         self.super_tensor = self.super_tensor.swapaxes(1,2)
-        self.super_tensor = self.super_tensor.reshape( (self.session_info['nP'], len(self.bands), self.session_info['nT']*len(self.tarray) ) )
+        #  self.super_tensor = self.super_tensor.reshape( (self.session_info['nP'], len(self.bands), self.session_info['nT']*len(self.tarray) ) )
+        self.super_tensor = self.reshape_observations(self.super_tensor)
+
+        #  Creating variables that will store network analysis quantities
+        #  Network degree 
+        self.node_degree = {}
+        #  Network clustering
+        self.clustering = {}
+        #  Network coreness
+        self.coreness = {}
 
     def convert_to_adjacency(self,):
         self.A = np.zeros([self.session_info['nC'], self.session_info['nC'], len(self.bands), self.session_info['nT']*len(self.tarray)]) 
         for p in range(self.session_info['pairs'].shape[0]):
             i, j              = self.session_info['pairs'][p,0], self.session_info['pairs'][p,1]
             self.A[i,j,:,:]   = self.super_tensor[p,:,:]
+            #  self.A[j,i,:,:]   = self.super_tensor[p,:,:]
 
-    def compute_nodes_strength(self,):
-        self.node_degree = self.A.sum(axis=1)
-
-    def compute_thresholds(self,):
-        None
-
-    def compute_nodes_degree(self, band, thr = None):
-        self.degree = {}
-        self.degree[str(band)] = {}
+    def compute_coherence_thresholds(self, q = .80):
+        #  Coherence thresholds
+        self.coh_thr = {}
+        for i in range(len(self.bands)):
+            self.coh_thr[str(i)] = stats.mstats.mquantiles( self.super_tensor[:,i,:].flatten(), prob = q )
+        
+    def compute_nodes_degree(self, band = 0, thr = None):
+        self.node_degree[str(band)] = {}
+        A_tmp = self.A[:,:,band,:] + np.transpose( self.A[:,:,band,:], (1,0,2) )
         if thr == None:
-            self.degree[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
-            for t in tqdm(range(self.A.shape[3])):
-                g = nx.Graph(self.A[:,:,band,t])
-                self.degree['w'][:,t] = list( dict( g.degree(weight='weight') ).values() )
+            self.node_degree[str(band)]['w'] = A_tmp.sum(axis=1) 
         else:
-            self.degree[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
-            for t in tqdm(range(self.A.shape[3])):
-                g = nx.Graph(self.A[:,:,band,t]>thr)
-                self.degree[str(band)]['b'][:,t] = list( dict( g.degree() ).values() )
+            A_tmp = A_tmp > thr
+            self.node_degree[str(band)]['b'] = A_tmp.sum(axis=1)  
+            #  del A_tmp
+        del A_tmp
 
-    def compute_nodes_clustering(self, band, thr = None):
-        self.clustering = {}
+    #  def compute_nodes_degree_nx(self, band, thr = None):
+    #      self.degree[str(band)] = {}
+    #      if thr == None:
+    #          self.degree[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
+    #          for t in tqdm(range(self.A.shape[3])):
+    #              g = nx.Graph(self.A[:,:,band,t])
+    #              self.degree['w'][:,t] = list( dict( g.degree(weight='weight') ).values() )
+    #      else:
+    #          self.degree[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
+    #          for t in tqdm(range(self.A.shape[3])):
+    #              g = nx.Graph(self.A[:,:,band,t]>thr)
+    #              self.degree[str(band)]['b'][:,t] = list( dict( g.degree() ).values() )
+
+    def compute_nodes_clustering(self, band = 0, thr = None):
         self.clustering[str(band)] = {}
         if thr == None:
             self.clustering[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
@@ -72,8 +92,7 @@ class temporal_network():
                 g = nx.Graph(self.A[:,:,band,t]>thr)
                 self.clustering[str(band)]['b'][:,t] = list( dict( nx.clustering(g) ).values() )
 
-    def compute_nodes_coreness(self, band, thr = None):
-        self.coreness = {}
+    def compute_nodes_coreness(self, band = 0, thr = None):
         self.coreness[str(band)] = {}
         if thr == None:
             self.coreness[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
@@ -86,7 +105,7 @@ class temporal_network():
                 g = nx.Graph(self.A[:,:,band,t]>thr)
                 self.coreness[str(band)]['b'][:,t] = list( dict( nx.core_number(g) ).values() )
 
-    def instantiate_graph(self, band, observation):
+    def instantiate_graph(self, band = 0, observation = 0):
         return nx.Graph(self.A[:,:,band,observation])
 
     def reshape_trials(self, tensor):
