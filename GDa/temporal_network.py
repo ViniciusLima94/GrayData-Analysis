@@ -114,6 +114,21 @@ class temporal_network():
                 g = nx.Graph(self.A[:,:,band,t]>thr)
                 self.coreness[1,:,band,t] = list( dict( nx.core_number(g) ).values() )
 
+
+        #  self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
+    def compute_nodes_betweenes(self, k, band = 0, thr = None):
+        #  self.coreness[str(band)] = {}
+        if thr == None:
+            #  self.coreness[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
+            for t in tqdm(range(self.A.shape[3])):
+                g = nx.Graph(self.A[:,:,band,t])
+                self.betweenes[0,:,band,t] = list( dict( nx.betweenness_centrality(g, k, weight='weight') ).values() )
+        else:
+            #  self.coreness[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
+            for t in tqdm(range(self.A.shape[3])):
+                g = nx.Graph(self.A[:,:,band,t]>thr)
+                self.betweenes[1,:,band,t] = list( dict( nx.betweenness_centrality(g, k) ).values() )
+
     def NMF_decomposition(self, band = 0, k = 2):
         None
 
