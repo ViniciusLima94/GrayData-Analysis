@@ -116,7 +116,7 @@ class temporal_network():
 
 
         #  self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
-    def compute_nodes_betweenes(self, k, band = 0, thr = None):
+    def compute_nodes_betweenes(self, k = None, band = 0, thr = None):
         #  self.coreness[str(band)] = {}
         if thr == None:
             #  self.coreness[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
@@ -177,4 +177,6 @@ class temporal_network():
         self.clustering  = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
         #  Network coreness
         self.coreness    = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
+        #  Network betweenes
+        self.betweenes    = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
 
