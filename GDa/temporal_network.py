@@ -9,7 +9,7 @@ from   joblib           import Parallel, delayed
 
 class temporal_network():
 
-    def __init__(self, monkey='lucy', date=150128, session=1):
+    def __init__(self, monkey='lucy', session=1, date=150128, wt = None, trim_borders = False):
         # Setting up mokey and recording info to load and save files
         self.monkey   = monkey
         self.date     = date                            
@@ -28,14 +28,18 @@ class temporal_network():
             self.tarray       = np.array( hf.get('tarray') )
             self.freqs        = np.array( hf.get('freqs') )
             self.bands        = np.array( hf.get('bands') )
-            
+
+        if trim_borders == True:
+            self.tarray       = self.tarray[wt:-wt] 
+            self.super_tensor = self.super_tensor[:,:,:,wt:-wt]
+
         # Concatenate trials in the super tensor
         self.super_tensor = self.super_tensor.swapaxes(1,2)
         #  self.super_tensor = self.super_tensor.reshape( (self.session_info['nP'], len(self.bands), self.session_info['nT']*len(self.tarray) ) )
         self.super_tensor = self.reshape_observations(self.super_tensor)
 
         #  Creating variables that will store network analysis quantities
-        self.__instantiate_dictionaries()
+        self.__instantiate_measurement_arrays()
 
     def convert_to_adjacency(self,):
         self.A = np.zeros([self.session_info['nC'], self.session_info['nC'], len(self.bands), self.session_info['nT']*len(self.tarray)]) 
@@ -46,9 +50,9 @@ class temporal_network():
 
     def compute_coherence_thresholds(self, q = .80):
         #  Coherence thresholds
-        self.coh_thr = {}
+        self.coh_thr = np.zeros(len(self.bands)) 
         for i in range(len(self.bands)):
-            self.coh_thr[str(i)] = stats.mstats.mquantiles( self.super_tensor[:,i,:].flatten(), prob = q )
+            self.coh_thr[i] = stats.mstats.mquantiles( self.super_tensor[:,i,:].flatten(), prob = q )
 
         #  self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
     def compute_nodes_degree(self, band = 0, thr = None):
@@ -159,6 +163,15 @@ class temporal_network():
             aux = tensor.reshape([tensor.shape[0], tensor.shape[1], tensor.shape[2], self.session_info['nt'] * len(self.tarray)])
         return aux
 
+    def create_stim_grid(self, ):
+        #  Number of different stimuli
+        n_stim           = int((self.session_info['stim']).max()+1)
+        #  Repeate each stimulus to match the length of the trial
+        stim             = np.repeat(self.session_info['stim'], len(self.tarray) )
+        self.stim_grid   = np.zeros([n_stim, self.session_info['nT']*len(self.tarray)])
+        for i in range(n_stim):
+            self.stim_grid[i] = (stim == i)
+
     def create_stages_time_grid(self, ):
         t_cue_off  = (self.session_info['t_cue_off']-self.session_info['t_cue_on'])/self.session_info['fsample']
         t_match_on = (self.session_info['t_match_on']-self.session_info['t_cue_on'])/self.session_info['fsample']
@@ -169,7 +182,7 @@ class temporal_network():
         self.t_delay    = ( (tt>=t_cue_off[:,None])*(tt<t_match_on[:,None]) ).reshape(self.session_info['nT']*len(self.tarray))
         self.t_match    = ( (tt>=t_match_on[:,None]) ).reshape(self.session_info['nT']*len(self.tarray))
 
-    def __instantiate_dictionaries(self,):
+    def __instantiate_measurement_arrays(self,):
         #  This method creates the arrays where network measurements will be stored
         #  Network degree 
         self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
