@@ -170,7 +170,7 @@ class temporal_network():
         stim             = np.repeat(self.session_info['stim'], len(self.tarray) )
         self.stim_grid   = np.zeros([n_stim, self.session_info['nT']*len(self.tarray)])
         for i in range(n_stim):
-            self.stim_grid[i] = (stim == i)
+            self.stim_grid[i] = (stim == i).astype(bool)
 
     def create_stages_time_grid(self, ):
         t_cue_off  = (self.session_info['t_cue_off']-self.session_info['t_cue_on'])/self.session_info['fsample']
