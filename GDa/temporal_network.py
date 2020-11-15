@@ -163,6 +163,9 @@ class temporal_network():
             aux = tensor.reshape([tensor.shape[0], tensor.shape[1], tensor.shape[2], self.session_info['nt'] * len(self.tarray)])
         return aux
 
+    def create_null_model(self,):
+        None
+
     def create_stim_grid(self, ):
         #  Number of different stimuli
         n_stim           = int((self.session_info['stim']).max()+1)
