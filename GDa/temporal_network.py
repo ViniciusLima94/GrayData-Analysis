@@ -106,7 +106,7 @@ class temporal_network():
                 if use == 'networkx':
                     self.clustering[1,:,band,t] = list( dict( nx.clustering(g) ).values() )
                 elif use=='igraph':
-                    self.coreness[1,:,band,t] = ig.Graph(self.session_info['nC'], g.edges).transitivity_local_undirected()
+                    self.clustering[1,:,band,t] = ig.Graph(self.session_info['nC'], g.edges).transitivity_local_undirected()
 
         #  self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
     def compute_nodes_coreness(self, band = 0, thr = None, use='networkx'):
@@ -145,22 +145,21 @@ class temporal_network():
                     #  This one uses leidenalg
                     self.modularity[1,band,t] = leidenalg.find_partition(ig.Graph(self.session_info['nC'], g.edges), leidenalg.ModularityVertexPartition).modularity
 
-        #  self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
-    def compute_nodes_betweenes(self, k = None, band = 0, thr = None, use='networkx'):
+    def compute_nodes_betweenness(self, k = None, band = 0, thr = None, use='networkx'):
         #  self.coreness[str(band)] = {}
         if thr == None:
             #  self.coreness[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
                 g = self.instantiate_graph(band,t,thr=None)#nx.Graph(self.A[:,:,band,t])
-                self.betweenes[0,:,band,t] = list( dict( nx.betweenness_centrality(g, k, weight='weight') ).values() )
+                self.betweennes[0,:,band,t] = list( dict( nx.betweenness_centrality(g, k, weight='weight') ).values() )
         else:
             #  self.coreness[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
                 g = self.instantiate_graph(band,t,thr=thr)#nx.Graph(self.A[:,:,band,t]>thr)
                 if use=='networkx':
-                    self.betweenes[1,:,band,t] = list( dict( nx.betweenness_centrality(g, k) ).values() )
+                    self.betweenness[1,:,band,t] = list( dict( nx.betweenness_centrality(g, k) ).values() )
                 elif use=='igraph':
-                    self.betweenes[1,:,band,t] = ig.Graph(self.session_info['nC'], g.edges).betweenes() 
+                    self.betweenness[1,:,band,t] = ig.Graph(self.session_info['nC'], g.edges).betweenness()
 
     def NMF_decomposition(self, band = 0, k = 2):
         None
@@ -222,8 +221,8 @@ class temporal_network():
         self.clustering  = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
         #  Network coreness
         self.coreness    = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
-        #  Network betweenes
-        self.betweenes    = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
+        #  Network betweennes
+        self.betweenness = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
         #  Network modularity
-        self.modularity   = np.zeros([2, len(self.bands), self.super_tensor.shape[2]])
+        self.modularity  = np.zeros([2, len(self.bands), self.super_tensor.shape[2]])
 
