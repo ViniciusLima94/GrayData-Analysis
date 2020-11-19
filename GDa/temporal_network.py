@@ -234,11 +234,19 @@ class temporal_network():
             aux = tensor.reshape([tensor.shape[0], tensor.shape[1], tensor.shape[2], self.session_info['nt'] * len(self.tarray)])
         return aux
 
-    def create_null_model(self, band = 0, randomize='edges'):
+    def create_null_model(self, randomize='edges'):
+        self.A_null = np.zeros_like(self.A)
         if randomize=='time':
-            idx = np.arange(self.session_info['nT']*len(tarray))
+            idx = np.arange(self.session_info['nT']*len(self.tarray), dtype = int)
             np.random.shuffle(idx)
-            self.A_null = self.A[:,:,:,idx].copy()
+            self.A_null = ( self.A + np.transpose( self.A, (1,0,2,3) ) ).copy()
+            self.A_null = self.A[:,:,:,idx]
+        if randomize=='edges':
+            idx = np.arange(self.session_info['nC'], dtype = int)
+            self.A_null = ( self.A + np.transpose( self.A, (1,0,2,3) ) ).copy()
+            for t in range(self.session_info['nT']*len(self.tarray)):
+                np.random.shuffle(idx)
+                self.A_null[:,:,:,t] = self.A_null[:,idx,:,t]
 
     def create_stim_grid(self, ):
         #  Number of different stimuli
@@ -249,19 +257,22 @@ class temporal_network():
         for i in range(n_stim):
             self.stim_grid[i] = (stim == i).astype(bool)
 
-    def compute_temporal_correlation(self, band = 0, thr = None, on_null = False):
+    def compute_temporal_correlation(self, band = 0, thr = None, tau = 1, on_null = False):
         if on_null == True:
-            A = self.A_null[:,:,band,:] + np.transpose(self.A_null[:,:,band,:], (1,0,2)) 
+            A = self.A_null[:,:,band,:]  
         else:
             A = self.A[:,:,band,:] + np.transpose(self.A[:,:,band,:], (1,0,2)) 
         
         if thr != None:
             A = A > thr
 
-        num = (A[:,:,0:-1] * A[:,:,1:]).sum(axis=1)
-        den = np.sqrt(A[:,:,0:-1].sum(axis = 1) * A[:,:,1:].sum(axis = 1))
+        if tau < 1:
+            tau = 1
+
+        num = (A[:,:,0:-tau] * A[:,:,tau:]).sum(axis=1)
+        den = np.sqrt(A[:,:,0:-tau].sum(axis = 1) * A[:,:,tau:].sum(axis = 1))
         Ci  = np.nansum(( num / den ), axis=1) / (A.shape[-1] - 1)
-        return np.nansum(Ci) / A.shape[0]
+        return np.nansum(Ci) / self.session_info['nC']
 
     def create_stages_time_grid(self, ):
         t_cue_off  = (self.session_info['t_cue_off']-self.session_info['t_cue_on'])/self.session_info['fsample']
