@@ -41,7 +41,7 @@ class temporal_network():
         self.super_tensor = self.reshape_observations(self.super_tensor)
 
         #  Creating variables that will store network analysis quantities
-        self.__instantiate_measurement_arrays()
+        #  self.__instantiate_measurement_arrays()
 
     def convert_to_adjacency(self,):
         self.A = np.zeros([self.session_info['nC'], self.session_info['nC'], len(self.bands), self.session_info['nT']*len(self.tarray)]) 
@@ -57,15 +57,24 @@ class temporal_network():
             self.coh_thr[i] = stats.mstats.mquantiles( self.super_tensor[:,i,:].flatten(), prob = q )
 
         #  self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
-    def compute_nodes_degree(self, band = 0, thr = None):
-        A_tmp = self.A[:,:,band,:] + np.transpose( self.A[:,:,band,:], (1,0,2) )
+    def compute_nodes_degree(self, band = 0, thr = None, on_null = False):
+        #  Variable to store node degree
+        node_degree = np.zeros([self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
+        if on_null == False:
+            A_tmp = self.A[:,:,band,:] + np.transpose( self.A[:,:,band,:], (1,0,2) )
+        else:
+            A_tmp = self.A_null[:,:,band,:] + np.transpose( self.A_null[:,:,band,:], (1,0,2) )
+
         if thr == None:
-            self.node_degree[0,:,band,:] = A_tmp.sum(axis=1) 
+            #  self.node_degree[0,:,band,:] = A_tmp.sum(axis=1) 
+            node_degree[:,band,:] = A_tmp.sum(axis=1) 
         else:
             A_tmp = A_tmp > thr
-            self.node_degree[1,:,band,:] = A_tmp.sum(axis=1)  
+            #  self.node_degree[1,:,band,:] = A_tmp.sum(axis=1)  
+            node_degree[:,band,:] = A_tmp.sum(axis=1)  
             #  del A_tmp
-        del A_tmp
+        #  del A_tmp
+        return node_degree
 
     #  def compute_nodes_degree_nx(self, band, thr = None):
     #      self.degree[str(band)] = {}
@@ -92,83 +101,117 @@ class temporal_network():
     #          g = self.instantiate_graph(band=band, observation=observation, thr = thr)
     #          self.clustering[1,:,band,observation] = list( dict( nx.clustering(g) ).values() )
 
-    def compute_nodes_clustering(self, band = 0, thr = None, use = 'networkx'):
+    def compute_nodes_clustering(self, band = 0, thr = None, use = 'networkx', on_null = False):
         #  self.clustering[str(band)] = {}
+        #  Variable to store node clustering
+        clustering  = np.zeros([self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
+
         if thr == None:
             #  self.clustering[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
-                g = self.instantiate_graph(band,t,thr=None)#nx.Graph(self.A[:,:,band,t])
-                self.clustering[0,:,band,t] = list( dict( nx.clustering(g, weight='weight') ).values() )
+                g = self.instantiate_graph(band,t,thr=None, on_null = on_null)#nx.Graph(self.A[:,:,band,t])
+                #  self.clustering[0,:,band,t] = list( dict( nx.clustering(g, weight='weight') ).values() )
+                clustering[:,band,t] = list( dict( nx.clustering(g, weight='weight') ).values() )
         else:
             #  self.clustering[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
-                g = self.instantiate_graph(band,t,thr=thr)#nx.Graph(self.A[:,:,band,t]>thr)
+                g = self.instantiate_graph(band,t,thr=thr,on_null = on_null)#nx.Graph(self.A[:,:,band,t]>thr)
                 if use == 'networkx':
-                    self.clustering[1,:,band,t] = list( dict( nx.clustering(g) ).values() )
+                    #  self.clustering[1,:,band,t] = list( dict( nx.clustering(g) ).values() )
+                    clustering[:,band,t] = list( dict( nx.clustering(g) ).values() )
                 elif use=='igraph':
-                    self.clustering[1,:,band,t] = ig.Graph(self.session_info['nC'], g.edges).transitivity_local_undirected()
+                    #  self.clustering[1,:,band,t] = ig.Graph(self.session_info['nC'], g.edges).transitivity_local_undirected()
+                    clustering[:,band,t] = ig.Graph(self.session_info['nC'], g.edges).transitivity_local_undirected()
+        return clustering
 
         #  self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
-    def compute_nodes_coreness(self, band = 0, thr = None, use='networkx'):
+    def compute_nodes_coreness(self, band = 0, thr = None, use='networkx', on_null = False):
         #  self.coreness[str(band)] = {}
+        #  Variable to store coreness
+        coreness    = np.zeros([self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
+
         if thr == None:
             #  self.coreness[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
                 g = self.instantiate_graph(band,t,thr=None)#nx.Graph(self.A[:,:,band,t])
-                self.coreness[0,:,band,t] = list( dict( nx.core_number(g, weight='weight') ).values() )
+                #  self.coreness[0,:,band,t] = list( dict( nx.core_number(g, weight='weight') ).values() )
+                coreness[:,band,t] = list( dict( nx.core_number(g, weight='weight') ).values() )
         else:
             #  self.coreness[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
                 g = self.instantiate_graph(band,t,thr=thr)#nx.Graph(self.A[:,:,band,t]>thr)
                 if use=='networkx':
-                    self.coreness[1,:,band,t] = list( dict( nx.core_number(g) ).values() )
+                    #  self.coreness[1,:,band,t] = list( dict( nx.core_number(g) ).values() )
+                    coreness[:,band,t] = list( dict( nx.core_number(g) ).values() )
                 elif use=='igraph':
-                    self.coreness[1,:,band,t] = ig.Graph(self.session_info['nC'], g.edges).coreness() 
+                    #  self.coreness[1,:,band,t] = ig.Graph(self.session_info['nC'], g.edges).coreness() 
+                    coreness[:,band,t] = ig.Graph(self.session_info['nC'], g.edges).coreness()
+        return coreness
     
-    def compute_network_modularity(self, band = 0, thr = None, use='networkx'):
+    def compute_network_modularity(self, band = 0, thr = None, use='networkx', on_null=False):
         #  self.coreness[str(band)] = {}
+        #  Variable to store modularity
+        modularity  = np.zeros([len(self.bands), self.super_tensor.shape[2]])
+
         if thr == None:
             #  self.coreness[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
-                g = self.instantiate_graph(band,t,thr=None)#nx.Graph(self.A[:,:,band,t])
+                g = self.instantiate_graph(band,t,thr=None, on_null=on_null)#nx.Graph(self.A[:,:,band,t])
                 #  Finding communities
                 comm = nx.algorithms.community.greedy_modularity_communities(g)
-                self.modularity[0,band,t] = nx.algorithms.community.modularity(g,comm, weight='weight') 
+                #  self.modularity[0,band,t] = nx.algorithms.community.modularity(g,comm, weight='weight') 
+                modularity[band,t] = nx.algorithms.community.modularity(g,comm, weight='weight') 
         else:
             #  self.coreness[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
-                g = self.instantiate_graph(band,t,thr=thr)#nx.Graph(self.A[:,:,band,t]>thr)
+                g = self.instantiate_graph(band,t,thr=thr, on_null=on_null)#nx.Graph(self.A[:,:,band,t]>thr)
                 if use=='networkx':
                     comm = nx.algorithms.community.greedy_modularity_communities(g)
-                    self.modularity[1,band,t] = nx.algorithms.community.modularity(g,comm)
+                    #  self.modularity[1,band,t] = nx.algorithms.community.modularity(g,comm)
+                    modularity[band,t] = nx.algorithms.community.modularity(g,comm)
                 elif use=='igraph':
                     #  This one uses leidenalg
-                    self.modularity[1,band,t] = leidenalg.find_partition(ig.Graph(self.session_info['nC'], g.edges), leidenalg.ModularityVertexPartition).modularity
+                    #  self.modularity[1,band,t] = leidenalg.find_partition(ig.Graph(self.session_info['nC'], g.edges), leidenalg.ModularityVertexPartition).modularity
+                    modularity[band,t] = leidenalg.find_partition(ig.Graph(self.session_info['nC'], g.edges), leidenalg.ModularityVertexPartition).modularity
+        return modularity
 
-    def compute_nodes_betweenness(self, k = None, band = 0, thr = None, use='networkx'):
+    def compute_nodes_betweenness(self, k = None, band = 0, thr = None, use='networkx', on_null=False):
         #  self.coreness[str(band)] = {}
+        betweenness = np.zeros([self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
+
         if thr == None:
             #  self.coreness[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
-                g = self.instantiate_graph(band,t,thr=None)#nx.Graph(self.A[:,:,band,t])
-                self.betweennes[0,:,band,t] = list( dict( nx.betweenness_centrality(g, k, weight='weight') ).values() )
+                g = self.instantiate_graph(band,t,thr=None, on_null=on_null)#nx.Graph(self.A[:,:,band,t])
+                #  self.betweennes[0,:,band,t] = list( dict( nx.betweenness_centrality(g, k, weight='weight') ).values() )
+                betweennes[:,band,t] = list( dict( nx.betweenness_centrality(g, k, weight='weight') ).values() )
         else:
             #  self.coreness[str(band)]['b'] = np.zeros([self.A.shape[0], self.A.shape[3]])
             for t in tqdm(range(self.A.shape[3])):
-                g = self.instantiate_graph(band,t,thr=thr)#nx.Graph(self.A[:,:,band,t]>thr)
+                g = self.instantiate_graph(band,t,thr=thr, on_null=on_null)#nx.Graph(self.A[:,:,band,t]>thr)
                 if use=='networkx':
-                    self.betweenness[1,:,band,t] = list( dict( nx.betweenness_centrality(g, k) ).values() )
+                    #  self.betweenness[1,:,band,t] = list( dict( nx.betweenness_centrality(g, k) ).values() )
+                    betweenness[:,band,t] = list( dict( nx.betweenness_centrality(g, k) ).values() )
                 elif use=='igraph':
-                    self.betweenness[1,:,band,t] = ig.Graph(self.session_info['nC'], g.edges).betweenness()
+                    #  self.betweenness[1,:,band,t] = ig.Graph(self.session_info['nC'], g.edges).betweenness()
+                    betweenness[:,band,t] = ig.Graph(self.session_info['nC'], g.edges).betweenness()
+        return betweenness
 
     def NMF_decomposition(self, band = 0, k = 2):
         None
 
-    def instantiate_graph(self, band = 0, observation = 0, thr = None):
-        if thr == None:
-            return nx.Graph(self.A[:,:,band,observation])
+    def instantiate_graph(self, band = 0, observation = 0, thr = None, on_null = False):
+        if on_null == False:
+            A_tmp = self.A[:,:,band,:] + np.transpose( self.A[:,:,band,:], (1,0,2) )
         else:
-            return nx.Graph(self.A[:,:,band,observation]>thr)
+            A_tmp = self.A_null[:,:,band,:] + np.transpose( self.A_null[:,:,band,:], (1,0,2) )
+
+        if thr == None:
+            #  return nx.Graph(self.A[:,:,band,observation])
+            return nx.Graph(A_tmp[:,:,observation])
+        else:
+            #  return nx.Graph(self.A[:,:,band,observation]>thr)
+            return nx.Graph(A_tmp[:,:,observation]>thr)
 
     def reshape_trials(self, tensor):
         #  Reshape the tensor to have trials and time as two separeted dimension
@@ -191,8 +234,11 @@ class temporal_network():
             aux = tensor.reshape([tensor.shape[0], tensor.shape[1], tensor.shape[2], self.session_info['nt'] * len(self.tarray)])
         return aux
 
-    def create_null_model(self,):
-        None
+    def create_null_model(self, band = 0, randomize='edges'):
+        if randomize=='time':
+            idx = np.arange(self.session_info['nT']*len(tarray))
+            np.random.shuffle(idx)
+            self.A_null = self.A[:,:,:,idx].copy()
 
     def create_stim_grid(self, ):
         #  Number of different stimuli
@@ -202,6 +248,20 @@ class temporal_network():
         self.stim_grid   = np.zeros([n_stim, self.session_info['nT']*len(self.tarray)])
         for i in range(n_stim):
             self.stim_grid[i] = (stim == i).astype(bool)
+
+    def compute_temporal_correlation(self, band = 0, thr = None, on_null = False):
+        if on_null == True:
+            A = self.A_null[:,:,band,:] + np.transpose(self.A_null[:,:,band,:], (1,0,2)) 
+        else:
+            A = self.A[:,:,band,:] + np.transpose(self.A[:,:,band,:], (1,0,2)) 
+        
+        if thr != None:
+            A = A > thr
+
+        num = (A[:,:,0:-1] * A[:,:,1:]).sum(axis=1)
+        den = np.sqrt(A[:,:,0:-1].sum(axis = 1) * A[:,:,1:].sum(axis = 1))
+        Ci  = np.nansum(( num / den ), axis=1) / (A.shape[-1] - 1)
+        return np.nansum(Ci) / A.shape[0]
 
     def create_stages_time_grid(self, ):
         t_cue_off  = (self.session_info['t_cue_off']-self.session_info['t_cue_on'])/self.session_info['fsample']
@@ -213,16 +273,16 @@ class temporal_network():
         self.t_delay    = ( (tt>=t_cue_off[:,None])*(tt<t_match_on[:,None]) ).reshape(self.session_info['nT']*len(self.tarray))
         self.t_match    = ( (tt>=t_match_on[:,None]) ).reshape(self.session_info['nT']*len(self.tarray))
 
-    def __instantiate_measurement_arrays(self,):
-        #  This method creates the arrays where network measurements will be stored
-        #  Network degree 
-        self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
-        #  Network clustering
-        self.clustering  = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
-        #  Network coreness
-        self.coreness    = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
-        #  Network betweennes
-        self.betweenness = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
-        #  Network modularity
-        self.modularity  = np.zeros([2, len(self.bands), self.super_tensor.shape[2]])
+    #  def __instantiate_measurement_arrays(self,):
+    #      #  This method creates the arrays where network measurements will be stored
+    #      #  Network degree 
+    #      self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
+    #      #  Network clustering
+    #      self.clustering  = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
+    #      #  Network coreness
+    #      self.coreness    = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
+    #      #  Network betweennes
+    #      self.betweenness = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
+    #      #  Network modularity
+    #      self.modularity  = np.zeros([2, len(self.bands), self.super_tensor.shape[2]])
 
