@@ -112,7 +112,7 @@ class temporal_network():
                 clustering[:,t] = list( dict( nx.clustering(g) ).values() )
             elif use=='igraph':
                 clustering[:,t] = ig.Graph(self.session_info['nC'], g.edges).transitivity_local_undirected()
-        return clustering
+        return np.nan_to_num( clustering )
 
         #  if thr == None:
         #      #  self.clustering[str(band)]['w'] = np.zeros([self.A.shape[0], self.A.shape[3]])
