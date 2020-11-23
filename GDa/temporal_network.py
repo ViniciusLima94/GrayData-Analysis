@@ -5,9 +5,10 @@ import leidenalg
 import os
 import h5py
 import multiprocessing
-from   scipy            import stats
-from   tqdm             import tqdm
-from   joblib           import Parallel, delayed
+from sklearn.decomposition import NMF
+from   scipy               import stats
+from   tqdm                import tqdm
+from   joblib              import Parallel, delayed
 
 class temporal_network():
 
@@ -64,7 +65,7 @@ class temporal_network():
         if on_null == False:
             A_tmp = self.A[:,:,band,:] + np.transpose( self.A[:,:,band,:], (1,0,2) )
         else:
-            A_tmp = self.A_null[:,:,band,:] + np.transpose( self.A_null[:,:,band,:], (1,0,2) )
+            A_tmp = self.A_null[:,:,band,:]
 
         if thr == None:
             #  self.node_degree[0,:,band,:] = A_tmp.sum(axis=1) 
@@ -232,7 +233,15 @@ class temporal_network():
         #  return betweenness
 
     def NMF_decomposition(self, band = 0, k = 2):
-        None
+
+        def NMF_decomposition_single(band, k):
+            model = NMF(n_components=k, init='random', random_state=0)
+            W     = model.fit_transform(self.super_tensor[:,band,:])
+            H     = model.components_
+        
+        Parallel(n_jobs=n_jobs, backend='multiprocessing', timeout=1e6)(delayed(NMF_decomposition_single)(band, k_) for k_ in k )
+
+        return W, H
 
     def instantiate_graph(self, band = 0, observation = 0, thr = None, on_null = False):
         if on_null == False:
@@ -274,13 +283,15 @@ class temporal_network():
             idx = np.arange(self.session_info['nT']*len(self.tarray), dtype = int)
             np.random.shuffle(idx)
             self.A_null = ( self.A + np.transpose( self.A, (1,0,2,3) ) ).copy()
-            self.A_null = self.A[:,:,:,idx]
-        if randomize=='edges':
+            self.A_null = self.A_null[:,:,:,idx]
+        elif randomize=='edges':
             idx = np.arange(self.session_info['nC'], dtype = int)
             self.A_null = ( self.A + np.transpose( self.A, (1,0,2,3) ) ).copy()
             for t in range(self.session_info['nT']*len(self.tarray)):
                 np.random.shuffle(idx)
                 self.A_null[:,:,:,t] = self.A_null[:,idx,:,t]
+        else:
+            print('Randomize should be time or edges')
 
     def create_stim_grid(self, ):
         #  Number of different stimuli
