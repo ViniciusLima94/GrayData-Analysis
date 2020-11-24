@@ -166,6 +166,18 @@ class temporal_network():
         #              #  self.coreness[1,:,band,t] = ig.Graph(self.session_info['nC'], g.edges).coreness() 
         #              coreness[:,t] = ig.Graph(self.session_info['nC'], g.edges).coreness()
         #  return coreness
+
+    def compute_network_partition(self, band = 0, thr = None, use='networkx', on_null=False):
+        partition = []
+
+        for t in tqdm(range(self.A.shape[3])):
+            g = self.instantiate_graph(band,t,thr=thr, on_null=on_null)
+            if use=='networkx':
+                partition.append(nx.algorithms.community.greedy_modularity_communities(g))
+            elif use=='igraph':
+                #  This one uses leidenalg
+                partition.append(leidenalg.find_partition(ig.Graph(self.session_info['nC'], g.edges), leidenalg.ModularityVertexPartition))
+        return partition
     
     def compute_network_modularity(self, band = 0, thr = None, use='networkx', on_null=False):
         #  Variable to store modularity
