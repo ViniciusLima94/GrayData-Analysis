@@ -1,5 +1,6 @@
 import numpy             as np 
 import matplotlib.pyplot as plt
+import tqdm
 
 def plot_temp_net_ring(adj, degrees, area_names, radius = 1, node_size = 1, link_width = 1):
     Nnodes  = adj.shape[0]
@@ -8,7 +9,7 @@ def plot_temp_net_ring(adj, degrees, area_names, radius = 1, node_size = 1, link
     d_theta = 2 * np.pi / Nnodes
     theta   = np.arange(0, 2 * np.pi + d_theta, d_theta)
     x, y    = radius*np.cos(theta), radius*np.sin(theta)
-    for t in range(layers):
+    for t in tqdm( range(layers) ):
         plt.figure()
         for i, j in zip(v1,v2):
             p1, p2 = [x[i],x[j]], [y[i],y[j]]
@@ -28,5 +29,5 @@ def plot_temp_net_ring(adj, degrees, area_names, radius = 1, node_size = 1, link
         plt.yticks([])
         plt.axis('off')
         plt.tight_layout()
-        #  plt.savefig('frame_'+str(t)+'.png', dpi = 600)
-        #  plt.close()
+        plt.savefig('frame_'+str(t)+'.png', dpi = 600)
+        plt.close()
