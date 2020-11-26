@@ -5,6 +5,7 @@ import leidenalg
 import os
 import h5py
 import multiprocessing
+import itertools
 from   sklearn.decomposition import NMF
 from   scipy                 import stats
 from   tqdm                  import tqdm
@@ -52,14 +53,15 @@ class temporal_network():
             self.coh_thr[i] = stats.mstats.mquantiles( self.super_tensor[:,i,:].flatten(), prob = q )
 
         #  self.node_degree = np.zeros([2, self.session_info['nC'], len(self.bands), self.super_tensor.shape[2]])
-    def compute_nodes_degree(self, band = 0, thr = None, on_null = False):
+    def compute_nodes_degree(self, band = 0, thr = None, on_null = False, randomize='edges', seed = 0):
         #  Variable to store node degree
         node_degree = np.zeros([self.session_info['nC'], self.super_tensor.shape[2]])
 
         if on_null == False:
             A_tmp = self.A[:,:,band,:] + np.transpose( self.A[:,:,band,:], (1,0,2) )
         else:
-            A_tmp = self.A_null[:,:,band,:]
+            self.create_null_model(band = band, randomize=randomize, seed = seed)
+            A_tmp = self.A_null
 
         if thr == None:
             #  self.node_degree[0,:,band,:] = A_tmp.sum(axis=1) 
@@ -71,35 +73,58 @@ class temporal_network():
 
         return node_degree
     
-    def compute_nodes_clustering(self, band = 0, thr = None, use = 'networkx', on_null = False):
+    def compute_nodes_clustering(self, band = 0, thr = None, use = 'networkx', on_null = False, randomize='edges', seed=0):
         #  Variable to store node clustering
         clustering  = np.zeros([self.session_info['nC'], self.super_tensor.shape[2]])
 
+        if on_null == True:
+            self.create_null_model(band = band, randomize=randomize, seed = seed)
+
         for t in tqdm(range(self.A.shape[3])):
-            g = self.instantiate_graph(band,t,thr=thr,on_null = on_null)
+            #  g = self.instantiate_graph(band,t,thr=thr,on_null = on_null)
+            if on_null == False:
+                g = self.instantiate_graph(self.A[:,:,band,t], thr = thr)
+            else:
+                g = self.instantiate_graph(self.A_null[:,:,t], thr = thr)
+   
             if use == 'networkx':
                 clustering[:,t] = list( dict( nx.clustering(g) ).values() )
             elif use=='igraph':
                 clustering[:,t] = ig.Graph(self.session_info['nC'], g.edges).transitivity_local_undirected()
         return np.nan_to_num( clustering )
 
-    def compute_nodes_coreness(self, band = 0, thr = None, use='networkx', on_null = False):
+    def compute_nodes_coreness(self, band = 0, thr = None, use='networkx', on_null = False, randomize='edges', seed = 0):
         #  Variable to store coreness
         coreness    = np.zeros([self.session_info['nC'], self.super_tensor.shape[2]])
+
+        if on_null == True:
+            self.create_null_model(band = band, randomize=randomize, seed = seed)
  
         for t in tqdm(range(self.A.shape[3])):
-            g = self.instantiate_graph(band,t,thr=thr,on_null=on_null)
+            #  g = self.instantiate_graph(band,t,thr=thr,on_null=on_null)
+            if on_null == False:
+                g = self.instantiate_graph(self.A[:,:,band,t], thr = thr)
+            else:
+                g = self.instantiate_graph(self.A_null[:,:,t], thr = thr)
+
             if use=='networkx':
                 coreness[:,t] = list( dict( nx.core_number(g) ).values() )
             elif use=='igraph':
                 coreness[:,t] = ig.Graph(self.session_info['nC'], g.edges).coreness()
         return coreness
 
-    def compute_network_partition(self, band = 0, thr = None, use='networkx', on_null=False):
+    def compute_network_partition(self, band = 0, thr = None, use='networkx', on_null=False, randomize='edges', seed = 0):
         partition = []
+        if on_null == True:
+            self.create_null_model(band = band, randomize=randomize, seed = seed)
 
         for t in tqdm(range(self.A.shape[3])):
-            g = self.instantiate_graph(band,t,thr=thr, on_null=on_null)
+            #  g = self.instantiate_graph(band,t,thr=thr, on_null=on_null)
+            if on_null == False:
+                g = self.instantiate_graph(self.A[:,:,band,t], thr = thr)
+            else:
+                g = self.instantiate_graph(self.A_null[:,:,t], thr = thr)
+
             if use=='networkx':
                 partition.append(nx.algorithms.community.greedy_modularity_communities(g))
             elif use=='igraph':
@@ -107,12 +132,19 @@ class temporal_network():
                 partition.append(leidenalg.find_partition(ig.Graph(self.session_info['nC'], g.edges), leidenalg.ModularityVertexPartition))
         return partition
     
-    def compute_network_modularity(self, band = 0, thr = None, use='networkx', on_null=False):
+    def compute_network_modularity(self, band = 0, thr = None, use='networkx', on_null=False, randomize='edges', seed = 0):
         #  Variable to store modularity
         modularity  = np.zeros(self.super_tensor.shape[2])
+        if on_null == True:
+            self.create_null_model(band = band, randomize=randomize, seed = seed)
 
         for t in tqdm(range(self.A.shape[3])):
-            g = self.instantiate_graph(band,t,thr=thr, on_null=on_null)#nx.Graph(self.A[:,:,band,t]>thr)
+            #  g = self.instantiate_graph(band,t,thr=thr, on_null=on_null)#nx.Graph(self.A[:,:,band,t]>thr)
+            if on_null == False:
+                g = self.instantiate_graph(self.A[:,:,band,t], thr = thr)
+            else:
+                g = self.instantiate_graph(self.A_null[:,:,t], thr = thr)
+
             if use=='networkx':
                 comm = nx.algorithms.community.greedy_modularity_communities(g)
                 modularity[t] = nx.algorithms.community.modularity(g,comm)
@@ -121,11 +153,18 @@ class temporal_network():
                 modularity[t] = leidenalg.find_partition(ig.Graph(self.session_info['nC'], g.edges), leidenalg.ModularityVertexPartition).modularity
         return modularity
 
-    def compute_nodes_betweenness(self, k = None, band = 0, thr = None, use='networkx', on_null=False):
+    def compute_nodes_betweenness(self, k = None, band = 0, thr = None, use='networkx', on_null=False, randomize='edges', seed = 0):
         betweenness = np.zeros([self.session_info['nC'], self.super_tensor.shape[2]])
+        if on_null == True:
+            self.create_null_model(band = band, randomize=randomize, seed = seed)
 
         for t in tqdm(range(self.A.shape[3])):
-            g = self.instantiate_graph(band,t,thr=thr, on_null=on_null)
+            #  g = self.instantiate_graph(band,t,thr=thr, on_null=on_null)
+            if on_null == False:
+                g = self.instantiate_graph(self.A[:,:,band,t], thr = thr)
+            else:
+                g = self.instantiate_graph(self.A_null[:,:,t], thr = thr)
+
             if use=='networkx':
                 betweenness[:,t] = list( dict( nx.betweenness_centrality(g, k) ).values() )
             elif use=='igraph':
@@ -133,23 +172,17 @@ class temporal_network():
         return betweenness
 
     def compute_null_statistics(self, f_name, n_stat, k = None, band = 0, thr = None, use='networkx', randomize = 'edges', seed = 1, n_jobs=1):
-        #  if f_name == self.compute_network_modularity:
-        #      measures = np.zeros([n_stat, self.session_info['nT']*len(self.tarray)])
-        #  else:
-        #      measures = np.zeros([n_stat, self.session_info['nC'], self.session_info['nT']*len(self.tarray)])
-
         def single_estimative(f_name, k = k, band = band, thr = thr, use=use, randomize = randomize, seed = seed):
-            self.create_null_model(randomize=randomize, seed = seed)
+            self.create_null_model(band = band, randomize=randomize, seed = seed)
             if f_name == self.compute_nodes_betweenness:
-                return f_name(k = k, band = band, thr = thr, use=use, on_null=True)
+                return f_name(k = k, band = band, thr = thr, use=use, on_null=True, randomize=randomize, seed=seed)
             if f_name == self.compute_nodes_degree:
-                return f_name(band = band, thr = thr, on_null=True)
+                return f_name(band = band, thr = thr, on_null=True, randomize=randomize, seed=seed)
             else:
-                return f_name(band = band, thr = thr, use=use, on_null=True)
+                return f_name(band = band, thr = thr, use=use, on_null=True, randomize=randomize, seed=seed)
         
-        #  return single_estimative(f_name, k = k, band = band, thr = thr, use=use, randomize = randomize, seed = seed)
         measures = Parallel(n_jobs=n_jobs, backend='loky')(delayed(single_estimative)(f_name, k = k, band = band, thr = thr, use=use, randomize = randomize, seed = i*(seed+100)) for i in range(n_stat) )
-        return measures     
+        return np.array( measures )
 
     def NMF_decomposition(self, band = 0, k = 2):
 
@@ -162,18 +195,26 @@ class temporal_network():
 
         return W, H
 
-    def instantiate_graph(self, band = 0, observation = 0, thr = None, on_null = False):
-        if on_null == False:
-            A_tmp = self.A[:,:,band,:] #+ np.transpose( self.A[:,:,band,:], (1,0,2) )
-        else:
-            A_tmp = self.A_null[:,:,band,:]# + np.transpose( self.A_null[:,:,band,:], (1,0,2) )
+    #  def instantiate_graph(self, band = 0, observation = 0, thr = None, on_null = False):
+    #      if on_null == False:
+    #          A_tmp = self.A[:,:,band,:] #+ np.transpose( self.A[:,:,band,:], (1,0,2) )
+    #      else:
+    #          A_tmp = self.A_null[:,:,band,:]# + np.transpose( self.A_null[:,:,band,:], (1,0,2) )
 
+    #      if thr == None:
+    #          #  return nx.Graph(self.A[:,:,band,observation])
+    #          return nx.Graph(A_tmp[:,:,observation])
+    #      else:
+    #          #  return nx.Graph(self.A[:,:,band,observation]>thr)
+    #          return nx.Graph(A_tmp[:,:,observation]>thr)
+    
+    def instantiate_graph(self, adjacency, thr = None):
         if thr == None:
             #  return nx.Graph(self.A[:,:,band,observation])
-            return nx.Graph(A_tmp[:,:,observation])
+            return nx.Graph(adjacency)
         else:
             #  return nx.Graph(self.A[:,:,band,observation]>thr)
-            return nx.Graph(A_tmp[:,:,observation]>thr)
+            return nx.Graph(adjacency>thr)
 
     def reshape_trials(self, tensor):
         #  Reshape the tensor to have trials and time as two separeted dimension
@@ -200,20 +241,23 @@ class temporal_network():
             aux = tensor.reshape([tensor.shape[0], tensor.shape[1], tensor.shape[2], self.session_info['nt'] * len(self.tarray)])
         return aux
 
-    def create_null_model(self, randomize='edges', seed = 0):
+    def create_null_model(self, band = 0, randomize='edges', seed = 0):
         np.random.seed(seed)
-        self.A_null = np.zeros_like(self.A)
+        self.A_null = np.zeros_like(self.A[:,:,band,:])
         if randomize=='time':
             idx = np.arange(self.session_info['nT']*len(self.tarray), dtype = int)
             np.random.shuffle(idx)
-            self.A_null = ( self.A + np.transpose( self.A, (1,0,2,3) ) ).copy()
-            self.A_null = self.A_null[:,:,:,idx]
+            self.A_null = ( self.A[:,:,band,:] + np.transpose( self.A[:,:,band,:],  (1,0,2) ) ).copy()
+            self.A_null = self.A_null[:,:,idx]
         elif randomize=='edges':
-            idx = np.arange(self.session_info['nC'], dtype = int)
-            self.A_null = ( self.A + np.transpose( self.A, (1,0,2,3) ) ).copy()
+            #  idx = np.arange(self.session_info['nC'], dtype = int)
+            self.A_null = ( self.A[:,:,band,:] + np.transpose( self.A[:,:,band,:],  (1,0,2) ) ).copy()
+            idx  = np.arange( self.session_info['nC'] )
+            idx_ = np.squeeze([np.random.permutation(idx) for i in range(10000)]) 
+            rows = np.arange( self.session_info['nC'] ).reshape(-1,1)
             for t in range(self.session_info['nT']*len(self.tarray)):
-                np.random.shuffle(idx)
-                self.A_null[:,:,:,t] = self.A_null[:,idx,:,t]
+                choices            = np.random.randint(len(idx_), size=self.session_info['nC'])
+                self.A_null[:,:,t] = self.A_null[rows,idx_[choices],t] 
         else:
             print('Randomize should be time or edges')
 
