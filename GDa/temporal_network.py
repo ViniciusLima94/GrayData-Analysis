@@ -216,6 +216,38 @@ class temporal_network():
     #      else:
     #          #  return nx.Graph(self.A[:,:,band,observation]>thr)
     #          return nx.Graph(A_tmp[:,:,observation]>thr)
+
+    def compute_allegiance_matrix(self, band=0, thr=None, use='networkx', per_task_stage=True, on_null=False, randomize='edges', seed = 0):
+
+        partitions = self.compute_network_partition(band=band, thr = thr, use = use, on_null=on_null, randomize = randomize, seed = seed)
+        if per_task_stage == True:
+            T = np.zeros([4, self.session_info['nC'], self.session_info['nC']])
+            for k in range(4):
+                if k==0: p = np.array( partitions )[self.t_baseline]
+                if k==1: p = np.array( partitions )[self.t_cue]
+                if k==2: p = np.array( partitions )[self.t_delay]
+                if k==3: p = np.array( partitions )[self.t_match]
+                for i in tqdm( range(len(p)) ):
+                    n_comm = len(p[i])
+                    for j in range(n_comm):
+                        grid = np.meshgrid(list(p[i][j]), list(p[i][j]))
+                        grid = np.reshape(grid, (2, len(list(p[i][j]))**2)).T
+                        T[k, grid[:,0], grid[:,1]] += 1
+                T[k] = T[k] / len(p)
+                np.fill_diagonal(T[k], 0)
+        else:
+            T = np.zeros([self.session_info['nC'], self.session_info['nC']])
+            p = partitions
+            for i in tqdm( range(len(p)) ):
+                n_comm = len(p[i])
+                for j in range(n_comm):
+                    grid = np.meshgrid(list(p[i][j]), list(p[i][j]))
+                    grid = np.reshape(grid, (2, len(list(p[i][j]))**2)).T
+                    T[k, grid[:,0], grid[:,1]] += 1
+            T[k] = T[k] / len(p)
+            np.fill_diagonal(T[k], 0)
+
+        return T
     
     def instantiate_graph(self, adjacency, thr = None):
         if thr == None:
@@ -266,7 +298,12 @@ class temporal_network():
             rows = np.arange( self.session_info['nC'] ).reshape(-1,1)
             for t in range(self.session_info['nT']*len(self.tarray)):
                 choices            = np.random.randint(len(idx_), size=self.session_info['nC'])
-                self.A_null[:,:,t] = self.A_null[rows,idx_[choices],t] 
+                mask               = idx_[choices]
+                #  Buting elements of the diagonal back to place
+                i = mask == np.arange(self.session_info['nC'])[:, None]
+                mask[i] = mask[range(self.session_info['nC']),range(self.session_info['nC'])]
+                mask[range(self.session_info['nC']),range(self.session_info['nC'])] = range(self.session_info['nC'])
+                self.A_null[:,:,t] = self.A_null[rows,mask,t] 
         else:
             print('Randomize should be time or edges')
 
