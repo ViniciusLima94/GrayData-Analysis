@@ -171,17 +171,26 @@ class temporal_network():
                 betweenness[:,t] = ig.Graph(self.session_info['nC'], g.edges).betweenness()
         return betweenness
 
-    def compute_null_statistics(self, f_name, n_stat, k = None, band = 0, thr = None, use='networkx', randomize = 'edges', seed = 1, n_jobs=1):
-        def single_estimative(f_name, k = k, band = band, thr = thr, use=use, randomize = randomize, seed = seed):
-            self.create_null_model(band = band, randomize=randomize, seed = seed)
-            if f_name == self.compute_nodes_betweenness:
-                return f_name(k = k, band = band, thr = thr, use=use, on_null=True, randomize=randomize, seed=seed)
-            if f_name == self.compute_nodes_degree:
-                return f_name(band = band, thr = thr, on_null=True, randomize=randomize, seed=seed)
-            else:
-                return f_name(band = band, thr = thr, use=use, on_null=True, randomize=randomize, seed=seed)
+    #  def compute_null_statistics(self, f_name, n_stat, k = None, band = 0, thr = None, use='networkx', randomize = 'edges', seed = 1, n_jobs=1):
+    #      def single_estimative(f_name, k = k, band = band, thr = thr, use=use, randomize = randomize, seed = seed):
+    #          self.create_null_model(band = band, randomize=randomize, seed = seed)
+    #          if f_name == self.compute_nodes_betweenness:
+    #              return f_name(k = k, band = band, thr = thr, use=use, on_null=True, randomize=randomize, seed=seed)
+    #          if f_name == self.compute_nodes_degree:
+    #              return f_name(band = band, thr = thr, on_null=True, randomize=randomize, seed=seed)
+    #          else:
+    #              return f_name(band = band, thr = thr, use=use, on_null=True, randomize=randomize, seed=seed)
         
-        measures = Parallel(n_jobs=n_jobs, backend='loky')(delayed(single_estimative)(f_name, k = k, band = band, thr = thr, use=use, randomize = randomize, seed = i*(seed+100)) for i in range(n_stat) )
+    #      measures = Parallel(n_jobs=n_jobs, backend='loky')(delayed(single_estimative)(f_name, k = k, band = band, thr = thr, use=use, randomize = randomize, seed = i*(seed+100)) for i in range(n_stat) )
+    #      return np.array( measures )
+    
+    def compute_null_statistics(self, f_name, n_stat, band = 0, randomize='edges', n_jobs=1, seed = 0, **kwargs):
+
+        def single_estimative(f_name, band, randomize, seed, **kwargs):
+            self.create_null_model(band = band, randomize=randomize, seed = seed)
+            return f_name(band = band, randomize = randomize, on_null=True, **kwargs)
+        
+        measures = Parallel(n_jobs=n_jobs, backend='loky')(delayed(single_estimative)(f_name, band, randomize, seed = i*(seed+100), **kwargs) for i in range(n_stat) )
         return np.array( measures )
 
     def NMF_decomposition(self, band = 0, k = 2):
