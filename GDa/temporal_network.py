@@ -316,9 +316,11 @@ class temporal_network():
         for i in range(n_stim):
             self.stim_grid[i] = (stim == i).astype(bool)
 
-    def compute_temporal_correlation(self, band = 0, thr = None, tau = 1, on_null = False):
+    def compute_temporal_correlation(self, band = 0, thr = None, tau = 1, on_null = False, randomize = 'edges', seed = 0):
         if on_null == True:
-            A = self.A_null[:,:,band,:]  
+            #  A = self.A_null[:,:,band,:]  
+            self.create_null_model(band = band, randomize=randomize, seed = seed)
+            A = self.A_null
         else:
             A = self.A[:,:,band,:] + np.transpose(self.A[:,:,band,:], (1,0,2)) 
         
