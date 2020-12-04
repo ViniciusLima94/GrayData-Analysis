@@ -6,7 +6,7 @@ import h5py
 from   GDa.spectral_analysis           import spectral_analysis
 from   joblib                          import Parallel, delayed
 
-idx = 3#int(sys.argv[-1])
+idx = 1#int(sys.argv[-1])
 
 nmonkey = 0
 nses    = 6

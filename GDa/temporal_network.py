@@ -282,7 +282,7 @@ class temporal_network():
             aux = tensor.reshape([tensor.shape[0], tensor.shape[1], tensor.shape[2], self.session_info['nt'] * len(self.tarray)])
         return aux
 
-    def create_null_model(self, band = 0, randomize='edges', seed = 0):
+    def create_null_model(self, band = 0, randomize='edges', thr=None, seed = 0):
         np.random.seed(seed)
         self.A_null = np.zeros_like(self.A[:,:,band,:])
         if randomize=='time':
@@ -292,6 +292,14 @@ class temporal_network():
             self.A_null = self.A_null[:,:,idx]
         elif randomize=='edges':
             #  idx = np.arange(self.session_info['nC'], dtype = int)
+            assert isinstance(thr, type(None)), 'Threshold shoulb be provided'
+            self.A_null = np.empty_like(self.A[:,:,band,:])
+            for t in range(self.session_info['nT']*len(self.tarray)):
+                g   = self.instantiate_graph(self.A[:,:,band,t]>thr)
+                g_r = nx.algorithms.smallworld.random_reference(g, niter=1, connectivity=False, seed=seed)
+                self.A_null[:,:,t] = nx.to_numpy_matrix(g_r)
+
+            '''
             self.A_null = ( self.A[:,:,band,:] + np.transpose( self.A[:,:,band,:],  (1,0,2) ) ).copy()
             idx  = np.arange( self.session_info['nC'] )
             idx_ = np.squeeze([np.random.permutation(idx) for i in range(10000)]) 
@@ -304,6 +312,7 @@ class temporal_network():
                 mask[i] = mask[range(self.session_info['nC']),range(self.session_info['nC'])]
                 mask[range(self.session_info['nC']),range(self.session_info['nC'])] = range(self.session_info['nC'])
                 self.A_null[:,:,t] = self.A_null[rows,mask,t] 
+            '''
         else:
             print('Randomize should be time or edges')
 
