@@ -60,7 +60,7 @@ class temporal_network():
         if on_null == False:
             A_tmp = self.A[:,:,band,:] + np.transpose( self.A[:,:,band,:], (1,0,2) )
         else:
-            self.create_null_model(band = band, randomize=randomize, seed = seed)
+            self.create_null_model(band = band, thr = thr, randomize=randomize, seed = seed)
             A_tmp = self.A_null
 
         if thr == None:
@@ -292,16 +292,19 @@ class temporal_network():
             self.A_null = self.A_null[:,:,idx]
         elif randomize=='edges':
             #  idx = np.arange(self.session_info['nC'], dtype = int)
-            assert isinstance(thr, type(None)), 'Threshold shoulb be provided'
-            self.A_null = np.empty_like(self.A[:,:,band,:])
-            for t in range(self.session_info['nT']*len(self.tarray)):
-                g   = self.instantiate_graph(self.A[:,:,band,t]>thr)
-                g_r = nx.algorithms.smallworld.random_reference(g, niter=1, connectivity=False, seed=seed)
-                self.A_null[:,:,t] = nx.to_numpy_matrix(g_r)
+            if type(thr) == type(None):
+                print('A threshold value should be provided')
+            else:
+                self.A_null = np.empty_like(self.A[:,:,band,:])
+                for t in range(self.session_info['nT']*len(self.tarray)):
+                    g   = self.instantiate_graph(self.A[:,:,band,t]>thr)
+                    G   = ig.Graph(self.session_info['nC'], g.edges)
+                    G.rewire()
+                    self.A_null[:,:,t] = np.array(list(G.get_adjacency()))#nx.to_numpy_matrix(g_r)
 
             '''
             self.A_null = ( self.A[:,:,band,:] + np.transpose( self.A[:,:,band,:],  (1,0,2) ) ).copy()
-            idx  = np.arange( self.session_info['nC'] )
+                idx  = np.arange( self.session_info['nC'] )
             idx_ = np.squeeze([np.random.permutation(idx) for i in range(10000)]) 
             rows = np.arange( self.session_info['nC'] ).reshape(-1,1)
             for t in range(self.session_info['nT']*len(self.tarray)):
