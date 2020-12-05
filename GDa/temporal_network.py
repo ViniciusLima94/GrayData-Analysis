@@ -186,13 +186,13 @@ class temporal_network():
                 betweenness[:,t] = ig.Graph(self.session_info['nC'], g.edges).betweenness()
         return betweenness
 
-    def compute_null_statistics(self, f_name, n_stat, band = 0, randomize='edges', n_jobs=1, seed = 0, **kwargs):
+    def compute_null_statistics(self, f_name, n_stat, band = 0, thr = None, randomize='edges', n_jobs=1, seed = 0, **kwargs):
 
-        def single_estimative(f_name, band, randomize, seed, **kwargs):
+        def single_estimative(f_name, band, randomize, thr, seed, **kwargs):
             self.create_null_model(band = band, thr = thr, randomize=randomize, seed = seed)
-            return f_name(band = band, randomize = randomize, on_null=True, **kwargs)
+            return f_name(band = band, randomize = randomize, on_null=True, thr = thr, **kwargs)
         
-        measures = Parallel(n_jobs=n_jobs, backend='loky')(delayed(single_estimative)(f_name, band, randomize, seed = i*(seed+100), **kwargs) for i in range(n_stat) )
+        measures = Parallel(n_jobs=n_jobs, backend='loky')(delayed(single_estimative)(f_name, band, randomize, thr, seed = i*(seed+100), **kwargs) for i in range(n_stat) )
         return np.array( measures )
 
     def NMF_decomposition(self, band = 0, k = 2):
