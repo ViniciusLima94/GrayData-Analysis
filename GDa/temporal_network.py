@@ -206,19 +206,6 @@ class temporal_network():
 
         return W, H
 
-    #  def instantiate_graph(self, band = 0, observation = 0, thr = None, on_null = False):
-    #      if on_null == False:
-    #          A_tmp = self.A[:,:,band,:] #+ np.transpose( self.A[:,:,band,:], (1,0,2) )
-    #      else:
-    #          A_tmp = self.A_null[:,:,band,:]# + np.transpose( self.A_null[:,:,band,:], (1,0,2) )
-
-    #      if thr == None:
-    #          #  return nx.Graph(self.A[:,:,band,observation])
-    #          return nx.Graph(A_tmp[:,:,observation])
-    #      else:
-    #          #  return nx.Graph(self.A[:,:,band,observation]>thr)
-    #          return nx.Graph(A_tmp[:,:,observation]>thr)
-
     def compute_allegiance_matrix(self, band=0, thr=None, use='networkx', per_task_stage=True, on_null=False, randomize='edges', seed = 0):
 
         partitions = self.compute_network_partition(band=band, thr = thr, use = use, on_null=on_null, randomize = randomize, seed = seed)
@@ -307,21 +294,6 @@ class temporal_network():
                     self.A_null[randomize][str(band)][:,:,t] = np.array(list(G.get_adjacency()))#nx.to_numpy_matrix(g_r)
         else:
             raise ValueError('Randomize should be time or edges')
-
-            '''
-            self.A_null = ( self.A[:,:,band,:] + np.transpose( self.A[:,:,band,:],  (1,0,2) ) ).copy()
-                idx  = np.arange( self.session_info['nC'] )
-            idx_ = np.squeeze([np.random.permutation(idx) for i in range(10000)]) 
-            rows = np.arange( self.session_info['nC'] ).reshape(-1,1)
-            for t in range(self.session_info['nT']*len(self.tarray)):
-                choices            = np.random.randint(len(idx_), size=self.session_info['nC'])
-                mask               = idx_[choices]
-                #  Buting elements of the diagonal back to place
-                i = mask == np.arange(self.session_info['nC'])[:, None]
-                mask[i] = mask[range(self.session_info['nC']),range(self.session_info['nC'])]
-                mask[range(self.session_info['nC']),range(self.session_info['nC'])] = range(self.session_info['nC'])
-                self.A_null[:,:,t] = self.A_null[rows,mask,t] 
-            '''
 
     def create_stim_grid(self, ):
         #  Number of different stimuli
