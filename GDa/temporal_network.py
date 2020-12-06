@@ -208,7 +208,8 @@ class temporal_network():
 
     def compute_allegiance_matrix(self, band=0, thr=None, use='networkx', per_task_stage=True, on_null=False, randomize='edges', seed = 0):
 
-        partitions = self.compute_network_partition(band=band, thr = thr, use = use, on_null=on_null, randomize = randomize, seed = seed)
+        partitions = self.compute_network_partition(band=band, thr = thr, use = use, on_null=on_null, randomize = randomize)
+
         if per_task_stage == True:
             T = np.zeros([4, self.session_info['nC'], self.session_info['nC']])
             for k in range(4):
@@ -248,7 +249,7 @@ class temporal_network():
 
     def reshape_trials(self, tensor):
         #  Reshape the tensor to have trials and time as two separeted dimension
-        print(len(tensor.shape))
+        #  print(len(tensor.shape))
         if len(tensor.shape) == 1:
             aux = tensor.reshape([self.session_info['nT'], len(self.tarray)])
         if len(tensor.shape) == 2:
