@@ -9,10 +9,15 @@ ethyl_brainsketch = scipy.ndimage.imread('Brain Areas/ethyl_brainsketch.jpg')   
 
 def plot_node_brain_sketch(node_list, node_size, alpha, beta, cmap):
     #  Colormap
-    mapf = cm.get_cmap(cmap, 20)
+    #  mapf = cm.get_cmap(cmap, 20)
     plt.imshow(ethyl_brainsketch)
     for i,c in zip(range(len(node_list)), node_list):
-        plt.plot(xy[c-1,0], xy[c-1,1], 'o', ms = alpha*np.abs(node_size[i])**beta, color = mapf(node_size[i]))
+        #  plt.plot(xy[c-1,0], xy[c-1,1], 'o', ms = alpha*np.abs(node_size[i])**beta, color = mapf(node_size[i]))
+        if node_size[i] > 0:
+            color = 'b'
+        else:
+            color = 'm'
+        plt.plot(xy[c-1,0], xy[c-1,1], 'o', ms = alpha*np.abs(node_size[i])**beta, color = color)
     plt.xticks([])
     plt.yticks([])
 
