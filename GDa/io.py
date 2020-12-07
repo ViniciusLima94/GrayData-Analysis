@@ -25,12 +25,9 @@ class set_paths:
 		self.raw_path = raw_path
 		self.session  = 'session0' + str(session) #session 
 		
-		self.define_paths()
+		self.__define_paths()
 
-	def define_paths(self,):
-		#self.dir     = self.raw_path + self.monkey + '/' + self.date + '/' + self.session + '/' 
-		#self.dir_out = 'Results/'    + self.monkey + '/' + self.date + '/' + self.session + '/' 
-		# Using os join
+	def __define_paths(self,):
 		self.dir     = os.path.join(self.raw_path, self.monkey, self.date, self.session)
 		self.dir_out = os.path.join('Results', self.monkey, self.date, self.session)
 
