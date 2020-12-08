@@ -145,14 +145,14 @@ class session(session_info):
         # Number of possible pairs (undirected network)
         nP       = int( scipy.special.comb(n_channels, 2) )
         # Every pair combination
-        i, j     = np.tril_indices(n_channels)
-        pairs    = np.array([i,j]).T
+        i, j     = np.tril_indices(n_channels, k = -1)
+        pairs    = np.array([j,i]).T
         # Area names for selected channels 
         area     = self.recording_info['area'][indch]
         area     = np.array(area, dtype='S')
         # Store to dictionary
         self.readinfo = {'nC': n_channels, 'nP':nP, 'nT':n_trials, 'pairs': pairs,
-                         'indt': indt, 'fsample': self.recording_info['lfp_sampling_rate'],
+                         'indt': indt, 'fsample': float(self.recording_info['lfp_sampling_rate']),
                          'tarray': self.time, 'channels_labels': labels, 'stim':stimulus,
                          'indch': indch, 'areas': area, 't_cue_on': t_con[indt] ,
                          't_cue_off': t_coff[indt], 't_match_on': t_mon[indt]
