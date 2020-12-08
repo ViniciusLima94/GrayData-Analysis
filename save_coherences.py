@@ -3,60 +3,34 @@ import os
 import time
 import numpy                           as     np
 import h5py
-from   GDa.spectral_analysis           import spectral_analysis
+from   config                          import *
+from   GDa.session                     import session
+from   GDa.spectral_analysis           import time_frequency    as tf
+from   GDa.io                          import set_paths
 from   joblib                          import Parallel, delayed
 
 idx = 1#int(sys.argv[-1])
 
 nmonkey = 0
-nses    = 6
+nses    = 1
 ntype   = 0
-#####################################################################################################
-# Directories
-#####################################################################################################
-dirs = {'rawdata':'GrayLab/',
-        'results':'Results/',
-        'monkey' :['lucy', 'ethyl'],
-        'session':'session01',
-        'date'   :[['141014', '141015', '141205', '150128', '150211', '150304'], []]
-        }
-     
-# Raw LFP path   
-path = 'raw_lfp/'+dirs['monkey'][nmonkey]+'_'+'session01'+'_'+dirs['date'][nmonkey][idx]+'.npy'
-# Range of frequencies to be analyzed
-freqs = np.arange(4,60,2)
-# Delta for downsampling
-delta = 15
-# Number of cycles for the wavelet
-n_cycles = 5
-# Instantiating spectral analysis class
-spec = spectral_analysis()
-# Loading data info
-session_data = np.load(path, allow_pickle = True).item()
-# LFP data
-LFP          = session_data['data']
-# Index of all pair of channels
-pairs        = session_data['info']['pairs']
-# Sample frequency
-fsample      = int(session_data['info']['fsample'])
-# Number of pairs
-nP           = session_data['info']['nP']
-# Number of trials
-nT           = session_data['info']['nT']
-# Time array
-tarray       = session_data['info']['tarray'][::delta]
-# Directory were to save the coherence data
-dir_out      = session_data['path']['dir_out']
-# Bands of interest
-bands = np.array([[4,8],[8,15],[15,30],[30,60]])
+
+#  Set the paths
+paths        = set_paths(raw_path = dirs['rawdata'], monkey = dirs['monkey'][nmonkey], 
+                         date = dirs['date'][nmonkey][idx], session = nses)
+#  Instantiating session
+ses = session(raw_path = dirs['rawdata'], monkey = dirs['monkey'][nmonkey], date = dirs['date'][nmonkey][idx], 
+              session = nses, slvr_msmod = False, align_to = 'cue', trial_type = 1,
+              behavioral_response = 1, evt_dt = [-0.65, 3.00], save_to_h5=False)
 
 if  __name__ == '__main__':
 
     start = time.time()
 
-    spec.wavelet_coherence(data = LFP, pairs = pairs, fs = fsample, freqs = freqs, 
-                           n_cycles = n_cycles, time_bandwidth = None, delta = delta, method = 'morlet', 
-                           win_time = 34, win_freq = 1, dir_out = dir_out, n_jobs = -1)
+    tf.wavelet_coherence(data = ses.data, pairs = ses.readinfo['pairs'], fs = ses.readinfo['fsample'], 
+                         freqs = freqs, n_cycles = n_cycles, time_bandwidth = time_bandwidth, delta = delta, 
+                         method = method, win_time = win_time, win_freq = win_freq, dir_out = paths.dir_out, n_jobs = -1)
+    
 
     # Load all the files generated and save in a single file
     super_tensor = np.zeros([nP, nT, freqs.shape[0], tarray.shape[0]])
@@ -80,7 +54,7 @@ if  __name__ == '__main__':
     with h5py.File(path_st, 'w') as hf:
         hf.create_dataset('supertensor', data=super_tensor)
         hf.create_dataset('freqs', data=freqs)
-        hf.create_dataset('tarray', data=tarray)
+        hf.create_dataset('tarray', data=ses.tarray[::delta])
         hf.create_dataset('bands', data=bands)
 
     end = time.time()
