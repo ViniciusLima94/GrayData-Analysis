@@ -1,4 +1,6 @@
 *.gif
+*.swo
+*.swp
 *.h5
 *.out
 *.mat
