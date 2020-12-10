@@ -8,6 +8,10 @@ from   ..misc            import smooth_spectra, downsample
 
 def wavelet_transform(data = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
                       time_bandwidth = None, delta = 1, method = 'morlet', n_jobs = 1):
+    if method not in ['morlet', 'multitaper']:
+        raise ValueError('Method should be either "morlet" or "multitaper"')
+    if method == 'morlet' and time_bandwidth is not None:
+        print('For method equals "morlet" time_bandwidth is not used')
     if method == 'morlet':
         out = mne.time_frequency.tfr_array_morlet(data, fs, freqs, n_cycles = n_cycles, zero_mean=False,
                                                   output='complex', decim = delta, n_jobs=n_jobs)
