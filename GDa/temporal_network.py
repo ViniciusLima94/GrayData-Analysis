@@ -13,24 +13,30 @@ from   joblib                import Parallel, delayed
 
 class temporal_network():
 
-    def __init__(self, monkey='lucy', session=1, date=150128, wt = None, trim_borders = False):
+    def __init__(self, raw_path = 'super_tensors', monkey='lucy', session=1, date=150128, align_to = 'cue', 
+                 trial_type = 1, behavioral_response = 1, wt = None, trim_borders = False):
+
         # Setting up mokey and recording info to load and save files
+        self.raw_path = raw_path
         self.monkey   = monkey
         self.date     = date                            
         self.session  = 'session0' + str(session)       
+        self.trial_type = trial_type
+        self.align_to   = align_to
+        self.behavioral_response = behavioral_response
         
         # Path to the session information in npy format
-        npy_raw_lfp_path     = os.path.join('raw_lfp', monkey+'_'+'session0'+str(session)+'_'+str(date)+'.npy')
-        # Path to the super tensor in h5 format 
-        h5_super_tensor_path = os.path.join('super_tensors', monkey+'_'+'session0'+str(session)+'_'+str(date)+'.h5')
+        #npy_raw_lfp_path     = os.path.join('raw_lfp', monkey+'_'+'session0'+str(session)+'_'+str(date)+'.npy')
         # Loading session info
-        self.session_info = np.load(npy_raw_lfp_path, allow_pickle=True).item()['info']
+        #self.session_info = np.load(npy_raw_lfp_path, allow_pickle=True).item()['info']
         # Loading super teson (temporal network)
-        with h5py.File(h5_super_tensor_path, 'r') as hf:
-            self.super_tensor = np.array( hf.get('supertensor') )
-            self.tarray       = np.array( hf.get('tarray') )
-            self.freqs        = np.array( hf.get('freqs') )
-            self.bands        = np.array( hf.get('bands') )
+        #  with h5py.File(h5_super_tensor_path, 'r') as hf:
+        #      self.super_tensor = np.array( hf.get('supertensor') )
+        #      self.tarray       = np.array( hf.get('tarray') )
+        #      self.freqs        = np.array( hf.get('freqs') )
+        #      self.bands        = np.array( hf.get('bands') )
+        # Load super-tensor
+        self.__load_h5()
 
         if trim_borders == True:
             self.tarray       = self.tarray[wt:-wt] 
@@ -44,6 +50,30 @@ class temporal_network():
         self.A_null = {}
         self.A_null['time']  = {} # Time randomization 
         self.A_null['edges'] = {} # Edges randomization 
+
+    def __load_h5(self,):
+        # Path to the super tensor in h5 format 
+        h5_super_tensor_path = os.path.join(self.raw_path, self.monkey+'_'+str(self.session)+'_'+str(self.date)+'.h5')
+
+        try:
+            hf = h5py.File(h5_super_tensor_path, 'r')
+        except (OSError):
+            raise OSError('File for monkey ' + str(self.monkey) + ', date ' + str(self.date) + ' ' + self.session + ' not created yet')
+
+        group = os.path.join('trial_type_'+str(self.trial_type), 
+                         'aligned_to_' + str(self.align_to),
+                         'behavioral_response_'+str(self.behavioral_response)) 
+
+        g1 = hf.get(group)
+        # Read coherence data
+        self.super_tensor = g1['coherence'][:]
+        self.tarray       = g1['tarray'][:]
+        self.freqs        = g1['freqs'][:]
+        self.bands        = g1['bands'][:]
+        # Read info dict.
+        self.session_info = {}
+        for k in g1['info'].keys():
+            self.session_info[k] = np.squeeze( np.array(g1['info/'+k]) )
 
     def convert_to_adjacency(self,):
         self.A = np.zeros([self.session_info['nC'], self.session_info['nC'], len(self.bands), self.session_info['nT']*len(self.tarray)]) 
@@ -298,12 +328,10 @@ class temporal_network():
 
     def create_stim_grid(self, ):
         #  Number of different stimuli
-        n_stim           = int((self.session_info['stim']).max()+1)
-        #  Repeate each stimulus to match the length of the trial
-        stim             = np.repeat(self.session_info['stim'], len(self.tarray) )
+        n_stim           = int((self.session_info['stim']).max()+1) #  Repeate each stimulus to match the length of the trial stim             = np.repeat(self.session_info['stim'], len(self.tarray) )
         self.stim_grid   = np.zeros([n_stim, self.session_info['nT']*len(self.tarray)])
         for i in range(n_stim):
-            self.stim_grid[i] = (stim == i).astype(bool)
+            self.stim_grid[i-1] = (stim == i).astype(bool)
 
     def compute_temporal_correlation(self, band = 0, thr = None, randomize = 'edges', tau = 1, on_null = False):
         if on_null == True:

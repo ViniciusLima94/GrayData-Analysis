@@ -46,7 +46,7 @@ class session(session_info):
     
     def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', session = 1,
                  slvr_msmod = False, align_to = 'cue', trial_type = 1, 
-                 behavioral_response = None, evt_dt = [-0.65, 3.00], save_to_h5 = False, h5_path = None):
+                 behavioral_response = None, evt_dt = [-0.65, 3.00]):
         #Check for incorrect parameter values
         if monkey not in ['lucy', 'ethyl']:
             raise ValueError('monkey should be either "lucy" or "ethyl"')
@@ -77,14 +77,12 @@ class session(session_info):
         self.align_to   = align_to
         self.behavioral_response = behavioral_response
     
-        # Atually reads the data
-        self.__read_lfp_data()
         
         # Save the data to h5
-        if save_to_h5:
-            self.__save_h5(h5_path=h5_path)
+        #  if save_to_h5:
+        #      self.__save_h5(h5_path=h5_path)
         
-    def __read_lfp_data(self, ):
+    def read_from_mat(self, ):
         
         # Get file names
         files = sorted(glob.glob( os.path.join(self.__paths.dir, self.date+'*') ))
@@ -124,8 +122,7 @@ class session(session_info):
         self.data = np.empty([n_trials, n_channels, n_times]) # LFP data
         # Time array
         self.time = np.arange(self.evt_dt[0], self.evt_dt[1], 1/self.recording_info['lfp_sampling_rate'])
-        #self.time = np.empty([n_trials, n_times])             # Time vector for each trial
-        
+       
         # For each selected trial
         for i,nt in zip(range(len(indt)), indt):
             f        = self.__load_mat.read_HDF5(files[nt])
@@ -158,8 +155,26 @@ class session(session_info):
                          't_cue_off': t_coff[indt], 't_match_on': t_mon[indt]
                          }
         
-    def __save_h5(self,h5_path = 'raw_lfp'):
-        file_name = os.path.join(h5_path, self.monkey + '_' + self.session + '_' + self.date + '.h5')
+    def read_from_h5(self,):
+        file_name = os.path.join(self.__paths.dir, self.monkey + '_' + self.session + '_' + self.date + '.h5')
+        try:
+            hf = h5py.File(file_name, 'r')
+        except (OSError):
+            print('File for monkey ' + str(self.monkey) + ', date ' + str(self.date) + ' ' + self.session + ' not created yet')
+
+        group = os.path.join('trial_type_'+str(self.trial_type), 
+                             'aligned_to_' + str(self.align_to),
+                             'behavioral_response_'+str(self.behavioral_response)) 
+        g1 = hf.get(group)
+        # Read data
+        self.data = g1['data'][:]
+        # Read info dict.
+        self.readinfo = {}
+        for k in g1['info'].keys():
+            self.readinfo[k] = np.squeeze( np.array(g1['info/'+k]) )
+    
+    def save_h5(self,):
+        file_name = os.path.join(self.__paths.dir, self.monkey + '_' + self.session + '_' + self.date + '.h5')
         try:
             hf = h5py.File(file_name, 'r+')
         except:
@@ -167,8 +182,8 @@ class session(session_info):
 
         # Create group relative to the trial type, the aligment and to the behavioral response
         group = os.path.join('trial_type_'+str(self.trial_type), 
-                                 'aligned_to_' + str(self.align_to),
-                                 'behavioral_response_'+str(self.behavioral_response)) 
+                             'aligned_to_' + str(self.align_to),
+                             'behavioral_response_'+str(self.behavioral_response)) 
         #  Try to create group if it exists overwrite the values
         try:
             g1 = hf.create_group(group)
