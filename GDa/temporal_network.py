@@ -25,16 +25,6 @@ class temporal_network():
         self.align_to   = align_to
         self.behavioral_response = behavioral_response
         
-        # Path to the session information in npy format
-        #npy_raw_lfp_path     = os.path.join('raw_lfp', monkey+'_'+'session0'+str(session)+'_'+str(date)+'.npy')
-        # Loading session info
-        #self.session_info = np.load(npy_raw_lfp_path, allow_pickle=True).item()['info']
-        # Loading super teson (temporal network)
-        #  with h5py.File(h5_super_tensor_path, 'r') as hf:
-        #      self.super_tensor = np.array( hf.get('supertensor') )
-        #      self.tarray       = np.array( hf.get('tarray') )
-        #      self.freqs        = np.array( hf.get('freqs') )
-        #      self.bands        = np.array( hf.get('bands') )
         # Load super-tensor
         self.__load_h5()
 
