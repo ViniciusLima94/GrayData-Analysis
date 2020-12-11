@@ -292,7 +292,7 @@ class temporal_network():
             aux = tensor.reshape([tensor.shape[0], tensor.shape[1], tensor.shape[2], self.session_info['nt'] * len(self.tarray)])
         return aux
 
-    def create_null_model(self, band = 0, randomize='edges', thr=None, seed = 0):
+    def create_null_model(self, band = 0, randomize='edges', n_rewires = 1000, thr=None, seed = 0):
         #  Set randomization seed
         np.random.seed(seed)
         #  Each band will be stored in a dictionary key
@@ -310,18 +310,20 @@ class temporal_network():
             else:
                 for t in range(self.session_info['nT']*len(self.tarray)):
                     g   = self.instantiate_graph(self.A[:,:,band,t]>thr)
-                    G   = ig.Graph(self.session_info['nC'], g.edges)
-                    G.rewire()
+                    G   = ig.Graph(int(self.session_info['nC']), g.edges)
+                    G.rewire(n_rewires)
                     self.A_null[randomize][str(band)][:,:,t] = np.array(list(G.get_adjacency()))#nx.to_numpy_matrix(g_r)
         else:
             raise ValueError('Randomize should be time or edges')
 
     def create_stim_grid(self, ):
         #  Number of different stimuli
-        n_stim           = int((self.session_info['stim']).max()+1) #  Repeate each stimulus to match the length of the trial stim             = np.repeat(self.session_info['stim'], len(self.tarray) )
+        n_stim           = int((self.session_info['stim']).max()) 
+        #  Repeate each stimulus to match the length of the trial 
+        stim             = np.repeat(self.session_info['stim']-1, len(self.tarray) )
         self.stim_grid   = np.zeros([n_stim, self.session_info['nT']*len(self.tarray)])
         for i in range(n_stim):
-            self.stim_grid[i-1] = (stim == i).astype(bool)
+            self.stim_grid[i] = (stim == i).astype(bool)
 
     def compute_temporal_correlation(self, band = 0, thr = None, randomize = 'edges', tau = 1, on_null = False):
         if on_null == True:
