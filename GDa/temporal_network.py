@@ -63,7 +63,10 @@ class temporal_network():
         # Read info dict.
         self.session_info = {}
         for k in g1['info'].keys():
-            self.session_info[k] = np.squeeze( np.array(g1['info/'+k]) )
+            if k == 'nC':
+                self.session_info[k] = int( np.squeeze( np.array(g1['info/'+k]) ) )
+            else:
+                self.session_info[k] = np.squeeze( np.array(g1['info/'+k]) )
 
     def convert_to_adjacency(self,):
         self.A = np.zeros([self.session_info['nC'], self.session_info['nC'], len(self.bands), self.session_info['nT']*len(self.tarray)]) 
@@ -310,7 +313,7 @@ class temporal_network():
             else:
                 for t in range(self.session_info['nT']*len(self.tarray)):
                     g   = self.instantiate_graph(self.A[:,:,band,t]>thr)
-                    G   = ig.Graph(int(self.session_info['nC']), g.edges)
+                    G   = ig.Graph(self.session_info['nC'], g.edges)
                     G.rewire(n_rewires)
                     self.A_null[randomize][str(band)][:,:,t] = np.array(list(G.get_adjacency()))#nx.to_numpy_matrix(g_r)
         else:
