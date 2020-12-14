@@ -321,12 +321,16 @@ class temporal_network():
 
     def create_stim_grid(self, ):
         #  Number of different stimuli
-        n_stim           = int((self.session_info['stim']).max()) 
-        #  Repeate each stimulus to match the length of the trial 
-        stim             = np.repeat(self.session_info['stim']-1, len(self.tarray) )
         self.stim_grid   = np.zeros([n_stim, self.session_info['nT']*len(self.tarray)])
-        for i in range(n_stim):
-            self.stim_grid[i] = (stim == i).astype(bool)
+        if not np.isnan(self.session_info['stim']).all():
+            n_stim           = int((self.session_info['stim']).max()) 
+            #  Repeate each stimulus to match the length of the trial 
+            stim             = np.repeat(self.session_info['stim']-1, len(self.tarray) )
+            for i in range(n_stim):
+                self.stim_grid[i] = (stim == i).astype(bool)
+        else:
+            return self.stim_grid.astype(bool)
+
 
     def compute_temporal_correlation(self, band = 0, thr = None, randomize = 'edges', tau = 1, on_null = False):
         if on_null == True:
