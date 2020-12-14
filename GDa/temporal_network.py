@@ -321,16 +321,16 @@ class temporal_network():
 
     def create_stim_grid(self, ):
         #  Number of different stimuli
-        self.stim_grid   = np.zeros([n_stim, self.session_info['nT']*len(self.tarray)])
         if not np.isnan(self.session_info['stim']).all():
             n_stim           = int((self.session_info['stim']).max()) 
+            self.stim_grid   = np.zeros([n_stim, self.session_info['nT']*len(self.tarray)])
             #  Repeate each stimulus to match the length of the trial 
             stim             = np.repeat(self.session_info['stim']-1, len(self.tarray) )
             for i in range(n_stim):
                 self.stim_grid[i] = (stim == i).astype(bool)
         else:
+            self.stim_grid   = np.zeros([n_stim, self.session_info['nT']*len(self.tarray)])
             return self.stim_grid.astype(bool)
-
 
     def compute_temporal_correlation(self, band = 0, thr = None, randomize = 'edges', tau = 1, on_null = False):
         if on_null == True:
@@ -351,6 +351,40 @@ class temporal_network():
         den = np.sqrt(A[:,:,0:-tau].sum(axis = 1) * A[:,:,tau:].sum(axis = 1))
         Ci  = np.nansum(( num / den ), axis=1) / (A.shape[-1] - 1)
         return np.nansum(Ci) / self.session_info['nC']
+
+    def cosine_similarity(self, band = 0, thr = None, randomize = 'edges', on_null = False):
+        if on_null == True:
+            try:
+                A = self.reshape_trials( self.A_null[randomize][str(band)] )
+            except (AttributeError, KeyError):
+                print('Null model for band ' + str(band) + ' not created yet.')
+        else:
+            A = self.reshape_trials( self.A[:,:,band,:] + np.transpose(self.A[:,:,band,:], (1,0,2))  )
+
+        num = ( A[:,:,:,:-1]*A[:,:,:,1:] ).sum(axis = 1)
+        den = np.sqrt( np.sum(A[:,:,:,:-1]**2, axis = 1) ) * np.sqrt( np.sum(A[:,:,:,1:]**2, axis = 1) )
+        
+        return num / den
+
+    def jaccard_index(self, band = 0, thr = None, randomize = 'edges', on_null = False):
+
+        if type(thr) == type(None):
+            raise ValueError("For edge randomizations the threshold should be provided")
+        else:
+            if on_null == True:
+                try:
+                    A = self.reshape_trials( self.A_null[randomize][str(band)] )
+                except (AttributeError, KeyError):
+                    print('Null model for band ' + str(band) + ' not created yet.')
+            else:
+                A = self.reshape_trials( self.A[:,:,band,:] + np.transpose(self.A[:,:,band,:], (1,0,2))  ) > self.coh_thr[band]
+
+            num = (A[:,:,:,:-1] * A[:,:,:,1:]).sum(axis=1)
+            den = (A[:,:,:,:-1] + A[:,:,:,1:])
+            #  The unition in the number of elements in A plus the elements in B minus the number of elements A and B have in common
+            den[den==2] = 0
+            den = den.sum(axis=1)
+            return num/den
 
     def create_stages_time_grid(self, ):
         t_cue_off  = (self.session_info['t_cue_off']-self.session_info['t_cue_on'])/self.session_info['fsample']
