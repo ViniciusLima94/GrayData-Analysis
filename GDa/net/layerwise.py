@@ -5,11 +5,12 @@ import leidenalg
 from   tqdm                  import tqdm
 from   .util                 import instantiate_graph
 
-def compute_nodes_degree(A, thr=None):
+def compute_nodes_degree(A, thr=None, mirror=False):
     # Check the dimension
     assert len(A.shape)==3, "The adjacency tensor should be 3D."
 
-    A = A + np.transpose( A, (1,0,2) )
+    if mirror:
+        A = A + np.transpose( A, (1,0,2) )
 
     # Compute the node degree
     if thr is not None:
@@ -136,8 +137,8 @@ def compute_allegiance_matrix(A, thr=None):
         for j in range(n_comm):
             grid = np.meshgrid(list(p[i][j]), list(p[i][j]))
             grid = np.reshape(grid, (2, len(list(p[i][j]))**2)).T
-            T[k, grid[:,0], grid[:,1]] += 1
-    T[k] = T[k] / len(p)
-    np.fill_diagonal(T[k], 0)
+            T[grid[:,0], grid[:,1]] += 1
+    T = T / len(p)
+    np.fill_diagonal(T, 0)
 
     return T
