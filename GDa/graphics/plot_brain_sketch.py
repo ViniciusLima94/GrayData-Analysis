@@ -4,8 +4,8 @@ import scipy.ndimage
 import scipy.io 
 from matplotlib          import cm
 
-xy                = scipy.io.loadmat('Brain Areas/lucy_brainsketch_xy.mat')['xy'] # Channels coordinates
-ethyl_brainsketch = scipy.ndimage.imread('Brain Areas/ethyl_brainsketch.jpg')     # Brainsketch 
+xy                = scipy.io.loadmat('../Brain Areas/lucy_brainsketch_xy.mat')['xy'] # Channels coordinates
+ethyl_brainsketch = scipy.ndimage.imread('../Brain Areas/ethyl_brainsketch.jpg')     # Brainsketch 
 
 def plot_node_brain_sketch(node_list, node_size, alpha, beta, cmap):
     #  Colormap

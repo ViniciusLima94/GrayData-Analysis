@@ -1,3 +1,4 @@
+import random
 import numpy  as np 
 import igraph as ig
 from   tqdm   import tqdm
@@ -26,6 +27,8 @@ def randomize_edges(A, thr=None, n_rewires = 100, seed=0):
     # Check the dimension
     assert len(A.shape)==3, "The adjacency tensor should be 3D."
     assert thr != None, "A threshold value should be provided."
+
+    random.seed(seed)
 
     #  Number of channels
     nC = A.shape[0]
