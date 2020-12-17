@@ -2,6 +2,8 @@ import numpy            as     np
 import networkx         as     nx
 import igraph           as     ig
 import leidenalg
+from   joblib                import Parallel, delayed
+from   .null_models          import *
 from   tqdm                  import tqdm
 from   .util                 import instantiate_graph
 
@@ -142,3 +144,15 @@ def compute_allegiance_matrix(A, thr=None):
     np.fill_diagonal(T, 0)
 
     return T
+
+def null_model_statistics(A, f_name, n_stat, thr=None, n_rewires=1000, n_jobs=1, seed=0, **kwargs):
+    assert len(A.shape)==3, "The adjacency tensor should be 3D."
+    assert thr != None, "A threshold value should be provided."
+
+    def single_estimative(A, f_name, thr, n_rewires, seed, **kwargs):
+        #  Create randomized model
+        A_null = randomize_edges(A,thr=thr,n_rewires=n_rewires,seed=seed)
+        return f_name(A_null, thr=thr, **kwargs)
+    
+    measures = Parallel(n_jobs=n_jobs, backend='loky')(delayed(single_estimative)(A, f_name, thr, n_rewires, seed = i*(seed+100), **kwargs) for i in range(n_stat) )
+    return np.array( measures )
