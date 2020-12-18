@@ -6,7 +6,7 @@ import h5py
 class temporal_network():
 
     def __init__(self, raw_path = 'super_tensors', monkey='lucy', session=1, date=150128, align_to = 'cue', 
-                 trial_type = 1, behavioral_response = 1, wt = None, trim_borders = False):
+                 trial_type = 1, behavioral_response = 1, wt_0 = None, wt_1 = None, trim_borders = False):
 
         # Setting up mokey and recording info to load and save files
         self.raw_path = raw_path
@@ -21,8 +21,8 @@ class temporal_network():
         self.__load_h5()
 
         if trim_borders == True:
-            self.tarray       = self.tarray[wt:-wt] 
-            self.super_tensor = self.super_tensor[:,:,:,wt:-wt]
+            self.tarray       = self.tarray[wt_0:-wt_1] 
+            self.super_tensor = self.super_tensor[:,:,:,wt_0:-wt_1]
 
         # Concatenate trials in the super tensor
         self.super_tensor = self.super_tensor.swapaxes(1,2)
