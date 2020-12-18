@@ -20,17 +20,17 @@ dirs = {'rawdata':'GrayLab/',
 #####################################################################################################
 
 # Range of frequencies to be analyzed
-freqs = np.arange(4,60,2)
+freqs = np.arange(4,100,2)
 # Delta for downsampling
 delta = 15
 # Number of cycles for the wavelet
-n_cycles = 5
+n_cycles = freqs/2
 # Time bandwidth for the multitaper
-time_bandwidth = None
+time_bandwidth = 8
 # Smoothing windows
 win_freq = 1
 win_time = 34
 # Method
-method   = 'morlet'
+method   = 'multitaper'
 # Bands
-bands = np.array([[4,8],[8,15],[15,30],[30,60]])
+bands = np.array([[4,8],[8,15],[15,30],[30,100]])
