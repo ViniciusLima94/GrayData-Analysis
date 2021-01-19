@@ -18,9 +18,14 @@ dirs = {'rawdata':'GrayLab/',
 #####################################################################################################
 # Spectral analysis
 #####################################################################################################
-
+# Bands
+delta = [4,5,6,7]
+alpha = [8,10,12,14]
+beta  = [16,20,24,28,30,34] 
+low_gamma  = np.arange(40, 70, 4) 
+high_gamma = np.arange(70, 100, 4)
 # Range of frequencies to be analyzed
-freqs = np.arange(4,100,2)
+freqs = np.concatenate((delta, alpha, beta, low_gamma, high_gamma)) #np.arange(4,102,2)
 # Delta for downsampling
 delta = 15
 # Number of cycles for the wavelet
@@ -31,6 +36,6 @@ time_bandwidth = 8
 win_freq = 1
 win_time = 34
 # Method
-method   = 'multitaper'
+method   = 'morlet'
 # Bands
-bands = np.array([[4,8],[8,15],[15,30],[30,100]])
+bands = np.array([[4,8],[8,15],[15,40],[40,70], [70,100]])
