@@ -66,11 +66,16 @@ class temporal_network():
             i, j              = self.session_info['pairs'][p,0], self.session_info['pairs'][p,1]
             self.A[i,j,:,:]   = self.super_tensor[p,:,:]
 
-    def compute_coherence_thresholds(self, q = .80):
+    def compute_coherence_thresholds(self, q = .80, relative = False):
         #  Coherence thresholds
-        self.coh_thr = np.zeros(len(self.bands)) 
-        for i in range(len(self.bands)):
-            self.coh_thr[i] = stats.mstats.mquantiles( self.super_tensor[:,i,:].flatten(), prob = q )
+        if relative:
+            self.coh_thr = np.zeros([len(self.bands), self.session_info['pairs'].shape[0]]) 
+            for i in range(len(self.bands)):
+                self.coh_thr[i] = np.squeeze( stats.mstats.mquantiles(self.super_tensor[:,i,:], prob=q, axis=1) )
+        else:
+            self.coh_thr = np.zeros(len(self.bands)) 
+            for i in range(len(self.bands)):
+                self.coh_thr[i] = stats.mstats.mquantiles(self.super_tensor[:,i,:].flatten(), prob=q)
 
     def reshape_trials(self, tensor):
         #  Reshape the tensor to have trials and time as two separeted dimension
