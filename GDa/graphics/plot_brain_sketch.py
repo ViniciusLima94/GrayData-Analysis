@@ -21,12 +21,16 @@ def plot_node_brain_sketch(node_list, node_size, alpha, beta, cmap):
     plt.xticks([])
     plt.yticks([])
 
-def plot_edge_brain_sketch(edge_list, node_list, edge_width, edge_color='b'):
+def plot_edge_brain_sketch(edge_list, node_list, edge_width):
     plt.imshow(ethyl_brainsketch)
     for i in range(edge_list.shape[0]):
         c1, c2 = node_list[edge_list[i,0]], node_list[edge_list[i,1]]
         p1  = [xy[c1-1,0], xy[c2-1,0]]
         p2  = [xy[c1-1,1], xy[c2-1,1]]
-        plt.plot(p1, p2, '.-', color = edge_color, lw = edge_width[i])
+        if edge_width[i]>0:
+            edge_color = 'b'
+        else:
+            edge_color = 'm'
+        plt.plot(p1, p2, '.-', color = edge_color, lw = np.abs(edge_width[i]))
     plt.xticks([])
     plt.yticks([])
