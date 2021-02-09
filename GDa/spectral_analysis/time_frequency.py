@@ -7,7 +7,7 @@ from   joblib           import Parallel, delayed
 from   ..misc            import smooth_spectra, downsample   
 
 def wavelet_transform(data = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
-                      time_bandwidth = None, delta = 1, method = 'morlet', n_jobs = 1):
+                      time_bandwidth = None, delta = 1, method = 'morlet', baseline_correction = False, n_jobs = 1):
     if method not in ['morlet', 'multitaper']:
         raise ValueError('Method should be either "morlet" or "multitaper"')
     if method == 'morlet' and time_bandwidth is not None:
@@ -19,11 +19,16 @@ def wavelet_transform(data = None, fs = 20, freqs = np.arange(6,60,1), n_cycles 
         out = mne.time_frequency.tfr_array_multitaper(data, fs, freqs, n_cycles = n_cycles, zero_mean=False,
                                                       time_bandwidth = time_bandwidth, output='complex', 
                                                       decim = delta, n_jobs=n_jobs)
+    if baseline_correction:
+        a = out.mean(axis=-1)
+        b = out.std(axis=-1)
+        out = (out-np.expand_dims(a,-1))/np.expand_dims(b,-1)
+
     return out
 
 def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
                       time_bandwidth = None, delta = 1, method = 'morlet', win_time = 1, win_freq = 1, 
-                      dir_out = None, n_jobs = 1):
+                      dir_out = None, baseline_correction = False, n_jobs = 1):
 
     # Data dimension
     T, C, L = data.shape
@@ -32,7 +37,7 @@ def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60
     # Computing wavelets
     W = wavelet_transform(data = data, fs = fs, freqs = freqs, n_cycles = n_cycles, 
                                time_bandwidth = time_bandwidth, delta = delta, 
-                               method = method, n_jobs = -1)
+                               method = method, baseline_correction=baseline_correction, n_jobs = -1)
     # Auto spectra
     S_auto = W * np.conj(W)
 
