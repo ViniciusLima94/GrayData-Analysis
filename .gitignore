@@ -7,6 +7,5 @@
 *.npy
 *.png
 *.pdf
-__pychache__/
-/__pychache__
+__pycache__/
 .ipynb_checkpoints
