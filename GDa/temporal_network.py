@@ -101,27 +101,3 @@ class temporal_network():
         if len(tensor.shape) == 5:
             aux = tensor.reshape([tensor.shape[0], tensor.shape[1], tensor.shape[2], self.session_info['nt'] * len(self.tarray)])
         return aux
-    
-    #  def create_stim_grid(self, ):
-    #      #  Number of different stimuli
-    #      if not np.isnan(self.session_info['stim']).all():
-    #          n_stim           = int((self.session_info['stim']).max()) 
-    #          self.stim_grid   = np.zeros([n_stim, self.session_info['nT']*len(self.tarray)])
-    #          #  Repeate each stimulus to match the length of the trial 
-    #          stim             = np.repeat(self.session_info['stim']-1, len(self.tarray) )
-    #          for i in range(n_stim):
-    #              self.stim_grid[i] = (stim == i).astype(bool)
-    #      else:
-    #          self.stim_grid   = np.zeros([n_stim, self.session_info['nT']*len(self.tarray)])
-    #          return self.stim_grid.astype(bool)
-
-    #  def create_stages_time_grid(self, ):
-    #      t_cue_off  = (self.session_info['t_cue_off']-self.session_info['t_cue_on'])/self.session_info['fsample']
-    #      t_match_on = (self.session_info['t_match_on']-self.session_info['t_cue_on'])/self.session_info['fsample']
-    #      tt         = np.tile(self.tarray, (self.session_info['nT'], 1))
-    #      #  Create grids with starting and ending times of each stage for each trial
-    #      self.t_baseline = ( (tt<0) ).reshape(self.session_info['nT']*len(self.tarray))
-    #      self.t_cue      = ( (tt>=0)*(tt<t_cue_off[:,None]) ).reshape(self.session_info['nT']*len(self.tarray))
-    #      self.t_delay    = ( (tt>=t_cue_off[:,None])*(tt<t_match_on[:,None]) ).reshape(self.session_info['nT']*len(self.tarray))
-    #      self.t_match    = ( (tt>=t_match_on[:,None]) ).reshape(self.session_info['nT']*len(self.tarray))
-
