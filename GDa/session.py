@@ -7,6 +7,9 @@ import glob
 import h5py
 import os
 from  .io            import set_paths, read_mat
+from  mne            import EpochsArray, create_info
+from  frites.dataset import DatasetEphy
+from  xarray         import DataArray
 
 class session_info():
     
@@ -76,11 +79,6 @@ class session(session_info):
         self.evt_dt     = evt_dt
         self.align_to   = align_to
         self.behavioral_response = behavioral_response
-    
-        
-        # Save the data to h5
-        #  if save_to_h5:
-        #      self.__save_h5(h5_path=h5_path)
         
     def read_from_mat(self, ):
         
@@ -154,6 +152,21 @@ class session(session_info):
                          'indch': indch, 'areas': area, 't_cue_on': t_con[indt] ,
                          't_cue_off': t_coff[indt], 't_match_on': t_mon[indt]
                          }
+
+    def convert_to_mne_ephy(self, baseline = None):
+        # Create info
+        info = create_info(self.readinfo['areas'].astype('str').tolist(), self.readinfo['fsample'])
+        # Create epoch
+        epoch = EpochsArray(self.data, info, tmin=self.readinfo['tarray'][0], baseline = baseline, verbose=False)
+        # Creating dataset
+        return DatasetEphy([epoch])
+
+    def convert_to_xarray_ephy(self, ):
+        # DataArray conversion
+        arr_xr = DataArray(self.data, dims=('epochs', 'channels', 'times'),
+        coords=(np.arange(self.readinfo['nT']), self.readinfo['areas'], self.readinfo['tarray']))
+        # Create dataset
+        return DatasetEphy([arr_xr], roi='channels', times='times')
         
     def read_from_h5(self,):
         file_name = os.path.join(self.__paths.dir, self.monkey + '_' + self.session + '_' + self.date + '.h5')
