@@ -94,7 +94,11 @@ def pairwiseMI(X, pairs, min_lag, max_lag, use, n_jobs):
     def MI(x, y, min_lag, max_lag, use):
         lags = np.arange(min_lag,max_lag+1, 1,dtype=int)
         aux  = [BinLaggedMutualInformation(x.astype(int),y.astype(int),lag=l,use=use) for l in lags]
-        return np.max( aux ), lags[np.argmax(aux)]
+        if use == 'MI':
+            return np.max( aux ), lags[np.argmax(aux)]
+        elif use == 'CC':
+            idx = np.argmax( np.abs(aux) )
+            return aux[idx], lags[idx]
 
     out = Parallel(n_jobs=n_jobs, backend='loky', timeout=1e6)(delayed(MI)(X[i,:],X[j,:],min_lag,max_lag,use) for i,j in pairs)
     out = np.squeeze( out ) 
