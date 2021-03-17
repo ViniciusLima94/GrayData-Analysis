@@ -97,6 +97,7 @@ def pairwiseMI(X, pairs, min_lag, max_lag, use, n_jobs):
         if use == 'MI':
             return np.max( aux ), lags[np.argmax(aux)]
         elif use == 'CC':
+            #return np.max( aux ), lags[np.argmax(aux)]
             idx = np.argmax( np.abs(aux) )
             return aux[idx], lags[idx]
 
