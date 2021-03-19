@@ -20,6 +20,7 @@ class temporal_network():
         - date: date of the recording session
         - align_to: Wheter data is aligned to cue or match
         - trial_type: the type of trial (DRT/fixation) 
+        - behavioral_response: Wheter to get sucessful (1) or unsucessful (0) trials
         - wt: Tuple. Trimming window will remove the wt[0] and wt[1] points in the start and end of each trial
         - trim_borders: Wheter to trim or not the start/end of the super_tensor for each trial
         - threshold: Wheter to threshold or not the data
@@ -65,7 +66,7 @@ class temporal_network():
         self.A_null['edges'] = {} # Edges randomization 
 
         # Threshold the super tensor
-        if thr:
+        if threshold:
             coh_thr = compute_thresholds(self.super_tensor, q=q, relative=relative)
             for i in range( len(self.bands) ):
                 self.super_tensor[:,i,:] = self.super_tensor[:,i,:]>coh_thr[i]
@@ -97,46 +98,10 @@ class temporal_network():
             else:
                 self.session_info[k] = np.squeeze( np.array(g1['info/'+k]) )
 
-#    def compute_coherence_thresholds(self, q = .80, relative = False):
-#        #  Coherence thresholds
-#        if relative:
-#            self.coh_thr = np.zeros([len(self.bands), self.session_info['pairs'].shape[0]]) 
-#            for i in range(len(self.bands)):
-#                self.coh_thr[i] = np.squeeze( stats.mstats.mquantiles(self.super_tensor[:,i,:], prob=q, axis=1) )
-#        else:
-#            self.coh_thr = np.zeros(len(self.bands)) 
-#            for i in range(len(self.bands)):
-#                self.coh_thr[i] = stats.mstats.mquantiles(self.super_tensor[:,i,:].flatten(), prob=q)
-#
-#    def convert_to_adjacency(self, thr = None):
-#        self.A = np.zeros([self.session_info['nC'], self.session_info['nC'], len(self.bands), self.session_info['nT']*len(self.tarray)]) 
-#        for p in range(self.session_info['pairs'].shape[0]):
-#            i, j              = self.session_info['pairs'][p,0], self.session_info['pairs'][p,1]
-#            self.A[i,j,:,:]   = self.super_tensor[p,:,:]
-
     def reshape_trials(self, ):
-        #  Reshape the tensor to have trials and time as two separeted dimension
-        #  print(len(tensor.shape))
-        # if len(tensor.shape) == 1:
-        #     aux = tensor.reshape([self.session_info['nT'], len(self.tarray)])
-        # if len(tensor.shape) == 2:
-        #     aux = tensor.reshape([tensor.shape[0], self.session_info['nT'], len(self.tarray)])
-        # if len(tensor.shape) == 3:
-        #     aux = tensor.reshape([tensor.shape[0], tensor.shape[1], self.session_info['nT'], len(self.tarray)])
-        # if len(tensor.shape) == 4:
-        #     aux = tensor.reshape([tensor.shape[0], tensor.shape[1], tensor.shape[2], self.session_info['nT'], len(self.tarray)])
         aux = reshape_trials( self.super_tensor, self.session_info['nT'], len(self.tarray) )
         return aux
 
     def reshape_observations(self, ):
-        #  Reshape the tensor to have all the trials concatenated in the same dimension
-        # if len(tensor.shape) == 2:
-        #     aux = tensor.reshape([self.session_info['nT'] * len(self.tarray)])
-        # if len(tensor.shape) == 3:
-        #     aux = tensor.reshape([tensor.shape[0], self.session_info['nT'] * len(self.tarray)])
-        # if len(tensor.shape) == 4:
-        #     aux = tensor.reshape([tensor.shape[0], tensor.shape[1], self.session_info['nT'] * len(self.tarray)])
-        # if len(tensor.shape) == 5:
-        #     aux = tensor.reshape([tensor.shape[0], tensor.shape[1], tensor.shape[2], self.session_info['nt'] * len(self.tarray)])
         aux = reshape_observations( self.super_tensor, self.session_info['nT'], len(self.tarray) )
         return aux
