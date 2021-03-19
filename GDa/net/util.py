@@ -2,11 +2,11 @@ import igraph as ig
 import numpy  as np
 from   scipy  import stats
 
-def instantiate_graph(A, thr = None):
-    if thr is None:
+def instantiate_graph(A, is_weighted = False):
+    if is_weighted is False:
         g = ig.Graph.Weighted_Adjacency(A.tolist(), attr="weight", loops=False, mode=ig.ADJ_UNDIRECTED)
     else:
-        g = ig.Graph.Adjacency((A>thr).tolist(), mode=ig.ADJ_UNDIRECTED)
+        g = ig.Graph.Adjacency(A.tolist(), mode=ig.ADJ_UNDIRECTED)
     return g
 
 def compute_thresholds(tensor, q=0.8, relative=False):

@@ -4,7 +4,7 @@ import igraph as ig
 from   tqdm   import tqdm
 from   .util  import instantiate_graph
 
-def shuffle_frames(A, thr=None, seed=0):
+def shuffle_frames(A, seed=0):
     # Check the dimension
     assert len(A.shape)==3, "The adjacency tensor should be 3D."
 
@@ -18,15 +18,13 @@ def shuffle_frames(A, thr=None, seed=0):
     np.random.shuffle(idx)
     A_null = ( A + np.transpose( A,  (1,0,2) ) ).copy()
     A_null = A_null[:,:,idx]
-    if thr is not None:
-        A_null = (A_null > thr).astype(int)
 
     return A_null
 
-def randomize_edges(A, thr=None, n_rewires = 100, seed=0):
+def randomize_edges(A, n_rewires = 100, seed=0):
     # Check the dimension
     assert len(A.shape)==3, "The adjacency tensor should be 3D."
-    assert thr != None, "A threshold value should be provided."
+    #assert thr != None, "A threshold value should be provided."
 
     random.seed(seed)
 
@@ -38,7 +36,7 @@ def randomize_edges(A, thr=None, n_rewires = 100, seed=0):
     A_null = np.empty_like(A)
 
     for t in range(nt):
-        g   = instantiate_graph(A[:,:,t], thr=thr)
+        g   = instantiate_graph(A[:,:,t], is_weighted=False)
         G   = g.copy()
         G.rewire(n=n_rewires)
         A_null[:,:,t] = np.array(list(G.get_adjacency()))

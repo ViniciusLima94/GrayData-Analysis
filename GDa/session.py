@@ -14,6 +14,15 @@ from  xarray         import DataArray
 class session_info():
     
     def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', session = 1):
+        r'''
+        Session info class, it will store recording and trial info of the session specified.
+        > INPUTS:
+        - raw_path: Raw path to the LFP data and metadata
+        - monkey: Monkey name
+        - date: date of the recording session
+        - session: session number
+        '''
+
         #Check for incorrect parameter values
         if monkey not in ['lucy', 'ethyl']:
             raise ValueError('monkey should be either "lucy" or "ethyl"')
@@ -50,6 +59,19 @@ class session(session_info):
     def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', session = 1,
                  slvr_msmod = False, align_to = 'cue', trial_type = 1, 
                  behavioral_response = None, evt_dt = [-0.65, 3.00]):
+        r'''
+        Session class, it will store the data with the recording and trial info of the session specified.
+        > INPUTS:
+        - raw_path: Raw path to the LFP data and metadata
+        - monkey: Monkey name
+        - date: date of the recording session
+        - session: session number
+        - slvr_msmod: Whether to load or not channels with slvr_msmod
+        - align_to: Wheter data is aligned to cue or match
+        - trial_type: the type of trial (DRT/fixation) 
+        - behavioral_response: Wheter to get sucessful (1) or unsucessful (0) trials
+        - evt_dt: Get signal from evt_dt[0] to evt_dt[1]
+        '''
         #Check for incorrect parameter values
         if monkey not in ['lucy', 'ethyl']:
             raise ValueError('monkey should be either "lucy" or "ethyl"')
