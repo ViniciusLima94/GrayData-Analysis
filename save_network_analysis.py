@@ -33,19 +33,19 @@ behavioral_response = None
 ##################################################################################
 net =  temporal_network(raw_path = 'super_tensors/', monkey='lucy', session=1, date=150128, align_to = 'cue', 
                         trial_type = trial_type, behavioral_response = behavioral_response, 
-                        trim_borders=True, wt_0=20, wt_1=30)
+                        trim_borders=True, wt=(20,30), threshold=True, relative=True, q=q_thr)
 
 ##################################################################################
 # COMPUTING THRESHOLD FOR EACH BAND
 ##################################################################################
-net.compute_coherence_thresholds(q = q_thr, relative=True)
+#net.compute_coherence_thresholds(q = q_thr, relative=True)
 
 # Printing the threshold values 
-print(r'Threshold in $\delta$ band = ' + str(net.coh_thr[0]))
-print(r'Threshold in $\alpha$ band = ' + str(net.coh_thr[1]))
-print(r'Threshold in $\beta$  band = ' + str(net.coh_thr[2]))
-print(r'Threshold in $\gamma$ band = ' + str(net.coh_thr[3]))
-print(r'Threshold in $\gamma$ band = ' + str(net.coh_thr[4]))
+#print(r'Threshold in $\delta$ band = ' + str(net.coh_thr[0]))
+#print(r'Threshold in $\alpha$ band = ' + str(net.coh_thr[1]))
+#print(r'Threshold in $\beta$  band = ' + str(net.coh_thr[2]))
+#print(r'Threshold in $\gamma$ band = ' + str(net.coh_thr[3]))
+#print(r'Threshold in $\gamma$ band = ' + str(net.coh_thr[4]))
 
 ##################################################################################
 # CONVERT SUPER TENSOR TO ADJACENCY MATRIX
@@ -87,20 +87,20 @@ for m in measures:
 # NODES' DEGREE
 ##################################################################################
 for i in range(len(net.bands)):
-    Q['degree'][str(i)]  = compute_nodes_degree(net.A[:,:,i,:], thr = net.coh_thr[i], mirror=True)
+    Q['degree'][str(i)]  = compute_nodes_degree(net.A[:,:,i,:], mirror=True)
 
 ##################################################################################
 # NODES' CORENESS
 ##################################################################################
 for i in range(len(net.bands)):
-    Q['coreness'][str(i)] = compute_nodes_coreness(net.A[:,:,i,:], thr=net.coh_thr[i])
+    Q['coreness'][str(i)] = compute_nodes_coreness(net.A[:,:,i,:], is_weighted=False)
 
 ##################################################################################
 # NODES' CORENESS NULL MODEL
 ##################################################################################
 for i in tqdm( range(len(net.bands)) ):
     Qr['coreness'][str(i)] = null_model_statistics(net.A[:,:,i,:], compute_nodes_coreness, 10, 
-                                                   thr=net.coh_thr[i], n_rewires=1000, n_jobs=10, seed=i)
+                                                   n_rewires=1000, n_jobs=10, seed=i)
 for i  in tqdm( range(len(net.bands)) ):
     Qr['coreness'][str(i)] =  Qr['coreness'][str(i)].mean(axis = 0)
 
@@ -108,14 +108,14 @@ for i  in tqdm( range(len(net.bands)) ):
 # NODES' CLUSTERING
 ##################################################################################
 for i in range(len(net.bands)):
-    Q['clustering'][str(i)] = compute_nodes_clustering(net.A[:,:,i,:], thr=net.coh_thr[i])
+    Q['clustering'][str(i)] = compute_nodes_clustering(net.A[:,:,i,:], is_weighted=False)
 
 ##################################################################################
 # NODES' CLUSTERING NULL MODEL
 ##################################################################################
 for i in tqdm( range(len(net.bands)) ):
     Qr['clustering'][str(i)] = null_model_statistics(net.A[:,:,i,:], compute_nodes_clustering, 10, 
-                                                     thr=net.coh_thr[i], n_rewires=1000, n_jobs=10, seed=i)
+                                                     n_rewires=1000, n_jobs=10, seed=i)
 
 for i in tqdm( range(len(net.bands)) ):
     Qr['clustering'][str(i)] =  Qr['clustering'][str(i)].mean(axis = 0)
@@ -124,14 +124,14 @@ for i in tqdm( range(len(net.bands)) ):
 # NODES' MODULARITY
 ##################################################################################
 for i in range(len(net.bands)):
-    Q['modularity'][str(i)] = compute_network_modularity(net.A[:,:,i,:], thr=net.coh_thr[i])
+    Q['modularity'][str(i)] = compute_network_modularity(net.A[:,:,i,:], is_weighted=True)
 
 ##################################################################################
 # NODES' MODULARITY NULL MODEL
 ##################################################################################
 for i in tqdm( range(len(net.bands)) ):
     Qr['modularity'][str(i)] = null_model_statistics(net.A[:,:,i,:], compute_network_modularity, 10, 
-                                                     thr=net.coh_thr[i], n_rewires=1000, n_jobs=10, seed=i)
+                                                     n_rewires=1000, n_jobs=10, seed=i)
 
 for i in tqdm( range(len(net.bands)) ):
     Qr['modularity'][str(i)] =  Qr['modularity'][str(i)].mean(axis = 0)

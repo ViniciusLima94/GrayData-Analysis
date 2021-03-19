@@ -60,16 +60,12 @@ class temporal_network():
         self.super_tensor = self.super_tensor.swapaxes(1,2)
         self.super_tensor = self.reshape_observations()
 
-        # Will store the null model
-        self.A_null = {}
-        self.A_null['time']  = {} # Time randomization 
-        self.A_null['edges'] = {} # Edges randomization 
-
         # Threshold the super tensor
         if threshold:
-            coh_thr = compute_thresholds(self.super_tensor, q=q, relative=relative)
+            self.coh_thr = compute_thresholds(self.super_tensor, q=q, relative=relative)
             for i in range( len(self.bands) ):
-                self.super_tensor[:,i,:] = self.super_tensor[:,i,:]>coh_thr[i]
+                if relative: self.super_tensor[:,i,:] = self.super_tensor[:,i,:]>self.coh_thr[i][:,np.newaxis]
+                else: self.super_tensor[:,i,:] = self.super_tensor[:,i,:]>self.coh_thr[i]
 
     def __load_h5(self,):
         # Path to the super tensor in h5 format 
@@ -97,6 +93,12 @@ class temporal_network():
                 self.session_info[k] = int( np.squeeze( np.array(g1['info/'+k]) ) )
             else:
                 self.session_info[k] = np.squeeze( np.array(g1['info/'+k]) )
+
+    def convert_to_adjacency(self,):
+        self.A = np.zeros([self.session_info['nC'], self.session_info['nC'], len(self.bands), self.session_info['nT']*len(self.tarray)]) 
+        for p in range(self.session_info['pairs'].shape[0]):
+            i, j              = self.session_info['pairs'][p,0], self.session_info['pairs'][p,1]
+            self.A[i,j,:,:]   = self.super_tensor[p,:,:]
 
     def reshape_trials(self, ):
         aux = reshape_trials( self.super_tensor, self.session_info['nT'], len(self.tarray) )
