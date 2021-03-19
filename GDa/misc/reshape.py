@@ -2,7 +2,7 @@ import numpy as np
 
 def reshape_trials(tensor, nT, nt):
     #  Reshape the tensor to have trials and time as two separeted dimension
-    #  print(len(tensor.shape))
+    #  Inputs the tensor the number of trials (nT) and the number of observations (nt)
     if len(tensor.shape) == 1:
         aux = tensor.reshape([nT, nt])
     if len(tensor.shape) == 2:
@@ -15,6 +15,7 @@ def reshape_trials(tensor, nT, nt):
 
 def reshape_observations(tensor, nT, nt):
     #  Reshape the tensor to have all the trials concatenated in the same dimension
+    #  Inputs the tensor the number of trials (nT) and the number of observations (nt)
     if len(tensor.shape) == 2:
         aux = tensor.reshape([nT * nt])
     if len(tensor.shape) == 3:

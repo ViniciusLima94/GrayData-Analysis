@@ -2,10 +2,11 @@
 # Perform network measurements on the super tensor (coherence data)
 ##################################################################################
 import sys
-import numpy                 as     np
+import numpy                             as     np
 from   GDa.temporal_network              import temporal_network
 from   GDa.graphics.plot_raster          import plot_nodes_raster_all_bands 
 from   GDa.graphics.plot_adjacency       import plot_adjacency 
+from   GDa.misc.create_grids             import create_stages_time_grid
 from   GDa.net.layerwise                 import * 
 from   GDa.net.null_models               import * 
 from   GDa.net.temporal                  import * 
@@ -17,7 +18,7 @@ from   scipy                             import stats
 ##################################################################################
 # GLOBAL PARAMETER 
 ##################################################################################
-q_thr = 0.8 # Percentile to define coherence threshold
+q_thr               = 0.8 # Percentile to define coherence threshold
 monkey              = 'lucy'
 trial_type          = 3
 behavioral_response = None
@@ -34,11 +35,10 @@ net =  temporal_network(raw_path = 'super_tensors/', monkey='lucy', session=1, d
                         trial_type = trial_type, behavioral_response = behavioral_response, 
                         trim_borders=True, wt_0=20, wt_1=30)
 
-
 ##################################################################################
 # COMPUTING THRESHOLD FOR EACH BAND
 ##################################################################################
-net.compute_coherence_thresholds(q = q_thr)
+net.compute_coherence_thresholds(q = q_thr, relative=True)
 
 # Printing the threshold values 
 print(r'Threshold in $\delta$ band = ' + str(net.coh_thr[0]))
@@ -56,7 +56,10 @@ net.convert_to_adjacency()
 ##################################################################################
 # CREATE MASK TO TRACK EACH STAGE OF THE ODRT
 ##################################################################################
-net.create_stages_time_grid()
+#net.create_stages_time_grid()
+t_mask = create_stages_time_grid(net.session_info['t_cue_on'], net.session_info['t_cue_off'],
+         net.session_info['t_match_on'], net.session_info['fsample'],
+         net.tarray, net.session_info['nT'])
 
 ##################################################################################
 # CREATE MASK TO TRACK EACH STIM OF THE ODRT
