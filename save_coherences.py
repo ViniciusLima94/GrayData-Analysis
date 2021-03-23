@@ -80,7 +80,6 @@ if  __name__ == '__main__':
     #[g1.create_dataset('info/'+k, data=ses.data.attrs[k]) for k in ses.data.attrs.keys()]
     #hf.close()
 
-    hf = hf.create_group(group)
     hf.create_dataset('coherence', data=super_tensor)
     hf.create_dataset('freqs',     data=freqs)
     hf.create_dataset('tarray',    data=tarray)
