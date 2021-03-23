@@ -116,14 +116,14 @@ class session(session_info):
         self.evt_dt     = evt_dt
         self.align_to   = align_to
         #self.behavioral_response = behavioral_response
+
+        # Selecting trials
+        self.trial_info = self.trial_info[ (self.trial_info['trial_type'].isin([1.0,2.0,3.0])) ]
         
     def read_from_mat(self, ):
         
         # Get file names
         files = sorted(glob.glob( os.path.join(self.__paths.dir, self.date+'*') ))
-
-        # Selecting trials
-        self.trial_info = self.trial_info[ (self.trial_info['trial_type'].isin([1.0,2.0,3.0])) ]
 
         # Cue onset/offset and match onset times
         t_con   = self.trial_info['sample_on'].values
@@ -196,7 +196,7 @@ class session(session_info):
         area     = np.array(area, dtype='S')
 
         # Convert the data to an xarray
-        self.data = xr.DataArray(self.data.copy(), dims = ("trials","roi","time"), 
+        self.data = xr.DataArray(self.data, dims = ("trials","roi","time"), 
                                  coords={"trials": self.trial_info.index.values, 
                                          "roi":    labels,
                                          "time":   self.time} )

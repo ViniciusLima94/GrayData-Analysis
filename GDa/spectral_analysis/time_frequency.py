@@ -32,7 +32,6 @@ def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60
 
     # Data dimension
     T, C, L = data.shape
-    # All possible pairs of channels
 
     # Computing wavelets
     W = wavelet_transform(data = data, fs = fs, freqs = freqs, n_cycles = n_cycles, 
@@ -52,8 +51,6 @@ def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60
         file_name = os.path.join( dir_out, 'ch1_' + str(channel1) + '_ch2_' + str(channel2) +'.h5')
         with h5py.File(file_name, 'w') as hf:
             hf.create_dataset('coherence', data=np.abs(coh).astype(np.float32))
-            #  hf.create_dataset('frequency', data=freqs)
-            #  hf.create_dataset('delta',	 data=delta) 
 
     #for trial_index in range(T):
     Parallel(n_jobs=n_jobs, backend='loky', timeout=1e6)(delayed(pairwise_coherence)(i, win_time, win_freq) for i in range(pairs.shape[0]) )
