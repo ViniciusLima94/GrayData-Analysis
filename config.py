@@ -8,7 +8,8 @@ import numpy as np
 #####################################################################################################
 
 # Directories
-dirs = {'rawdata':'GrayLab/',
+dirs = {
+        'rawdata':'GrayLab/',
         'results':'Results/',
         'monkey' :['lucy', 'ethyl'],
         'session':'session01',
@@ -19,13 +20,12 @@ dirs = {'rawdata':'GrayLab/',
 # Spectral analysis
 #####################################################################################################
 # Bands
-delta = [4,5,6,7]
-alpha = [8,10,12,14]
-beta  = [16,20,24,28,30,34] 
-low_gamma  = np.arange(40, 70, 4) 
-high_gamma = np.arange(70, 100, 4)
+bands = {
+        'lucy':  [[0.1,6],[6,14],[14,26],[26,42],[42,80]],
+        'ethyl': [[0.1,8],[8,21],[21,33],[33,80]]
+        }
 # Range of frequencies to be analyzed
-freqs = np.concatenate((delta, alpha, beta, low_gamma, high_gamma)) #np.arange(4,102,2)
+freqs = np.linspace(0.1, 80, 50) 
 # Delta for downsampling
 delta = 15
 # Number of cycles for the wavelet
@@ -33,9 +33,7 @@ n_cycles = freqs/2
 # Time bandwidth for the multitaper
 time_bandwidth = 8
 # Smoothing windows
-win_freq = 1
-win_time = 34
+win_freq = 1   # Freq
+win_time = 34  # Time
 # Method
 method   = 'morlet'
-# Bands
-bands = np.array([[4,8],[8,15],[15,40],[40,70], [70,100]])
