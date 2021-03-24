@@ -31,9 +31,8 @@ behavioral_response = None
 # behavioral_response = 0 (correct), 1 (incorrect) or None (both)  
 # Instantiating a temporal network object specifing trim_borders and wt.
 ##################################################################################
-net =  temporal_network(raw_path = 'super_tensors/', monkey='lucy', session=1, date=150128, align_to = 'cue', 
-                        trial_type = trial_type, behavioral_response = behavioral_response, 
-                        trim_borders=True, wt=(20,30), threshold=True, relative=True, q=q_thr)
+net =  temporal_network(data_raw_path = 'GrayLab/', tensor_raw_path = 'super_tensors/', monkey='lucy', session=1, date='150128', 
+                        trim_borders=True, wt=(20,30), threshold=True, relative=False, q=q_thr)
 
 ##################################################################################
 # COMPUTING THRESHOLD FOR EACH BAND
