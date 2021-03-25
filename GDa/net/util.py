@@ -2,6 +2,7 @@ import igraph as ig
 import numpy  as np
 import xarray as xr
 from   scipy  import stats
+from   tqdm   import tqdm
 
 def instantiate_graph(A, is_weighted = False):
     if is_weighted is False:
@@ -23,13 +24,13 @@ def compute_coherence_thresholds(tensor, q=0.8, relative=False):
     n_nodes, n_bands, n_trials, n_obs = tensor.shape[0], tensor.shape[1], tensor.shape[2], tensor.shape[3]
     if relative:
         coh_thr = np.zeros([n_nodes, n_bands, n_trials])
-        for t in range( n_trials ):
+        for t in tqdm (range( n_trials )):
             for i in range( n_bands ):
                 coh_thr[:,i,t] = np.squeeze( stats.mstats.mquantiles(tensor[:,i,t,:], prob=q, axis=-1) )
         coh_thr = xr.DataArray(coh_thr, dims=("links","bands","trials"))
     else:
         coh_thr = np.zeros( [n_bands, n_trials] )
-        for t in range( n_trials ):
+        for t in tqdm(range( n_trials )):
             for i in range( n_bands ):
                 coh_thr[i,t] = stats.mstats.mquantiles(tensor[:,i,t,:].flatten(), prob=q)
         coh_thr = xr.DataArray(coh_thr, dims=("bands","trials"))

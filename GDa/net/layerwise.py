@@ -9,10 +9,10 @@ from   .util                 import instantiate_graph
 
 def compute_nodes_degree(A, mirror=False):
     # Check the dimension
-    assert len(A.shape)==3, "The adjacency tensor should be 3D."
+    assert len(A.shape)==4, "The adjacency tensor should be 4D [roi,roi,trials,time]."
 
     if mirror:
-        A = A + np.transpose( A, (1,0,2) )
+        A = A + np.transpose( A, (1,0,2,3) )
 
     node_degree = A.sum(axis=1)
 
