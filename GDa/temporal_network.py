@@ -53,6 +53,7 @@ class temporal_network():
 
         # Threshold the super tensor
         if threshold:
+            print('Computing coherence thresholds')
             self.coh_thr      = compute_coherence_thresholds(self.super_tensor.values, q=q, relative=relative)
             self.super_tensor.values = (self.super_tensor>self.coh_thr).values
             #for i in range( len(self.bands) ):
