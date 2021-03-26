@@ -83,25 +83,6 @@ class session(session_info):
             
         if align_to not in ['cue', 'match']:
             raise ValueError('align_to should be either "cue" or "match"')
-
-        #if type(behavioral_response) is not type(list):
-        #    raise ValueError('Behavioral response type should be a list')
-        #    
-        #if behavioral_response not in [0, 1, None]:
-        #    raise ValueError('behavioral_response should be either 0 (correct), 1 (incorrect) or None (both)')
-        #    
-        #if type(trial_type) is not type(list):
-        #    raise ValueError('Trial type should be a list')
-
-        #if len(trial_type) > 1 and behavioral_response is not None:
-        #    raise ValueError('To select more than one trial type behaviovioral_response should be None')
-
-        #for v in trial_type:
-        #    if v not in [1,2,3]:
-        #        raise ValueError('trial_type should be either 1 (DRT), 2 (intervealed fixation), 3 (blocked fixation)')       
-        #
-        #if 1 not in trial_type and behavioral_response is not None:
-        #    raise ValueError('For trial type 2 or 3 behavioral_response should be None')
         
         # Instantiating father class session_info
         super().__init__(raw_path = raw_path, monkey = monkey, date = date, session = session)
@@ -112,10 +93,8 @@ class session(session_info):
         
         # Storing class atributes
         self.slvr_msmod = slvr_msmod
-        #self.trial_type = trial_type
         self.evt_dt     = evt_dt
         self.align_to   = align_to
-        #self.behavioral_response = behavioral_response
 
         # Selecting trials
         self.trial_info = self.trial_info[ (self.trial_info['trial_type'].isin([1.0,2.0,3.0])) ]
@@ -143,20 +122,6 @@ class session(session_info):
         if self.slvr_msmod == False:
             idx_slvr_msmod = (self.recording_info['slvr'] == 0) & (self.recording_info['ms_mod'] == 0)
             indch          = indch[idx_slvr_msmod]
-
-        #if len(self.trial_type)>1:
-        #    indt = self.trial_info[(self.trial_info['trial_type'].isin(self.trial_type)].index.values
-        #else:
-        #    if self.trial_type[0] == 1:
-        #        indt = self.trial_info[(self.trial_info['trial_type'].isin(self.trial_type) \
-        #                & self.trial_info['behavioral_response'].isin(self.behavioral_response)].index.values
-
-        #if self.behavioral_response is not None:
-        #    indt_idx = (self.trial_info['trial_type'] == self.trial_type) & (self.trial_info['behavioral_response'] == self.behavioral_response)
-        #    indt = np.arange(self.trial_info['num_trials'], dtype=int)[indt_idx]
-        #else:
-        #    indt_idx = self.trial_info['trial_type'] == self.trial_type
-        #    indt = np.arange(self.trial_info['num_trials'], dtype=int)[indt_idx]
         
         # Number of trials selected
         n_trials   = len(self.trial_info)
@@ -210,47 +175,3 @@ class session(session_info):
     def convert_to_xarray_ephy(self, ):
         # Create dataset
         return DatasetEphy([self.data], roi='roi', times='time')
-        
-#    def read_from_h5(self,):
-#        file_name = os.path.join(self.__paths.dir, self.monkey + '_' + self.session + '_' + self.date + '.h5')
-#        try:
-#            hf = h5py.File(file_name, 'r')
-#        except (OSError):
-#            print('File for monkey ' + str(self.monkey) + ', date ' + str(self.date) + ' ' + self.session + ' not created yet')
-#
-#        group = os.path.join('trial_type_'+str(self.trial_type), 
-#                             'aligned_to_' + str(self.align_to),
-#                             'behavioral_response_'+str(self.behavioral_response)) 
-#        g1 = hf.get(group)
-#        # Read data
-#        self.data = g1['data'][:]
-#        # Read info dict.
-#        self.readinfo = {}
-#        for k in g1['info'].keys():
-#            self.readinfo[k] = np.squeeze( np.array(g1['info/'+k]) )
-#    
-#    def save_h5(self,):
-#        file_name = os.path.join(self.__paths.dir, self.monkey + '_' + self.session + '_' + self.date + '.h5')
-#        try:
-#            hf = h5py.File(file_name, 'r+')
-#        except:
-#            hf = h5py.File(file_name, 'w')
-#
-#        # Create group relative to the trial type, the aligment and to the behavioral response
-#        group = os.path.join('trial_type_'+str(self.trial_type), 
-#                             'aligned_to_' + str(self.align_to),
-#                             'behavioral_response_'+str(self.behavioral_response)) 
-#        #  Try to create group if it exists overwrite the values
-#        try:
-#            g1 = hf.create_group(group)
-#            # Save LFP data
-#            g1.create_dataset('data', data=self.data)
-#            # Save information on 'readinfo' dict.
-#            [g1.create_dataset('info/'+k, data=self.readinfo[k]) for k in self.readinfo.keys()]
-#            # Save dir and dir_out paths
-#            g1.create_dataset('path/dir', data=self.__paths.dir)
-#            g1.create_dataset('path/dir_out', data=self.__paths.dir_out)
-#            hf.close()
-#        except (ValueError):
-#            print('Data group already created for trial_type = ' + str(self.trial_type) + ', align_to = ' + \
-#                    str(self.align_to) + ', and behavioral_response = ' + str(self.behavioral_response) )

@@ -2,7 +2,7 @@ import numpy                as     np
 import xarray               as     xr
 import GDa.session          
 from   GDa.misc.reshape     import reshape_trials, reshape_observations
-from   GDa.net.util         import compute_coherence_thresholds
+from   GDa.net.util         import compute_coherence_thresholds, convert_to_adjacency
 from   scipy                import stats
 import os
 import h5py
@@ -56,9 +56,6 @@ class temporal_network():
             print('Computing coherence thresholds')
             self.coh_thr      = compute_coherence_thresholds(self.super_tensor.values, q=q, relative=relative)
             self.super_tensor.values = (self.super_tensor>self.coh_thr).values
-            #for i in range( len(self.bands) ):
-            #    if relative: self.super_tensor[:,i,:] = self.super_tensor[:,i,:]>self.coh_thr[i][:,np.newaxis]
-            #    else: self.super_tensor[:,i,:] = self.super_tensor[:,i,:]>self.coh_thr[i]
 
     def __load_h5(self,trim_borders, wt):
         # Path to the super tensor in h5 format 
@@ -93,33 +90,23 @@ class temporal_network():
         #self.super_tensor = self.reshape_observations()
 
         # Convert to xarray
-#        self.super_tensor = xr.DataArray(self.super_tensor, dims=("links","bands","observations"),
-#                                                            coords={"observations": self.tarray.tolist()*self.session_info['nT'],
-#                                                            } )
         self.super_tensor = xr.DataArray(self.super_tensor, dims=("links","bands","trials","time"),
                                          coords={"trials": self.trial_info.index.values, 
                                                  "time":   self.tarray} )
         # Metadata (the same as session_info)
         self.super_tensor.attrs = self.session_info
 
-    def convert_to_adjacency(self,):
-        self.A = np.zeros([self.session_info['nC'], self.session_info['nC'], 
-                           len(self.bands), self.session_info['nT'], len(self.tarray)]) 
+    def convert_to_adjacency(self, ):
+        self.A = xr.DataArray( convert_to_adjacency(self.super_tensor.values), 
+                dims=("roi_1","roi_2","bands","trials","time"),
+                coords={"trials": self.trial_info.index.values,
+                        "time":   self.tarray,
+                        "roi_1":  self.super_tensor.attrs['channels_labels'],
+                        "roi_2":  self.super_tensor.attrs['channels_labels']})
 
-        for p in range(self.session_info['pairs'].shape[0]):
-            i, j               = self.session_info['pairs'][p,0], self.session_info['pairs'][p,1]
-            self.A[i,j,:,:,:]  = self.super_tensor[p,:,:,:]
-
-#    def convert_to_adjacency(self,):
-#        self.A = np.zeros([self.session_info['nC'], self.session_info['nC'], len(self.bands), self.session_info['nT']*len(self.tarray)]) 
-#        for p in range(self.session_info['pairs'].shape[0]):
-#            i, j              = self.session_info['pairs'][p,0], self.session_info['pairs'][p,1]
-#            self.A[i,j,:,:]   = self.super_tensor[p,:,:]
-#
     def reshape_trials(self, ):
         aux = reshape_trials( self.super_tensor, self.session_info['nT'], len(self.tarray) )
         return aux
-
 
     def reshape_trials(self, ):
         aux = reshape_trials( self.super_tensor, self.session_info['nT'], len(self.tarray) )
