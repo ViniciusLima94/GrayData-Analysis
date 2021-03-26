@@ -4,6 +4,29 @@ import xarray as xr
 from   scipy  import stats
 from   tqdm   import tqdm
 
+def convert_to_adjacency(tensor,):
+    # Number of pairs
+    n_pairs    = tensor.shape[0]
+    # Number of channels
+    n_channels = int(np.roots([1,-1,-2*n_pairs])[0])
+    # Number of bands
+    n_bands    = tensor.shape[1]
+    # Number of trials
+    n_trials   = tensor.shape[2]
+    # Number of time points
+    n_times    = tensor.shape[3]
+    # Channels combinations 
+    pairs      = np.transpose( np.tril_indices(n_channels, k = -1) )
+
+    # Adjacency tensor
+    A = np.zeros([n_channels, n_channels, n_bands, n_trials, n_times])
+
+    for p in range(n_pairs):
+        i, j          = int(pairs[p,0]), int(pairs[p,1])
+        A[i,j,:,:,:]  = A[j,i,:,:,:] = tensor[p,:,:,:]
+
+    return A
+
 def instantiate_graph(A, is_weighted = False):
     if is_weighted is False:
         g = ig.Graph.Weighted_Adjacency(A.tolist(), attr="weight", loops=False, mode=ig.ADJ_UNDIRECTED)

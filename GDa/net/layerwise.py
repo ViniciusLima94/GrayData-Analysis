@@ -122,7 +122,6 @@ def compute_nodes_betweenness(A, is_weighted=False):
 def compute_allegiance_matrix(A, is_weighted=False):
     # Check the dimension
     assert len(A.shape)==3, "The adjacency tensor should be 3D."
-    #assert thr != None, "A threshold value should be provided."
 
     #  Number of channels
     nC = A.shape[0]
@@ -133,7 +132,7 @@ def compute_allegiance_matrix(A, is_weighted=False):
     p = compute_network_partition(A, is_weighted=is_weighted)
 
     T = np.zeros([nC, nC])
-    for i in tqdm( range(len(p)) ):
+    for i in range(len(p)):
         n_comm = len(p[i])
         for j in range(n_comm):
             grid = np.meshgrid(list(p[i][j]), list(p[i][j]))
