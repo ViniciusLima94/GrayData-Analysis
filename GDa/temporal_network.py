@@ -91,7 +91,7 @@ class temporal_network():
 
         # Convert to xarray
         self.super_tensor = xr.DataArray(self.super_tensor, dims=("links","bands","trials","time"),
-                                         coords={"trials": self.trial_info.index.values, 
+                                         coords={"trials": self.trial_info.trial_index.values, 
                                                  "time":   self.tarray} )
         # Metadata (the same as session_info)
         self.super_tensor.attrs = self.session_info
@@ -99,7 +99,7 @@ class temporal_network():
     def convert_to_adjacency(self, ):
         self.A = xr.DataArray( convert_to_adjacency(self.super_tensor.values), 
                 dims=("roi_1","roi_2","bands","trials","time"),
-                coords={"trials": self.trial_info.index.values,
+                coords={"trials": self.trial_info.trial_index.values,
                         "time":   self.tarray,
                         "roi_1":  self.super_tensor.attrs['channels_labels'],
                         "roi_2":  self.super_tensor.attrs['channels_labels']})

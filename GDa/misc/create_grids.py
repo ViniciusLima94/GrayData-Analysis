@@ -26,8 +26,8 @@ def create_stages_time_grid(t_cue_on, t_cue_off, t_match_on, fsample, tarray, nt
                       'match':    t_match}
     else:
         s_mask     = {'baseline': t_baseline.reshape(ntrials*len(tarray)),
-                      'cue':      t_cue.reshape(ntrials,len(tarray)),
-                      'delay':    t_delay.reshape(ntrials,len(tarray)),
-                      'match':    t_match.reshape(ntrials,len(tarray))}
+                      'cue':      t_cue.reshape(ntrials*len(tarray)),
+                      'delay':    t_delay.reshape(ntrials*len(tarray)),
+                      'match':    t_match.reshape(ntrials*len(tarray))}
 
     return s_mask

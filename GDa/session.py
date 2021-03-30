@@ -98,7 +98,10 @@ class session(session_info):
 
         # Selecting trials
         self.trial_info = self.trial_info[ (self.trial_info['trial_type'].isin([1.0,2.0,3.0])) ]
-        
+        # Reset index and create new column with the index of select trials
+        # self.trial_info.reset_index(inplace=True).rename(columns={self.trial_info.index.name:'trial_index'})
+        self.trial_info = self.trial_info.rename_axis('trial_index').reset_index()
+
     def read_from_mat(self, ):
         
         # Get file names
@@ -137,7 +140,7 @@ class session(session_info):
        
         # For each selected trial
         for i in range(len(self.trial_info)):
-            f        = self.__load_mat.read_HDF5(files[self.trial_info.index.values[i]])
+            f        = self.__load_mat.read_HDF5(files[self.trial_info.trial_index.values[i]])
             lfp_data = np.transpose( f['lfp_data'] )
             # Beggining and ending time index for this t0
             indb     = int(t0[i] + self.recording_info['lfp_sampling_rate']*self.evt_dt[0])
@@ -162,7 +165,7 @@ class session(session_info):
 
         # Convert the data to an xarray
         self.data = xr.DataArray(self.data, dims = ("trials","roi","time"), 
-                                 coords={"trials": self.trial_info.index.values, 
+                                 coords={"trials": self.trial_info.trial_index.values, 
                                          "roi":    labels,
                                          "time":   self.time} )
         # Saving metadata

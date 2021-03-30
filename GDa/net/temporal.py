@@ -44,11 +44,12 @@ def jaccard_index(A, mirror=False):
 
     if mirror:
         A = A + np.transpose(A, (1,0,2,3)) 
+    
     num = (A[:,:,:,:-1] * A[:,:,:,1:]).sum(axis=1)
     den = (A[:,:,:,:-1] + A[:,:,:,1:])
     #  The union is the number of elements in A plus the elements in B 
     #  minus the number of elements A and B have in common
-    den[den==2] = 0
+    den[den==2] = 1
     den = den.sum(axis=1)
     J = num/den
     J[J==np.inf]=np.nan
