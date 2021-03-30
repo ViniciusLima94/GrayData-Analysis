@@ -72,7 +72,7 @@ def compute_network_partition(A, is_weighted=False):
     #  Save the partitions
     partition = []
 
-    for t in tqdm(range(nt)):
+    for t in range(nt):
         g               = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
         #g = instantiate_graph(A[:,:,t], thr=thr)
         # Uses leidenalg
