@@ -54,8 +54,11 @@ class temporal_network():
         # Threshold the super tensor
         if threshold:
             print('Computing coherence thresholds')
-            self.coh_thr      = compute_coherence_thresholds(self.super_tensor.values, q=q, relative=relative)
-            self.super_tensor.values = (self.super_tensor>self.coh_thr).values
+            self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','time')).values, 
+                                                        q=q,
+                                                        relative=relative)
+            self.super_tensor.values = (self.super_tensor.stack(observations=('trials','time')) > self.coh_thr).unstack().values
+            #self.super_tensor.values = (self.super_tensor>self.coh_thr).values
 
     def __load_h5(self,trim_borders, wt):
         # Path to the super tensor in h5 format 
