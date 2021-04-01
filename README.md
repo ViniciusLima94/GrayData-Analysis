@@ -8,4 +8,3 @@ For details on how to use it see the notebooks one to three:
 
 Here is a flowchart of the package:
 
-![Image description](GDa_flowchart.png)
