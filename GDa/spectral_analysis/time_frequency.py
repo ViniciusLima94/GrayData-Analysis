@@ -52,7 +52,6 @@ def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60
         with h5py.File(file_name, 'w') as hf:
             hf.create_dataset('coherence', data=np.abs(coh).astype(np.float32))
 
-    #for trial_index in range(T):
     Parallel(n_jobs=n_jobs, backend='loky', timeout=1e6)(delayed(pairwise_coherence)(i, win_time, win_freq) for i in range(pairs.shape[0]) )
 
 def gabor_transform(signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0):
