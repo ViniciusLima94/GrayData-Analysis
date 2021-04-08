@@ -1,5 +1,4 @@
 import numpy            as     np
-import networkx         as     nx
 import igraph           as     ig
 import leidenalg
 from   joblib                import Parallel, delayed
@@ -74,7 +73,6 @@ def compute_network_partition(A, is_weighted=False):
 
     for t in range(nt):
         g               = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
-        #g = instantiate_graph(A[:,:,t], thr=thr)
         # Uses leidenalg
         partition.append(leidenalg.find_partition(g, leidenalg.ModularityVertexPartition))
 
