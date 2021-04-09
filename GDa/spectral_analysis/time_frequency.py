@@ -28,29 +28,34 @@ def wavelet_transform(data = None, fs = 20, freqs = np.arange(6,60,1), n_cycles 
 
 def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
                       time_bandwidth = None, delta = 1, method = 'morlet', win_time = 1, win_freq = 1, 
-                      dir_out = None, baseline_correction = False, n_jobs = 1):
+                      dir_out = None, baseline_correction = False, return_coh = False, n_jobs = 1):
 
     # Data dimension
     T, C, L = data.shape
 
     # Computing wavelets
     W = wavelet_transform(data = data, fs = fs, freqs = freqs, n_cycles = n_cycles, 
-                               time_bandwidth = time_bandwidth, delta = delta, 
-                               method = method, baseline_correction=baseline_correction, n_jobs = -1)
+                          time_bandwidth = time_bandwidth, delta = delta, 
+                          method = method, baseline_correction=baseline_correction, n_jobs = -1)
     # Auto spectra
     S_auto = W * np.conj(W)
 
     def pairwise_coherence(index_pair, win_time, win_freq):
         channel1, channel2 = pairs[index_pair, 0], pairs[index_pair, 1]
-        Sxy = W[:, channel1, :, :] * np.conj(W[:, channel2, :, :])
-        Sxx = smooth_spectra.smooth_spectra(S_auto[:,channel1, :, :], win_time, win_freq, fft=True, axes = (1,2))
-        Syy = smooth_spectra.smooth_spectra(S_auto[:,channel2, :, :], win_time, win_freq, fft=True, axes = (1,2))
-        Sxy = smooth_spectra.smooth_spectra(Sxy, win_time, win_freq, fft=True, axes = (1,2))
-        coh = Sxy * np.conj(Sxy) / (Sxx * Syy)
+        Sxy = W[:,channel1,:,:] * np.conj(W[:,channel2,:,:])
+        if win_time > 1 or win_freq > 1:
+            Sxx = smooth_spectra.smooth_spectra(S_auto[:,channel1, :, :], win_time, win_freq, fft=True, axes = (1,2))
+            Syy = smooth_spectra.smooth_spectra(S_auto[:,channel2, :, :], win_time, win_freq, fft=True, axes = (1,2))
+            Sxy = smooth_spectra.smooth_spectra(Sxy, win_time, win_freq, fft=True, axes = (1,2))
+            coh = np.abs(Sxy)**2 / ( Sxx * Syy )
+        else:
+            coh = np.abs(Sxy)**2 / (S_auto[:,channel1,:,:]*S_auto[:,channel2,:,:])
+        #coh = Sxy * np.conj(Sxy) / (Sxx * Syy)
 
         file_name = os.path.join( dir_out, 'ch1_' + str(channel1) + '_ch2_' + str(channel2) +'.h5')
         with h5py.File(file_name, 'w') as hf:
             hf.create_dataset('coherence', data=np.abs(coh).astype(np.float32))
+            #hf.create_dataset('coherence', data=coh)
 
     Parallel(n_jobs=n_jobs, backend='loky', timeout=1e6)(delayed(pairwise_coherence)(i, win_time, win_freq) for i in range(pairs.shape[0]) )
 
@@ -118,4 +123,4 @@ def gabor_coherence(signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6
     Sxx, Syy, Sxy = gabor_spectrum(signal1 = signal1, signal2 = signal2, fs = fs, freqs = freqs,  
                     win_time = win_time, win_freq = win_freq, n_cycles = n_cycles)
 
-    return Sxy * np.conj(Sxy) / (Sxx * Syy)
+    return np.abs(Sxy)**2 / (Sxx * Syy)
