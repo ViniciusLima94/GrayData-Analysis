@@ -3,9 +3,9 @@ import numpy as np
 
 def smooth_spectra(spectra, win_time, win_freq, fft=False, axes = 0):
 	if len(spectra.shape) == 2:
-		kernel = np.ones([win_freq, win_time])
+		kernel = np.ones([win_freq, win_time])#/(win_freq*win_time)
 	elif len(spectra.shape) == 3:
-		kernel = np.ones([1, win_freq, win_time])
+		kernel = np.ones([1, win_freq, win_time])#/(win_freq*win_time)
 
 	#print(kernel.shape)
 
