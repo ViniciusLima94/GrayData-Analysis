@@ -117,7 +117,7 @@ def transient_oscillation_gauss(trials=1, nvars=1, n=1000, fs=1000, sin_freq=10,
 
     return signal
 
-def transient_oscillation_gauss_non_stationary(trials=1, nvars=1, n=1000, fs=1000, sin_freq=10, peakfreq=10, fwhm=1, peaktime=1, width=0.1, phaselocked=True):
+def transient_oscillation_gauss_non_stationary(trials=1, nvars=1, n=1000, fs=1000, peakfreq=10, fwhm=1, peaktime=1, width=0.1):
     r'''
     Generate a transient oscilation combining a gaussian in time domain and frequency domain
     > INPUTS:
@@ -132,26 +132,25 @@ def transient_oscillation_gauss_non_stationary(trials=1, nvars=1, n=1000, fs=100
     - signal: generated signal with dimensions [trials,channels,time]
     '''
 
-    # time array
-    times = np.arange(n)/fs
-
     # frequency axis
     freqs = np.linspace(0, fs, n)
     # gaussian in the frequency domain
     s     = fwhm*(2*np.pi-1)/(4*np.pi)                     # Normalized width
     x     = (freqs-peakfreq[:,np.newaxis]).T/s             # Shifted frequencies
-    fg   = np.sum( np.exp( -0.5 * x**2 ), axis=1)         # Gaussian
+    fg   = np.sum( np.exp( -0.5 * x**2 ), axis=1)          # Gaussian
 
     # Fourier coefficients of random spectrum
     fc    = np.random.rand(trials, nvars, n) * np.exp( 1j*2*np.pi*np.random.rand(trials, nvars, n) )
     # Multiply by the gaussian
     fc    = fg * fc
 
+    # time array
+    times = np.arange(n)/fs
     # generate time-domain gaussian
-    gaus  = np.sum( np.exp( -(np.arange(n)/fs-peaktime[:,np.newaxis]).T**2 / (2*width**2) ), axis=1)
+    gaus  = np.sum( np.exp( -(times-peaktime[:,np.newaxis]).T**2 / (2*width**2) ), axis=1)
 
     # generate the signal
-    signal = fc*gaus
+    signal = np.fft.ifft(fc, axis=-1).real*gaus
 
     # convert to xarray
     signal = xr.DataArray( signal, dims=("trials", "roi", "time"),
