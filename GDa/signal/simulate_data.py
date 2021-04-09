@@ -4,7 +4,7 @@ Translated from Mike X Cohen MATLAB codes.
 import numpy  as np 
 import xarray as xr
 
-def white_noise(trials, nvars, n, fs, amp):
+def white_noise(trials=1, nvars=1, n=1000, fs=1000, amp=1, ntype='uniform'):
     r'''
     Generate a white noise signal.
     > INPUTS:
@@ -13,14 +13,20 @@ def white_noise(trials, nvars, n, fs, amp):
     - n: number of points in the signal
     - fs: sampling frequency of the signal
     - amp: amplitude of the noise
+    - ntype: wheter the noise is uniform or normal distributed
     > OUTPUTS:
     - signal: generated signal with dimensions [trials,channels,time]
     '''
-    signal = xr.DataArray( amp*np.random.rand(trials, nvars, n), dims=("trials", "roi", "time"),
+    assert ntype in ['uniform', 'normal'], 'ntype should be either uniform or normal'
+    # Which method to use 
+    if ntype=='uniform': noise = np.random.rand(trials, nvars, n)
+    if ntype=='normal':  noise = np.random.randn(trials, nvars, n)
+
+    signal = xr.DataArray( amp*noise, dims=("trials", "roi", "time"),
                            coords = {"time": np.arange(n)/fs})
     return signal
 
-def pink_noise(trials, nvars, n, fs, tau):
+def pink_noise(trials=1, nvars=1, n=1000, fs=1000, tau=10):
     r'''
     Generate pink noise signal.
     > INPUTS:
@@ -44,7 +50,7 @@ def pink_noise(trials, nvars, n, fs, tau):
                            coords = {"time": np.arange(n)/fs})
     return signal
 
-def ongoing_non_stationary(trials, nvars, n, fs, peakfreq, fwhm ):
+def ongoing_non_stationary(trials=1, nvars=1, n=1000, fs=1000, peakfreq=10, fwhm=1):
     r'''
     Generate an ongoing non-statinary signal with gaussian spectra.
     > INPUTS:
@@ -61,9 +67,9 @@ def ongoing_non_stationary(trials, nvars, n, fs, peakfreq, fwhm ):
     # frequency axis
     freqs = np.linspace(0, fs, n)
     # gaussian in the frequency domain
-    s     = fwhm*(2*np.pi-1)/(4*np.pi)                              # Normalized width
-    x     = np.prod( (freqs-peakfreq[:,np.newaxis]).T/s, axis=1 )   # Shifted frequencies
-    fg    = np.exp( -0.5 * x**2 )                                   # Gaussian
+    s     = fwhm*(2*np.pi-1)/(4*np.pi)                     # Normalized width
+    x     = (freqs-peakfreq[:,np.newaxis]).T/s             # Shifted frequencies
+    fg    = np.sum( np.exp( -0.5 * x**2 ), axis=1)         # Gaussian
 
     # Fourier coefficients of random spectrum
     fc    = np.random.rand(trials, nvars, n) * np.exp( 1j*2*np.pi*np.random.rand(trials, nvars, n) )
@@ -78,5 +84,36 @@ def ongoing_non_stationary(trials, nvars, n, fs, peakfreq, fwhm ):
 
     return signal
 
-def transiesnt_oscillation_gauss():
-    pass
+def transiesnt_oscillation_gauss(trials=1, nvars=1, n=1000, fs=1000, sin_freq=10, peaktime=1, width=0.1, phaselocked=True):
+    r'''
+    Generate a transient oscilation combining a gaussian in time domain and a sin.
+    > INPUTS:
+    - trials: number of trials
+    - nvars: number of channles or variables
+    - n: number of points in the signal
+    - fs: sampling frequency of the signal
+    - sin_freq: frequency of the sin oscillation
+    - peaktime: time of the gaussian peak
+    - width: width of the gaussian
+    > OUTPUTS:
+    - signal: generated signal with dimensions [trials,channels,time]
+    '''
+
+    # time array
+    times = np.arange(n)/fs
+
+    # generate time-domain gaussian
+    gaus  = np.sum( np.exp( -(np.arange(n)/fs-peaktime[:,np.newaxis]).T**2 / (2*width**2) ), axis=1)
+
+    # generate sine function
+    sw = np.sin( 2*np.pi*sin_freq*np.arange(n)/fs  + int(True)*np.random.rand(trials, nvars, 1)*2 *np.pi )
+
+    # generate the signal
+    signal = sw*gaus
+
+    # convert to xarray
+    signal = xr.DataArray( signal, dims=("trials", "roi", "time"),
+                           coords = {"time": np.arange(n)/fs} )
+
+    return signal
+
