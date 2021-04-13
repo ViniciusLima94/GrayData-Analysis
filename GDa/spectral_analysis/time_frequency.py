@@ -4,7 +4,7 @@ import os
 import h5py
 import multiprocessing
 from   joblib           import Parallel, delayed
-from   ..misc            import smooth_spectra, downsample   
+from   ..misc           import smooth_spectra, downsample   
 
 def wavelet_transform(data = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
                       time_bandwidth = None, delta = 1, method = 'morlet', baseline_correction = False, n_jobs = 1):
@@ -28,7 +28,7 @@ def wavelet_transform(data = None, fs = 20, freqs = np.arange(6,60,1), n_cycles 
 
 def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
                       time_bandwidth = None, delta = 1, method = 'morlet', win_time = 1, win_freq = 1, 
-                      dir_out = None, baseline_correction = False, return_coh = False, n_jobs = 1):
+                      dir_out = None, baseline_correction = False, n_jobs = 1):
 
     # Data dimension
     T, C, L = data.shape
@@ -47,7 +47,7 @@ def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60
             Sxx = smooth_spectra.smooth_spectra(S_auto[:,channel1, :, :], win_time, win_freq, fft=True, axes = (1,2))
             Syy = smooth_spectra.smooth_spectra(S_auto[:,channel2, :, :], win_time, win_freq, fft=True, axes = (1,2))
             Sxy = smooth_spectra.smooth_spectra(Sxy, win_time, win_freq, fft=True, axes = (1,2))
-            coh = np.abs(Sxy)**2 / ( Sxx * Syy )
+            coh = np.abs(Sxy)**2 / (Sxx * Syy)
         else:
             coh = np.abs(Sxy)**2 / (S_auto[:,channel1,:,:]*S_auto[:,channel2,:,:])
         #coh = Sxy * np.conj(Sxy) / (Sxx * Syy)
