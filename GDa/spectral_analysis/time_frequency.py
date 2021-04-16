@@ -30,7 +30,7 @@ def wavelet_transform(data = None, fs = 20, freqs = np.arange(6,60,1), n_cycles 
 
 def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
                       time_bandwidth = None, delta = 1, method = 'morlet', win_time = 1, win_freq = 1, 
-                      dir_out = None, baseline_correction = False, n_jobs = 1):
+                      kernel='hann', dir_out = None, baseline_correction = False, n_jobs = 1):
 
     # Data dimension
     T, C, L = data.shape
@@ -46,9 +46,9 @@ def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60
         channel1, channel2 = pairs[index_pair, 0], pairs[index_pair, 1]
         Sxy = W[:,channel1,:,:] * np.conj(W[:,channel2,:,:])
         if win_time > 1 or win_freq > 1:
-            Sxx = smooth_spectra(S_auto[:,channel1, :, :], win_time, win_freq, fft=True, axes = (1,2))
-            Syy = smooth_spectra(S_auto[:,channel2, :, :], win_time, win_freq, fft=True, axes = (1,2))
-            Sxy = smooth_spectra(Sxy, win_time, win_freq, fft=True, axes = (1,2))
+            Sxx = smooth_spectra(S_auto[:,channel1, :, :], win_time, win_freq, kernel=kernel, fft=True, axes = (1,2))
+            Syy = smooth_spectra(S_auto[:,channel2, :, :], win_time, win_freq, kernel=kernel, fft=True, axes = (1,2))
+            Sxy = smooth_spectra(Sxy, win_time, win_freq, fft=True, kernel=kernel, axes = (1,2))
             coh = np.abs(Sxy)**2 / (Sxx * Syy)
         else:
             coh = np.abs(Sxy)**2 / (S_auto[:,channel1,:,:]*S_auto[:,channel2,:,:])
@@ -93,11 +93,11 @@ def gabor_transform(signal = None, fs = 20, freqs = np.arange(6,60,1), n_cycles 
     return wt
 
 def gabor_spectrum(signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1),  
-                    win_time = 1, win_freq = 1, n_cycles = 7.0):
+                   kernel='hann', win_time = 1, win_freq = 1, n_cycles = 7.0):
     if type(signal2) != np.ndarray:
         wt1    = gabor_transform(signal=signal1,fs=fs,freqs=freqs,n_cycles=n_cycles)
         Sxx    = wt1*np.conj(wt1)
-        return smooth_spectra(Sxx.T, win_time, win_freq, fft=True, axes=(0,1))#sig.convolve2d(Sxx, kernel, mode='same').T
+        return smooth_spectra(Sxx.T, win_time, win_freq, kernel=kernel, fft=True, axes=(0,1))
     else:
         wt1 = gabor_transform(signal=signal1,fs=fs,freqs=freqs,n_cycles=n_cycles)
         wt2 = gabor_transform(signal=signal2,fs=fs,freqs=freqs,n_cycles=n_cycles)
@@ -110,14 +110,14 @@ def gabor_spectrum(signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,
         Syy    = wt2*np.conj(wt2)
 
         # Smoothing spectra
-        Sxx = smooth_spectra(Sxx.T, win_time, win_freq, fft=True, axes=(0,1))#sig.convolve2d(Sxx, kernel, mode='same')
-        Syy = smooth_spectra(Syy.T, win_time, win_freq, fft=True, axes=(0,1))#sig.convolve2d(Syy, kernel, mode='same')
-        Sxy = smooth_spectra(Sxy.T, win_time, win_freq, fft=True, axes=(0,1))#sig.convolve2d(Sxy, kernel, mode='same')
+        Sxx = smooth_spectra(Sxx.T, win_time, win_freq, kernel=kernel, fft=True, axes=(0,1))
+        Syy = smooth_spectra(Syy.T, win_time, win_freq, kernel=kernel, fft=True, axes=(0,1))
+        Sxy = smooth_spectra(Sxy.T, win_time, win_freq, kernel=kernel, fft=True, axes=(0,1))
         return Sxx, Syy, Sxy
 
 def gabor_coherence(signal1 = None, signal2 = None, fs = 20, freqs = np.arange(6,60,1),  
-                     win_time = 1, win_freq = 1, n_cycles = 7.0):
+                    kernel='hann', win_time = 1, win_freq = 1, n_cycles = 7.0):
     Sxx, Syy, Sxy = gabor_spectrum(signal1 = signal1, signal2 = signal2, fs = fs, freqs = freqs,  
-                    win_time = win_time, win_freq = win_freq, n_cycles = n_cycles)
+                    kernel=kernel, win_time = win_time, win_freq = win_freq, n_cycles = n_cycles)
 
     return np.abs(Sxy)**2 / (Sxx * Syy)
