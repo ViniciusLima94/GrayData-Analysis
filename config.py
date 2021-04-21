@@ -27,7 +27,7 @@ bands = {
 
 # Smoothing windows
 win_freq = 1   # Freq
-win_time = 34  # Time
+win_time = 70  # Time
 # Delta for downsampling
 delta = 15
 # Method
@@ -47,7 +47,5 @@ if method == 'multitaper':
     freqs = np.mean( bands['lucy'], axis = 1)
     # Bandwidth
     d_f = np.ceil( (np.array(bands['lucy'])[:,1]-np.array(bands['lucy'])[:,0])/2 )
-    # Time-bandwidth
-    time_bandwidth = 8.0
     # Number of cycles
     n_cycles = time_bandwidth * freqs / d_f

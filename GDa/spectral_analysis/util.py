@@ -20,7 +20,8 @@ def create_kernel(win_time, win_freq, kernel='hann'):
     else:
         # One hann window for time and one for frequency axis
         hann_t, hann_f = hann_window(win_time), hann_window(win_freq)
-        return (np.tile(hann_t, (win_freq,1)).T * hann_f).T
+        hann           = (np.tile(hann_t, (win_freq,1)).T * hann_f).T
+        return hann / np.sum(hann)
 
 def smooth_spectra(spectra, win_time, win_freq, kernel='hann', fft=False, axes = 0):
     r'''
