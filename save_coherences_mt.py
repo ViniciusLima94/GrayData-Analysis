@@ -37,18 +37,23 @@ if  __name__ == '__main__':
 
     start = time.time()
 
-    tf.wavelet_coherence(data = ses.data, pairs = ses.data.attrs['pairs'], fs = ses.data.attrs['fsample'], 
+    super_tensor = tf.wavelet_coherence(data = ses.data, pairs = ses.data.attrs['pairs'], fs = ses.data.attrs['fsample'], 
                          freqs = freqs, n_cycles = n_cycles, time_bandwidth = time_bandwidth, delta = delta, 
-                         method = method, win_time = win_time, win_freq = win_freq, dir_out = paths.dir_out, n_jobs = -1)
+                         method = method, win_time = win_time, win_freq = win_freq, kernel='hann', 
+                         dir_out = paths.dir_out, n_jobs = -1)
+
+    #_ = tf.wavelet_coherence(data = ses.data, pairs = ses.data.attrs['pairs'], fs = ses.data.attrs['fsample'], 
+    #                     freqs = freqs, n_cycles = n_cycles, time_bandwidth = time_bandwidth, delta = delta, 
+    #                     method = method, win_time = win_time, win_freq = win_freq, dir_out = paths.dir_out, n_jobs = -1)
 
     # Load all the files generated and save in a single file
-    super_tensor = np.zeros([ses.data.attrs['nP'], len(ses.data['trials']), freqs.shape[0], tarray.shape[0]])
+    #super_tensor = np.zeros([ses.data.attrs['nP'], len(ses.data['trials']), freqs.shape[0], tarray.shape[0]])
 
-    for j in range(ses.data.attrs['nP']):
-        path = os.path.join(paths.dir_out, 
-                            'ch1_'+str(ses.data.attrs['pairs'][j,0])+'_ch2_'+str(ses.data.attrs['pairs'][j,1])+'.h5' )
-        with h5py.File(path, 'r') as hf:
-                super_tensor[j,:,:,:] = hf['coherence'][:]
+    #for j in range(ses.data.attrs['nP']):
+    #    path = os.path.join(paths.dir_out, 
+    #                        'ch1_'+str(ses.data.attrs['pairs'][j,0])+'_ch2_'+str(ses.data.attrs['pairs'][j,1])+'.h5' )
+    #    with h5py.File(path, 'r') as hf:
+    #            super_tensor[j,:,:,:] = hf['coherence'][:]
 
     path_st = os.path.join('super_tensors', dirs['monkey'][nmonkey] + '_session01_' + dirs['date'][nmonkey][idx]+ '.h5')
 
