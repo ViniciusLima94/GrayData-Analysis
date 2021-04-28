@@ -74,7 +74,7 @@ def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60
     # Computing wavelets
     W = wavelet_transform(data = data, fs = fs, freqs = freqs, n_cycles = n_cycles, 
                           time_bandwidth = time_bandwidth, delta = 1, 
-                          method = method, baseline_correction=baseline_correction, n_jobs = -1)
+                          method = method, baseline_correction=baseline_correction, n_jobs = n_jobs)
     # Auto spectra
     S_auto = W * np.conj(W)
 
