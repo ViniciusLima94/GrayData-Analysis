@@ -46,7 +46,7 @@ def wavelet_transform(data = None, fs = 20, freqs = np.arange(6,60,1), n_cycles 
 
 def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
                       time_bandwidth = None, delta = 1, method = 'morlet', win_time = 1, win_freq = 1, 
-                      kernel='hann', dir_out = None, baseline_correction = False, n_jobs = 1):
+                      use_fft=True, kernel='hann', dir_out = None, baseline_correction = False, n_jobs = 1):
     r'''
     Compute the tf coherence for the given pairs of channels in the data using either morlet or multitatper transform.
     > INPUTS:
@@ -58,8 +58,8 @@ def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60
     - time_bandwidth: Temporal smmothing parameter for the multitaper transform (temp. imoothing proportional to 1/time_bandwidth)
     - delta: Delta for downsampling the time axis of the data
     - method: Which method to use to perform the tf decomposition (morlet or multitaper)
-    - win_time: Length of the smoothing kernel in the time axis
-    - win_freq: Length of the smoothing kernel in the frequency axis
+    - win_time: Length of the smoothing kernel in the time axis (In secs)
+    - win_freq: Length of the smoothing kernel in the frequency axis (In Hz)
     - kernel: Which kernel to use ('square' or 'hann')
     - dir_out: Path where the coherence data will be saved (if None, files won't be saved)
     - baseline_correction: Wheter to baseline correct the data or not
@@ -68,12 +68,16 @@ def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60
     - out: The coherence tensor with dimensions ("links","trials","freq","time")
     '''
 
+    # Convert window in seconds to numvber of points
+    if win_time is not None:
+        win_time = np.ceil(win_time * fs / delta).astype(int)
+
     # Data dimension
     T, C, L = data.shape
 
     # Computing wavelets
     W = wavelet_transform(data = data, fs = fs, freqs = freqs, n_cycles = n_cycles, 
-                          time_bandwidth = time_bandwidth, delta = 1, 
+                          time_bandwidth = time_bandwidth, delta = delta, 
                           method = method, baseline_correction=baseline_correction, n_jobs = n_jobs)
     # Auto spectra
     S_auto = W * np.conj(W)
@@ -81,13 +85,16 @@ def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60
     def pairwise_coherence(index_pair, win_time, win_freq):
         channel1, channel2 = pairs[index_pair, 0], pairs[index_pair, 1]
         Sxy = W[:,channel1,:,:] * np.conj(W[:,channel2,:,:])
+        # Test
+        #Sxy = (W[:,channel1,:,:] * np.conj(W[:,channel2,:,:])).real
         if win_time > 1 or win_freq > 1:
-            Sxx = smooth_spectra(S_auto[:,channel1, :, :], win_time, win_freq, kernel=kernel, fft=True, axes = (1,2))
-            Syy = smooth_spectra(S_auto[:,channel2, :, :], win_time, win_freq, kernel=kernel, fft=True, axes = (1,2))
-            Sxy = smooth_spectra(Sxy, win_time, win_freq, fft=True, kernel=kernel, axes = (1,2))
-            coh = np.abs(Sxy[:,:,::delta])**2 / (Sxx[:,:,::delta] * Syy[:,:,::delta])
+            Sxx = smooth_spectra(S_auto[:,channel1, :, :], win_time, win_freq, kernel=kernel, fft=use_fft, axes = (1,2))
+            Syy = smooth_spectra(S_auto[:,channel2, :, :], win_time, win_freq, kernel=kernel, fft=use_fft, axes = (1,2))
+            Sxy = smooth_spectra(Sxy, win_time, win_freq, fft=use_fft, kernel=kernel, axes = (1,2))
+            #coh = np.abs(Sxy[:,:,::delta])**2 / (Sxx[:,:,::delta] * Syy[:,:,::delta])
+            coh = np.abs(Sxy)**2 / (Sxx * Syy)
         else:
-            coh = np.abs(Sxy[:,:,::delta])**2 / (S_auto[:,channel1,:,::delta]*S_auto[:,channel2,:,::delta])
+            coh = np.abs(Sxy)**2 / (S_auto[:,channel1,:,:]*S_auto[:,channel2,:,:])
         if dir_out is not None:
             file_name = os.path.join( dir_out, 'ch1_' + str(channel1) + '_ch2_' + str(channel2) +'.h5')
             with h5py.File(file_name, 'w') as hf:

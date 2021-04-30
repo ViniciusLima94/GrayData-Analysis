@@ -1,16 +1,18 @@
 import numpy                as     np
 import xarray               as     xr
 import GDa.session          
-from   GDa.misc.reshape     import reshape_trials, reshape_observations
-from   GDa.net.util         import compute_coherence_thresholds, convert_to_adjacency
-from   scipy                import stats
+from   GDa.misc.reshape      import reshape_trials, reshape_observations
+from   GDa.misc.create_grids import create_stages_time_grid
+from   GDa.net.util          import compute_coherence_thresholds, convert_to_adjacency
+from   scipy                 import stats
 import os
 import h5py
 
 class temporal_network():
 
     def __init__(self, data_raw_path='GrayLab/', tensor_raw_path='super_tensors', monkey='lucy', session=1, 
-                 date='150128', wt=(None,None), trim_borders=False, threshold=False, relative=False, q=0.8):
+                 date='150128', trial_type=None, behavioral_response=None, wt=(None,None), trim_borders=False, 
+                 threshold=False, relative=False, q=0.8):
         r'''
         Temporal network class, this object will have information about the session analysed and store the coherence
         networks (a.k.a. supertensor).
@@ -47,6 +49,8 @@ class temporal_network():
         self.monkey   = monkey
         self.date     = date                            
         self.session  = 'session0' + str(session)       
+        self.trial_type          = trial_type
+        self.behavioral_response = behavioral_response 
         
         # Load super-tensor
         self.__load_h5(trim_borders, wt)
@@ -58,7 +62,11 @@ class temporal_network():
                                                         q=q,
                                                         relative=relative)
             self.super_tensor.values = (self.super_tensor.stack(observations=('trials','time')) > self.coh_thr).unstack().values
-            #self.super_tensor.values = (self.super_tensor>self.coh_thr).values
+
+        # The trial selection is done at the end after thresholding because the thresholds are computed commonly for all trial types
+        filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=trial_type, behavioral_response=behavioral_response)
+        # Filtering super-tensor
+        self.super_tensor = self.super_tensor.sel(trials = filtered_trials)
 
     def __load_h5(self,trim_borders, wt):
         # Path to the super tensor in h5 format 
@@ -102,10 +110,90 @@ class temporal_network():
     def convert_to_adjacency(self, ):
         self.A = xr.DataArray( convert_to_adjacency(self.super_tensor.values), 
                 dims=("roi_1","roi_2","bands","trials","time"),
-                coords={"trials": self.trial_info.trial_index.values,
-                        "time":   self.tarray,
+                coords={"trials": self.super_tensor.trials.values, 
+                        "time":   self.super_tensor.time.values,
                         "roi_1":  self.super_tensor.attrs['channels_labels'],
                         "roi_2":  self.super_tensor.attrs['channels_labels']})
+
+    def create_stage_masks(self, flatten=False):
+        filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=self.trial_type, behavioral_response=self.behavioral_response)
+        self.s_mask = create_stages_time_grid(
+                      self.super_tensor.attrs['t_cue_on'][filtered_trials_idx],
+                      self.super_tensor.attrs['t_cue_off'][filtered_trials_idx],
+                      self.super_tensor.attrs['t_match_on'][filtered_trials_idx], 
+                      self.super_tensor.attrs['fsample'],
+                      self.tarray, len(filtered_trials_idx), flatten=flatten
+                      )
+        # Convert each mask to xarray
+        if flatten: 
+            dims=("observations")
+        else:
+            dims=("trials","time")
+
+        for k in self.s_mask.keys():
+            self.s_mask[k] = xr.DataArray(self.s_mask[k], dims=dims)
+
+    def get_data_from(self,stage=None, pad=False):
+        r'''
+        Return a copy of the super-tensor only for the data points correspondent for a 
+        given experiment stage (baseline, cue, delay, match).
+        > INPUT: 
+        - stage: Name of the stage from which to get data from.
+        - pad: If true will only zero out elements out of the specified task stage.
+        > OUTPUTS:
+        Copy of the super-tensor for the stage specified.
+        '''
+        assert stage in ['baseline','cue','delay','match'], "stage should be 'baseline', 'cue', 'delay' or 'match'."
+        assert pad   in [False, True], "pad should be either False or True."
+
+        # Check if the binary mask was already created
+        if not hasattr(self, 's_mask'):
+            self.create_stage_masks(flatten=True)
+        # If the variable exists but the dimensios are not flattened create again
+        if hasattr(self, 's_mask') and len(self.s_mask[stage])==2:
+            self.create_stage_masks(flatten=True)
+
+        if pad:
+            return self.super_tensor.stack(observations=("trials","time")) * self.s_mask[stage]
+        else:
+            return self.super_tensor.stack(observations=("trials","time")).isel(observations=self.s_mask[stage])
+    
+    def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
+        r'''
+        Filter super-tensor by desired trials based on trial_type and behav. response.
+        > INPUTS:
+        - trial_type: List with the number of the desired trial_types to load
+        - behavioral_response: List with the number of the desired behavioral_responses to load
+        > OUTPUTS:
+        - filtered_trials: The number of the trials correspondent to the selected trial_type and behavioral_response
+        - filtered_trials_idx: The index of the trials corresponding to the selected trial_type and behavioral_response
+        '''
+        # Check for invalid values
+        assert _check_values(trial_type,[None, 1.0, 2.0, 3.0]) is True, "Trial type should be either 1, 2, 3 or None."
+        assert _check_values(behavioral_response,[None,np.nan, 0.0, 1.0]) is True, "Behavioral response should be either 0, 1, NaN or None."
+
+        if trial_type is None and behavioral_response is None:
+            #print('1')
+            # Getting the number for ODRT trials
+            filtered_trials     = self.trial_info.trial_index.values
+            # Getting the index for those trials
+            filtered_trials_idx = self.trial_info.index.values
+            return filtered_trials, filtered_trials_idx
+        else:
+            if behavioral_response is None:
+                #print('2')
+                idx = self.trial_info['trial_type'].isin(trial_type)
+            elif trial_type is None:
+                #print('3')
+                idx = self.trial_info['behavioral_response'].isin(behavioral_response)
+            else:
+                #print('4')
+                idx = self.trial_info['trial_type'].isin(trial_type) & self.trial_info['behavioral_response'].isin(behavioral_response)
+            # Getting the number for ODRT trials
+            filtered_trials     = self.trial_info[idx].trial_index.values
+            # Getting the index for those trials
+            filtered_trials_idx = self.trial_info[idx].index.values
+            return filtered_trials, filtered_trials_idx
 
     def reshape_trials(self, ):
         aux = reshape_trials( self.super_tensor, self.session_info['nT'], len(self.tarray) )
@@ -118,3 +206,12 @@ class temporal_network():
     def reshape_observations(self, ):
         aux = reshape_observations( self.super_tensor, self.session_info['nT'], len(self.tarray) )
         return aux
+
+def _check_values(values, in_list):
+    if type(values) is not list: values=[values]
+    is_valid=True
+    for val in values:
+        if val not in in_list:
+            is_valid=False
+            break
+    return is_valid
