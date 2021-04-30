@@ -23,7 +23,7 @@ def create_kernel(win_time, win_freq, kernel='hann'):
         hann           = (np.tile(hann_t, (win_freq,1)).T * hann_f).T
         return hann / np.sum(hann)
 
-def smooth_spectra(spectra, win_time, win_freq, kernel='hann', fft=False, axes = 0):
+def smooth_spectra(spectra, win_time, win_freq, kernel='hann', fft=False, pad=False, pad_width=None, axes = 0):
     r'''
     Smooth multidimensional spectra.
     > INPUTS:
@@ -38,10 +38,8 @@ def smooth_spectra(spectra, win_time, win_freq, kernel='hann', fft=False, axes =
 
     if len(spectra.shape) == 2:
         k = create_kernel(win_time, win_freq, kernel=kernel)
-        ##kernel = hann_time*np.ones([win_freq, win_time])*hann_freq[:,None]/(win_freq*win_time)
     elif len(spectra.shape) == 3:
         k = create_kernel(win_time, win_freq, kernel=kernel)[np.newaxis,:,:]
-        #kernel = hann_rime*np.ones([1, win_freq, win_time])/(win_freq*win_time)
 
     if fft == True:
         return scipy.signal.fftconvolve(spectra, k, mode='same', axes= axes)

@@ -38,7 +38,7 @@ def find_activation_sequences(spike_train, dt=None, pad=False, max_size=None):
         act_lengths = np.hstack( (act_lengths,np.ones(max_size-len(act_lengths))*np.nan) )
     return act_lengths
 
-def compute_burstness_stats(spike_train, dt=None):
+def compute_burstness_stats(spike_train, samples=None, dt=None):
     r'''
     Given a spike_train the sequence of activations of it 
     will be determined (see find_activations_squences) and 
@@ -53,6 +53,8 @@ CV (mean activation time over its std).
     '''
     if dt is None:
         dt = 1
+    if samples is None:
+        samples = len(spike_train)
     # Find activation lengths
     act_lengths = find_activation_sequences(spike_train,dt=dt)
     # Compute stats 
@@ -63,7 +65,7 @@ CV (mean activation time over its std).
     # CV (or irregularity) of links activations
     cv     = mu_st / mu
     # Normalized total act. time
-    mu_tot = act_lengths.sum() / ( len(spike_train) * dt )
+    mu_tot = act_lengths.sum() / ( samples * dt )
     return np.array([mu,mu_tot,cv])
 
 def compute_burstness_stats_from_act_seq(act_lengths, dt=None):
