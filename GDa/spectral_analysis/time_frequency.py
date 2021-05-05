@@ -77,7 +77,7 @@ def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60
 
     # Computing wavelets
     W = wavelet_transform(data = data, fs = fs, freqs = freqs, n_cycles = n_cycles, 
-                          time_bandwidth = time_bandwidth, delta = delta, 
+                          time_bandwidth = time_bandwidth, delta = 1, 
                           method = method, baseline_correction=baseline_correction, n_jobs = n_jobs)
     # Auto spectra
     S_auto = W * np.conj(W)
@@ -91,10 +91,9 @@ def wavelet_coherence(data = None, pairs = None, fs = 20, freqs = np.arange(6,60
             Sxx = smooth_spectra(S_auto[:,channel1, :, :], win_time, win_freq, kernel=kernel, fft=use_fft, axes = (1,2))
             Syy = smooth_spectra(S_auto[:,channel2, :, :], win_time, win_freq, kernel=kernel, fft=use_fft, axes = (1,2))
             Sxy = smooth_spectra(Sxy, win_time, win_freq, fft=use_fft, kernel=kernel, axes = (1,2))
-            #coh = np.abs(Sxy[:,:,::delta])**2 / (Sxx[:,:,::delta] * Syy[:,:,::delta])
-            coh = np.abs(Sxy)**2 / (Sxx * Syy)
+            coh = np.abs(Sxy[:,:,::delta])**2 / (Sxx[:,:,::delta] * Syy[:,:,::delta])
         else:
-            coh = np.abs(Sxy)**2 / (S_auto[:,channel1,:,:]*S_auto[:,channel2,:,:])
+            coh = np.abs(Sxy[:,:,::delta])**2 / (S_auto[:,channel1,:,::delta]*S_auto[:,channel2,:,::delta])
         if dir_out is not None:
             file_name = os.path.join( dir_out, 'ch1_' + str(channel1) + '_ch2_' + str(channel2) +'.h5')
             with h5py.File(file_name, 'w') as hf:
