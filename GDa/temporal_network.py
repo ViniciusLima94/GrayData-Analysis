@@ -11,8 +11,8 @@ import h5py
 class temporal_network():
 
     def __init__(self, data_raw_path='GrayLab/', tensor_raw_path='super_tensors', monkey='lucy', session=1, 
-                 date='150128', trial_type=None, behavioral_response=None, wt=(None,None), trim_borders=False, 
-                 threshold=False, relative=False, q=0.8):
+                 date='150128', trial_type=None, behavioral_response=None, wt=None, 
+                 relative=False, q=None):
         r'''
         Temporal network class, this object will have information about the session analysed and store the coherence
         networks (a.k.a. supertensor).
@@ -25,8 +25,6 @@ class temporal_network():
         - trial_type: the type of trial (DRT/fixation) 
         - behavioral_response: Wheter to get sucessful (1) or unsucessful (0) trials
         - wt: Tuple. Trimming window will remove the wt[0] and wt[1] points in the start and end of each trial
-        - trim_borders: Wheter to trim or not the start/end of the super_tensor for each trial
-        - threshold: Wheter to threshold or not the data
         - relative: if threshold is true wheter to do it in ralative (one thr per link per band) or an common thr for links per band
         - q: Quartile value to use for thresholding
         '''
@@ -34,6 +32,10 @@ class temporal_network():
         #Check for incorrect parameter values
         if monkey not in ['lucy', 'ethyl']:
             raise ValueError('monkey should be either "lucy" or "ethyl"')
+
+        # Asserting variable types
+        assert isinstance(wt, (type(None), tuple))
+        assert isinstance(q, (type(None), int, float))
 
         # Load session info
         self.info = GDa.session.session(raw_path=data_raw_path, monkey=monkey, date=date, session=session)
@@ -53,10 +55,10 @@ class temporal_network():
         self.behavioral_response = behavioral_response 
         
         # Load super-tensor
-        self.__load_h5(trim_borders, wt)
+        self.__load_h5(wt)
 
         # Threshold the super tensor
-        if threshold:
+        if isinstance(q, (int,float)):
             print('Computing coherence thresholds')
             self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','time')).values, 
                                                         q=q,
@@ -68,7 +70,7 @@ class temporal_network():
         # Filtering super-tensor
         self.super_tensor = self.super_tensor.sel(trials = filtered_trials)
 
-    def __load_h5(self,trim_borders, wt):
+    def __load_h5(self, wt):
         # Path to the super tensor in h5 format 
         h5_super_tensor_path = os.path.join(self.raw_path, self.monkey+'_'+str(self.session)+'_'+self.date+'.h5')
 
@@ -92,7 +94,7 @@ class temporal_network():
             else:
                 self.session_info[k] = np.squeeze( np.array(hf['info/'+k]) )
 
-        if trim_borders == True:
+        if isinstance(wt, tuple):
             self.tarray       = self.tarray[wt[0]:-wt[1]]
             self.super_tensor = self.super_tensor[:,:,:,wt[0]:-wt[1]]
 
@@ -157,6 +159,26 @@ class temporal_network():
             return self.super_tensor.stack(observations=("trials","time")) * self.s_mask[stage]
         else:
             return self.super_tensor.stack(observations=("trials","time")).isel(observations=self.s_mask[stage])
+
+    def get_number_of_samples(self, stage=None):
+        r'''
+        Return the number of samples for a given stage for all the trials.
+        > INPUT: 
+        - stage: Name of the stage from which to get number of samples from.
+        > OUTPUTS:
+        Return the number of samples for the stage provided for all trials concatenated.
+        '''
+        assert stage in ['baseline','cue','delay','match'], "stage should be 'baseline', 'cue', 'delay' or 'match'."
+        assert pad   in [False, True], "pad should be either False or True."
+
+        # Check if the binary mask was already created
+        if not hasattr(self, 's_mask'):
+            self.create_stage_masks(flatten=True)
+        # If the variable exists but the dimensios are not flattened create again
+        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
+            self.create_stage_masks(flatten=True)
+
+        return self.s_mask[stage].sum()
     
     def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
         r'''

@@ -79,7 +79,7 @@ def _tf_decomp(data, sf, freqs, mode='morlet', n_cycles=7.0, mt_bandwidth=None,
                     data, sf, [f_c], n_cycles=float(n_c), time_bandwidth=mt,
                     output='complex', decim=decim, n_jobs=n_jobs, **kw_mt)]
             out = np.stack(out, axis=2).squeeze()
-        elif isinstance(mt_bandwidth, (int, float)):
+        elif isinstance(mt_bandwidth, (type(None), int, float)):
             out = tfr_array_multitaper(
                 data, sf, freqs, n_cycles=n_cycles, time_bandwidth=mt_bandwidth,
                 output='complex', decim=decim, n_jobs=n_jobs, **kw_mt)
