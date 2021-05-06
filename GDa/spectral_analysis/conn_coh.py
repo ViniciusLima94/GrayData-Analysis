@@ -9,16 +9,16 @@ This script includes two types of single-trial coherence :
 #
 # License : BSD (3-clause)
 
-import numpy as np
-from scipy.signal import fftconvolve, coherence
+import numpy  as np
 import xarray as xr
 
+from scipy.signal       import fftconvolve, coherence
 from mne.time_frequency import tfr_array_morlet, tfr_array_multitaper
 
-from frites.io import set_log_level, logger
-from frites.utils import parallel_func
-from frites.dataset import SubjectEphy
-from frites.config import CONFIG
+from frites.io          import set_log_level, logger
+from frites.utils       import parallel_func
+from frites.dataset     import SubjectEphy
+from frites.config      import CONFIG
 
 
 ###############################################################################
@@ -69,14 +69,24 @@ def _tf_decomp(data, sf, freqs, mode='morlet', n_cycles=7.0, mt_bandwidth=None,
             data, sf, freqs, n_cycles=n_cycles, output='complex', decim=decim,
             n_jobs=n_jobs, **kw_cwt)
     elif mode == 'multitaper':
-        out = tfr_array_multitaper(
-            data, sf, freqs, n_cycles=n_cycles, time_bandwidth=mt_bandwidth,
-            output='complex', decim=decim, n_jobs=n_jobs, **kw_mt)
+        # In case multiple values are provided for mt_bandwidth
+        # the MT decomposition is done separatedly for each 
+        # Frequency center
+        if isinstance(mt_bandwidth, (list, tuple, np.ndarray)):
+            out = []
+            for f_c, n_c, mt in zip(freqs, n_cycles, mt_bandwidth):
+                out += [tfr_array_multitaper(
+                    data, sf, [f_c], n_cycles=float(n_c), time_bandwidth=mt,
+                    output='complex', decim=decim, n_jobs=n_jobs, **kw_mt)]
+            out = np.stack(out, axis=2).squeeze()
+        elif isinstance(mt_bandwidth, (int, float)):
+            out = tfr_array_multitaper(
+                data, sf, freqs, n_cycles=n_cycles, time_bandwidth=mt_bandwidth,
+                output='complex', decim=decim, n_jobs=n_jobs, **kw_mt)
     else:
         raise ValueError('Method should be either "morlet" or "multitaper"')
 
     return out
-
 
 def _create_kernel(sm_times, sm_freqs, kernel='hanning'):
     """2D (freqs, time) smoothing kernel.
@@ -133,11 +143,10 @@ def _smooth_spectra(spectra, kernel, decim=1):
     # return decimated spectra
     return sm_spectra[..., ::decim]
 
-
 def conn_coherence_wav(
     data, freqs=None, roi=None, times=None, sfreq=None, pairs=None,
     win_sample=None, foi=None, sm_times=10, sm_freqs=1, sm_kernel='hanning',
-    mode='morlet', n_cycles=7., mt_bandwidth=None, decim=1, decim_at = 'coh', kw_cwt={},
+    mode='morlet', n_cycles=7., mt_bandwidth=None, decim=1, decim_at='coh', kw_cwt={},
     kw_mt={}, block_size=None, n_jobs=-1, verbose=None):
     """Wavelet-based single-trial time-resolved pairwise coherence.
 
@@ -257,15 +266,19 @@ def conn_coherence_wav(
             win_sample = np.floor(win_sample / decim).astype(int)
         times = times[win_sample].mean(1)
 
-    # temporal decimation
     if isinstance(decim, int): 
+        # temporal decimation
         times = times[::decim]  # noqa
-        if decim_at  =='tfd': 
-            decim_tfd = decim
-            # In this case time smoothing window is resized
-            sm_times  = int(np.round(sm_times / decim))
-        else:
-            decim_tfd = 1
+        # Set parameters in case decim is done at tf decomp. level or at coherence computation
+        # level
+        if decim_at == 'tfd': 
+            decim_tfd=decim
+            # adapt temporal smoothing to decimation factor
+            # This is needed only when decimating during tf decomp.
+            sm_times = int(np.round(sm_times / decim))
+        else: 
+            decim_tfd=1
+
 
     # kernel smoothing definition
     kernel = _create_kernel(sm_times, sm_freqs, kernel=sm_kernel)
@@ -309,8 +322,7 @@ def conn_coherence_wav(
             s_xx = s_auto[:, w_x, :, :]
             s_yy = s_auto[:, w_y, :, :]
             coh = np.abs(s_xy) ** 2 / (s_xx * s_yy)
-            # Decimate coherence
-            if decim_at=='coh': coh = coh[..., ::decim]
+            if (decim_at=='coh'): coh = coh[..., ::decim] 
 
             # mean inside temporal sliding window (if needed)
             if need_mean:
@@ -502,3 +514,42 @@ def conn_coherence_psd(
                        name='coh', coords=(trials, roi_p, freqs, win_times))
 
     return coh
+
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+
+    n_trials = 10
+    n_roi = 10
+    n_times = 1000
+    sfreq = 128.
+    # trials = np.random.randint(0, 1, (n_trials,))
+    trials = [0] * 5 + [1] * 5
+    roi = [f"r{k}" for k in range(n_roi)]
+    times = np.arange(n_times) / sfreq
+
+    x = np.random.rand(n_trials, n_roi, n_times)
+    x[0:5, ...] += np.sin(2 * np.pi * 10 * times).reshape(1, 1, -1)
+    x[5::, ...] += np.sin(2 * np.pi * 20 * times).reshape(1, 1, -1)
+    # x = np.random.normal(size=(n_trials, 1, n_times))
+    # x = np.tile(x, (1, n_roi, 1))
+    x = xr.DataArray(x, dims=('trials', 'roi', 'times'),
+                     coords=(trials, roi, times))
+    freqs = np.linspace(2, 60, 10)
+    n_cycles = freqs / 2.
+    win_sample = np.array([[0, 500], [500, 999]])
+
+    foi = np.array([[2, 4], [5, 7], [8, 13], [13, 30], [30, 60]])
+    coh = conn_coherence_wav(
+        x, freqs, sfreq=sfreq, roi='roi', times='times', sm_times=300,
+        sm_freqs=1, mode='multitaper', n_cycles=7., win_sample=None,
+        decim=10, foi=None, block_size=1, n_jobs=1)
+    print(coh.shape)
+
+    # coh = conn_coherence_psd(x, sfreq=sfreq, roi='roi', times='times',
+    #                          block_size=1, foi=None)
+    print(coh)
+    coh.groupby('trials').mean('trials').mean(
+        'freqs').plot.line(x='times', hue='roi', col='trials')
+    plt.show()
+    print(coh)
