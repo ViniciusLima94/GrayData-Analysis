@@ -688,7 +688,7 @@ def conn_spec_gc(
         # Factorize spectral matrix for each time stamp (probabily very slow)
         Ix2y = np.zeros((len(f_vec),len(times)))
         for ts in range(S.shape[-1]):
-            _, H, Z    = _wilson_factorization(S[:,:,:,ts], freqs, sfreq, Niterations=n_iter, tol=tol, verbose=False)
+            _, H, Z    = _wilson_factorization_new(S[:,:,:,ts], freqs, sfreq, Niterations=n_iter, tol=tol, verbose=False)
             Ix2y[:,ts] = _granger_causality(S[:,:,:,ts], H, Z)
 
         return Ix2y 
@@ -763,6 +763,72 @@ def _PlusOperator(g,m,fs,freq):
     gp = np.fft.fft(gamp, axis=-1)
 
     return gp
+
+def _wilson_factorization_new(S, freq, fs, Niterations=100, tol=1e-12, verbose=True):
+        '''
+                Algorithm for the Wilson Factorization of the spectral matrix.
+        '''
+
+        m = S.shape[0]       # Number of variables
+        N = freq.shape[0]-1  # Number of frequencies
+
+        Sarr  = np.zeros([m,m,2*N]) * (1+1j)
+
+
+        f_ind = 0
+
+        for f in freq:
+                Sarr[:,:,f_ind] = S[:,:,f_ind]
+                if(f_ind>0):
+                        Sarr[:,:,2*N-f_ind] = S[:,:,f_ind].T
+                f_ind += 1
+
+        gam  = np.fft.ifft(Sarr, axis=-1).real
+        h    = np.linalg.cholesky(gam[:,:,0]).T
+
+        psi  = np.repeat(h[:,:,None].real, Sarr.shape[2], axis=2) * (1+1j)
+
+        I = np.eye(m)
+
+        def _tensormul(A,B):
+            return np.einsum('ijz,jkz->ikz', A, B, casting='no')
+
+        def _tensormatmul(A,B):
+            return np.einsum('ijz,jk->ik',   A, B, casting='no')
+
+        g = np.zeros([m,m,2*N]) * (1+1j)
+        for iteration in range(Niterations):
+
+                psi_inv = np.linalg.inv(psi.T).T
+                g = _tensormul( _tensormul(psi_inv,Sarr), np.conj(psi_inv).transpose(1,0,2) ) + I[:,:,None]
+
+                gp = _PlusOperator(g, m, fs, freq)
+                psiold = psi.copy()
+
+                psi    = _tensormul(psi,gp)
+                psierr = np.linalg.norm(psi-psiold, 1, axis=-1).mean()
+                if(psierr<tol):
+                        break
+
+                if verbose == True:
+                        print('Err = ' + str(psierr))
+
+        Snew = np.zeros([m,m,N+1]) * (1 + 1j)
+
+        #for i in range(N+1):
+        #        Snew[:,:,i] = np.matmul(psi[:,:,i], np.conj(psi[:,:,i]).T)
+        psi_inv = np.linalg.inv(psi.T).T
+        Snew = _tensormul(psi, np.conj(psi_inv).transpose(1,0,2))
+
+        gamtmp = np.fft.ifft(psi,axis=-1)
+
+        A0    = gamtmp[:,:,0]
+        A0inv = np.linalg.inv(A0)
+        Znew  = np.matmul(A0, A0.T).real
+
+        Hnew = _tensormatmul(psi, A0inv)
+
+        return Snew, Hnew, Znew
 
 def _wilson_factorization(S, freq, fs, Niterations=100, tol=1e-12, verbose=True):
 	'''
