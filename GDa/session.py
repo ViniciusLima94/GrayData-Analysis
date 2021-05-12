@@ -134,7 +134,7 @@ class session(session_info):
         n_channels = len(indch)
         
         # Tensor to store the LFP data NtrialsxNchannelsxTime
-        self.data = np.empty([n_trials, n_channels, n_times]) # LFP data
+        self.data = np.empty((n_trials, n_channels, n_times)) # LFP data
         # Time array
         self.time = np.arange(self.evt_dt[0], self.evt_dt[1], 1/self.recording_info['lfp_sampling_rate'])
        
@@ -166,13 +166,13 @@ class session(session_info):
         # Convert the data to an xarray
         self.data = xr.DataArray(self.data, dims = ("trials","roi","time"), 
                                  coords={"trials": self.trial_info.trial_index.values, 
-                                         "roi":    labels,
+                                         "roi":    area,
                                          "time":   self.time} )
         # Saving metadata
         self.data.attrs = {'nC': n_channels, 'nP':nP, 'pairs': pairs,
                            'fsample': float(self.recording_info['lfp_sampling_rate']),
                            'channels_labels': labels, 'stim':stimulus,
-                           'indch': indch, 'areas': area, 't_cue_on': t_con,
+                           'indch': indch, 't_cue_on': t_con,
                            't_cue_off': t_coff, 't_match_on': t_mon}
 
     def convert_to_xarray_ephy(self, ):

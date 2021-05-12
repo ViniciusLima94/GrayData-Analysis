@@ -169,7 +169,6 @@ class temporal_network():
         Return the number of samples for the stage provided for all trials concatenated.
         '''
         assert stage in ['baseline','cue','delay','match'], "stage should be 'baseline', 'cue', 'delay' or 'match'."
-        assert pad   in [False, True], "pad should be either False or True."
 
         # Check if the binary mask was already created
         if not hasattr(self, 's_mask'):
@@ -178,7 +177,7 @@ class temporal_network():
         if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
             self.create_stage_masks(flatten=True)
 
-        return self.s_mask[stage].sum()
+        return np.int( self.s_mask[stage].sum() )
     
     def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
         r'''
@@ -228,6 +227,8 @@ class temporal_network():
     def reshape_observations(self, ):
         aux = reshape_observations( self.super_tensor, self.session_info['nT'], len(self.tarray) )
         return aux
+
+################################################ AUX FUNCTIONS ################################################
 
 def _check_values(values, in_list):
     if type(values) is not list: values=[values]
