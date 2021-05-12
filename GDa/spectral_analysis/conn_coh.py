@@ -688,7 +688,7 @@ def conn_spec_gc(
         # Factorize spectral matrix for each time stamp (probabily very slow)
         Ix2y = np.zeros((len(f_vec),len(times)))
         for ts in range(S.shape[-1]):
-            _, H, Z    = _wilson_factorization_new(S[:,:,:,ts], freqs, sfreq, Niterations=n_iter, tol=tol, verbose=False)
+            _, H, Z    = _ein_wilson_factorization(S[:,:,:,ts], freqs, sfreq, Niterations=n_iter, tol=tol, verbose=False)
             Ix2y[:,ts] = _granger_causality(S[:,:,:,ts], H, Z)
 
         return Ix2y 
@@ -764,146 +764,140 @@ def _PlusOperator(g,m,fs,freq):
 
     return gp
 
-def _wilson_factorization_new(S, freq, fs, Niterations=100, tol=1e-12, verbose=True):
-        '''
+def _ein_wilson_factorization(S, freq, fs, Niterations=100, tol=1e-12, verbose=True):
+    '''
                 Algorithm for the Wilson Factorization of the spectral matrix.
-        '''
+    '''
 
-        m = S.shape[0]       # Number of variables
-        N = freq.shape[0]-1  # Number of frequencies
+    m = S.shape[0]       # Number of variables
+    N = freq.shape[0]-1  # Number of frequencies
 
-        Sarr  = np.zeros([m,m,2*N]) * (1+1j)
+    f_ind = 0
+    Sarr  = np.zeros([m,m,2*N]) * (1+1j)
+    for f in freq:
+        Sarr[:,:,f_ind] = S[:,:,f_ind]
+        if(f_ind>0):
+                Sarr[:,:,2*N-f_ind] = S[:,:,f_ind].T
+        f_ind += 1
 
+    gam  = np.fft.ifft(Sarr, axis=-1).real
+    h    = np.linalg.cholesky(gam[:,:,0]).T
 
-        f_ind = 0
+    psi  = np.repeat(h[:,:,None].real, Sarr.shape[2], axis=2) * (1+0*1j)
 
-        for f in freq:
-                Sarr[:,:,f_ind] = S[:,:,f_ind]
-                if(f_ind>0):
-                        Sarr[:,:,2*N-f_ind] = S[:,:,f_ind].T
-                f_ind += 1
+    I = np.eye(m)
 
-        gam  = np.fft.ifft(Sarr, axis=-1).real
-        h    = np.linalg.cholesky(gam[:,:,0]).T
+    def _tensormul(A,B):
+        return np.einsum('ijz,jkz->ikz', A, B, casting='no')
 
-        psi  = np.repeat(h[:,:,None].real, Sarr.shape[2], axis=2) * (1+1j)
+    def _tensormatmul(A,B):
+        return np.einsum('ijz,jk->ikz',  A, B, casting='no')
 
-        I = np.eye(m)
+    g = np.zeros([m,m,2*N]) * (1+1j)
+    for iteration in range(Niterations):
+            psi_inv = np.linalg.inv(psi.T).T
+            g = _tensormul( _tensormul(psi_inv,Sarr), np.conj(psi_inv).transpose(1,0,2) ) + I[:,:,None]
 
-        def _tensormul(A,B):
-            return np.einsum('ijz,jkz->ikz', A, B, casting='no')
+            gp = _PlusOperator(g, m, fs, freq)
+            psiold = psi.copy()
 
-        def _tensormatmul(A,B):
-            return np.einsum('ijz,jk->ik',   A, B, casting='no')
+            psi    = _tensormul(psi,gp)
+            psierr = np.linalg.norm(psi-psiold, 1, axis=(0,1)).mean()
+            if(psierr<tol):
+                break
+            if verbose == True:
+                print('Err = ' + str(psierr))
 
-        g = np.zeros([m,m,2*N]) * (1+1j)
-        for iteration in range(Niterations):
+    Snew = _tensormul(psi[:,:,:N+1], np.conj(psi[:,:,:N+1]).transpose(1,0,2))
 
-                psi_inv = np.linalg.inv(psi.T).T
-                g = _tensormul( _tensormul(psi_inv,Sarr), np.conj(psi_inv).transpose(1,0,2) ) + I[:,:,None]
+    gamtmp = np.fft.ifft(psi,axis=-1)
 
-                gp = _PlusOperator(g, m, fs, freq)
-                psiold = psi.copy()
+    A0    = gamtmp[:,:,0]
+    A0inv = np.linalg.inv(A0)
+    Znew  = np.matmul(A0, A0.T).real
 
-                psi    = _tensormul(psi,gp)
-                psierr = np.linalg.norm(psi-psiold, 1, axis=-1).mean()
-                if(psierr<tol):
-                        break
+    #Hnew = _tensormatmul(psi, A0inv)
+    #Hnew = np.zeros([m,m,N+1]) * (1 + 1j)
+    #for i in range(N+1):
+    #    Hnew[:,:,i] = np.matmul(psi[:,:,i], A0inv)
+    Hnew = _tensormatmul(psi[:,:,:N+1], A0inv)
 
-                if verbose == True:
-                        print('Err = ' + str(psierr))
-
-        Snew = np.zeros([m,m,N+1]) * (1 + 1j)
-
-        #for i in range(N+1):
-        #        Snew[:,:,i] = np.matmul(psi[:,:,i], np.conj(psi[:,:,i]).T)
-        psi_inv = np.linalg.inv(psi.T).T
-        Snew = _tensormul(psi, np.conj(psi_inv).transpose(1,0,2))
-
-        gamtmp = np.fft.ifft(psi,axis=-1)
-
-        A0    = gamtmp[:,:,0]
-        A0inv = np.linalg.inv(A0)
-        Znew  = np.matmul(A0, A0.T).real
-
-        Hnew = _tensormatmul(psi, A0inv)
-
-        return Snew, Hnew, Znew
+    return Snew, Hnew, Znew
 
 def _wilson_factorization(S, freq, fs, Niterations=100, tol=1e-12, verbose=True):
-	'''
-		Algorithm for the Wilson Factorization of the spectral matrix.
-	'''
+    '''
+        Algorithm for the Wilson Factorization of the spectral matrix.
+    '''
 
-	m = S.shape[0]    
-	N = freq.shape[0]-1
+    m = S.shape[0]    
+    N = freq.shape[0]-1
 
-	Sarr  = np.zeros([m,m,2*N]) * (1+1j)
+    Sarr  = np.zeros([m,m,2*N]) * (1+1j)
 
-	f_ind = 0
+    f_ind = 0
 
-	for f in freq:
-		Sarr[:,:,f_ind] = S[:,:,f_ind]
-		if(f_ind>0):
-			Sarr[:,:,2*N-f_ind] = S[:,:,f_ind].T
-		f_ind += 1
+    for f in freq:
+        Sarr[:,:,f_ind] = S[:,:,f_ind]
+        if(f_ind>0):
+            Sarr[:,:,2*N-f_ind] = S[:,:,f_ind].T
+        f_ind += 1
 
-	gam = np.zeros([m,m,2*N])
+    gam = np.zeros([m,m,2*N])
 
-	for i in range(m):
-		for j in range(m):
-			gam[i,j,:] = (np.fft.ifft(Sarr[i,j,:])).real
+    for i in range(m):
+        for j in range(m):
+            gam[i,j,:] = (np.fft.ifft(Sarr[i,j,:])).real
 
-	gam0 = gam[:,:,0]
-	h    = np.linalg.cholesky(gam0).T
+    gam0 = gam[:,:,0]
+    h    = np.linalg.cholesky(gam0).T
 
-	psi = np.ones([m,m,2*N]) * (1+1j)
+    psi = np.ones([m,m,2*N]) * (1+1j)
 
-	for i in range(0,Sarr.shape[2]):
-		psi[:,:,i] = h
+    for i in range(0,Sarr.shape[2]):
+        psi[:,:,i] = h
 
-	I = np.eye(m)
+    I = np.eye(m)
 
-	g = np.zeros([m,m,2*N]) * (1+1j)
-	for iteration in range(Niterations):
+    g = np.zeros([m,m,2*N]) * (1+1j)
+    for iteration in range(Niterations):
 
-		for i in range(Sarr.shape[2]):
-			g[:,:,i] = np.matmul(np.matmul(np.linalg.inv(psi[:,:,i]),Sarr[:,:,i]),np.conj(np.linalg.inv(psi[:,:,i])).T)+I
+        for i in range(Sarr.shape[2]):
+            g[:,:,i] = np.matmul(np.matmul(np.linalg.inv(psi[:,:,i]),Sarr[:,:,i]),np.conj(np.linalg.inv(psi[:,:,i])).T)+I
 
-		gp = _PlusOperator(g, m, fs, freq)
-		psiold = psi.copy()
-		psierr = 0
-		for i in range(Sarr.shape[2]):
-			psi[:,:,i] =np.matmul(psi[:,:,i], gp[:,:,i])
-			psierr    += np.linalg.norm(psi[:,:,i]-psiold[:,:,i],1) / Sarr.shape[2]
+        gp = _PlusOperator(g, m, fs, freq)
+        psiold = psi.copy()
+        psierr = 0
+        for i in range(Sarr.shape[2]):
+            psi[:,:,i] =np.matmul(psi[:,:,i], gp[:,:,i])
+            psierr    += np.linalg.norm(psi[:,:,i]-psiold[:,:,i],1) / Sarr.shape[2]
 
-		if(psierr<tol):
-			break
+        if(psierr<tol):
+            break
 
-		if verbose == True:
-			print('Err = ' + str(psierr))
+        if verbose == True:
+            print('Err = ' + str(psierr))
 
-	Snew = np.zeros([m,m,N+1]) * (1 + 1j)
+    Snew = np.zeros([m,m,N+1]) * (1 + 1j)
 
-	for i in range(N+1):
-		Snew[:,:,i] = np.matmul(psi[:,:,i], np.conj(psi[:,:,i]).T)
+    for i in range(N+1):
+        Snew[:,:,i] = np.matmul(psi[:,:,i], np.conj(psi[:,:,i]).T)
 
-	gamtmp = np.zeros([m,m,2*N]) * (1 + 1j)
+    gamtmp = np.zeros([m,m,2*N]) * (1 + 1j)
 
-	for i in range(m):
-		for j in range(m):
-			gamtmp[i,j,:] = np.fft.ifft(psi[i,j,:]).real
+    for i in range(m):
+        for j in range(m):
+            gamtmp[i,j,:] = np.fft.ifft(psi[i,j,:]).real
 
-	A0    = gamtmp[:,:,0]
-	A0inv = np.linalg.inv(A0)
-	Znew  = np.matmul(A0, A0.T).real
+    A0    = gamtmp[:,:,0]
+    A0inv = np.linalg.inv(A0)
+    Znew  = np.matmul(A0, A0.T).real
 
-	Hnew = np.zeros([m,m,N+1]) * (1 + 1j)
+    Hnew = np.zeros([m,m,N+1]) * (1 + 1j)
 
-	for i in range(N+1):
-		Hnew[:,:,i] = np.matmul(psi[:,:,i], A0inv)
+    for i in range(N+1):
+        Hnew[:,:,i] = np.matmul(psi[:,:,i], A0inv)
 
-	return Snew, Hnew, Znew
+    return Snew, Hnew, Znew
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
