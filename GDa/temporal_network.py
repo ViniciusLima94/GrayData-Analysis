@@ -12,7 +12,7 @@ class temporal_network():
 
     def __init__(self, data_raw_path='GrayLab/', tensor_raw_path='super_tensors', monkey='lucy', session=1, 
                  date='150128', trial_type=None, behavioral_response=None, wt=None, 
-                 relative=False, q=None):
+                 relative=False, q=None, verbose=False):
         r'''
         Temporal network class, this object will have information about the session analysed and store the coherence
         networks (a.k.a. supertensor).
@@ -59,10 +59,10 @@ class temporal_network():
 
         # Threshold the super tensor
         if isinstance(q, (int,float)):
-            print('Computing coherence thresholds')
+            if verbose: print('Computing coherence thresholds') 
             self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','time')).values, 
                                                         q=q,
-                                                        relative=relative)
+                                                        relative=relative, verbose=verbose)
             self.super_tensor.values = (self.super_tensor.stack(observations=('trials','time')) > self.coh_thr).unstack().values
 
         # The trial selection is done at the end after thresholding because the thresholds are computed commonly for all trial types
