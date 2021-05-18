@@ -12,7 +12,7 @@ class temporal_network():
 
     def __init__(self, data_raw_path='GrayLab/', tensor_raw_path='super_tensors', monkey='lucy', session=1, 
                  date='150128', trial_type=None, behavioral_response=None, wt=None, 
-                 relative=False, q=None, verbose=False):
+                 drop_trials_after = True, relative=False, q=None, verbose=False):
         r'''
         Temporal network class, this object will have information about the session analysed and store the coherence
         networks (a.k.a. supertensor).
@@ -25,20 +25,22 @@ class temporal_network():
         - trial_type: the type of trial (DRT/fixation) 
         - behavioral_response: Wheter to get sucessful (1) or unsucessful (0) trials
         - wt: Tuple. Trimming window will remove the wt[0] and wt[1] points in the start and end of each trial
-        - relative: if threshold is true wheter to do it in ralative (one thr per link per band) or an common thr for links per band
+        - drop_trials_after: If True the trials that are not in trial_type are droped only after 
+            computing the thresholds which mean that the thresholds will be commom for all types of trials
+            specified in trial_types.
+        - relative: if threshold is true wheter to do it in ralative (one thr per link per band) or 
+            an common thr for links per band
         - q: Quartile value to use for thresholding
         '''
 
-        #Check for incorrect parameter values
-        if monkey not in ['lucy', 'ethyl']:
-            raise ValueError('monkey should be either "lucy" or "ethyl"')
-
-        # Asserting variable types
-        assert isinstance(wt, (type(None), tuple))
-        assert isinstance(q, (type(None), int, float))
+        # Check for incorrect parameter values
+        assert monkey in ['lucy', 'ethyl'], 'monkey should be either "lucy" or "ethyl"'
+        # Input conversion
+        if trial_type is not None: trial_type = np.asarray(trial_type)
+        if behavioral_response is not None: behavioral_response = np.asarray(behavioral_response)
 
         # Load session info
-        self.info = GDa.session.session(raw_path=data_raw_path, monkey=monkey, date=date, session=session)
+        self.info           = GDa.session.session(raw_path=data_raw_path, monkey=monkey, date=date, session=session)
         # Storing recording info
         self.recording_info = self.info.recording_info
         # Storing trial info
@@ -50,7 +52,7 @@ class temporal_network():
         self.raw_path = tensor_raw_path
         self.monkey   = monkey
         self.date     = date                            
-        self.session  = 'session0' + str(session)       
+        self.session  = f'session0{session}'       
         self.trial_type          = trial_type
         self.behavioral_response = behavioral_response 
         
@@ -59,20 +61,22 @@ class temporal_network():
 
         # Threshold the super tensor
         if isinstance(q, (int,float)):
-            if verbose: print('Computing coherence thresholds') 
-            self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','time')).values, 
-                                                        q=q,
-                                                        relative=relative, verbose=verbose)
-            self.super_tensor.values = (self.super_tensor.stack(observations=('trials','time')) > self.coh_thr).unstack().values
-
-        # The trial selection is done at the end after thresholding because the thresholds are computed commonly for all trial types
-        filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=trial_type, behavioral_response=behavioral_response)
-        # Filtering super-tensor
-        self.super_tensor = self.super_tensor.sel(trials = filtered_trials)
+            # Drop trials before thresholding
+            if trial_type is not None or behavioral_response is not None and drop_trials_after is False:
+                self.__filter_trials(trial_type, behavioral_response)
+            # Threshold
+            self.__compute_coherence_thresholds(q, relative, verbose)
+            # Drop trials after threshold
+            if trial_type is not None or behavioral_response is not None and drop_trials_after is True:
+                self.__filter_trials(trial_type, behavioral_response)
+        else:
+            # Othrwise simply drop the trials if needed
+            if trial_type is not None or behavioral_response is not None:
+                self.__filter_trials(trial_type, behavioral_response)
 
     def __load_h5(self, wt):
         # Path to the super tensor in h5 format 
-        h5_super_tensor_path = os.path.join(self.raw_path, self.monkey+'_'+str(self.session)+'_'+self.date+'.h5')
+        h5_super_tensor_path = os.path.join(self.raw_path, f'{self.monkey}_{self.session}_{self.date}.h5')
 
         try:
             hf = h5py.File(h5_super_tensor_path, 'r')
@@ -100,7 +104,6 @@ class temporal_network():
 
         # Concatenate trials in the super tensor
         self.super_tensor = self.super_tensor.swapaxes(1,2)
-        #self.super_tensor = self.reshape_observations()
 
         # Convert to xarray
         self.super_tensor = xr.DataArray(self.super_tensor, dims=("links","bands","trials","time"),
@@ -179,6 +182,10 @@ class temporal_network():
 
         return np.int( self.s_mask[stage].sum() )
     
+    def __filter_trials(self, trial_type, behavioral_response):
+        filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=trial_type, behavioral_response=behavioral_response)
+        self.super_tensor = self.super_tensor.sel(trials = filtered_trials)
+    
     def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
         r'''
         Filter super-tensor by desired trials based on trial_type and behav. response.
@@ -193,40 +200,48 @@ class temporal_network():
         assert _check_values(trial_type,[None, 1.0, 2.0, 3.0]) is True, "Trial type should be either 1, 2, 3 or None."
         assert _check_values(behavioral_response,[None,np.nan, 0.0, 1.0]) is True, "Behavioral response should be either 0, 1, NaN or None."
 
-        if trial_type is None and behavioral_response is None:
-            #print('1')
-            # Getting the number for ODRT trials
-            filtered_trials     = self.trial_info.trial_index.values
-            # Getting the index for those trials
-            filtered_trials_idx = self.trial_info.index.values
-            return filtered_trials, filtered_trials_idx
-        else:
-            if behavioral_response is None:
-                #print('2')
-                idx = self.trial_info['trial_type'].isin(trial_type)
-            elif trial_type is None:
-                #print('3')
-                idx = self.trial_info['behavioral_response'].isin(behavioral_response)
-            else:
-                #print('4')
-                idx = self.trial_info['trial_type'].isin(trial_type) & self.trial_info['behavioral_response'].isin(behavioral_response)
-            # Getting the number for ODRT trials
-            filtered_trials     = self.trial_info[idx].trial_index.values
-            # Getting the index for those trials
-            filtered_trials_idx = self.trial_info[idx].index.values
-            return filtered_trials, filtered_trials_idx
+        if isinstance(trial_type, np.ndarray) and behavioral_response is None:
+            idx = self.trial_info['trial_type'].isin(trial_type)
+        if trial_type is None and isinstance(behavioral_response, np.ndarray):
+            idx = self.trial_info['behavioral_response'].isin(behavioral_response)
+        if isinstance(trial_type, np.ndarray) and isinstance(behavioral_response, np.ndarray):
+            idx = self.trial_info['trial_type'].isin(trial_type) & self.trial_info['behavioral_response'].isin(behavioral_response)
+        filtered_trials     = self.trial_info[idx].trial_index.values
+        filtered_trials_idx = self.trial_info[idx].index.values
+        return filtered_trials, filtered_trials_idx
+
+        #if trial_type is None and behavioral_response is None:
+        #    # Getting the number for ODRT trials
+        #    filtered_trials     = self.trial_info.trial_index.values
+        #    # Getting the index for those trials
+        #    filtered_trials_idx = self.trial_info.index.values
+        #    return filtered_trials, filtered_trials_idx
+        #else:
+        #    if behavioral_response is None:
+        #        idx = self.trial_info['trial_type'].isin(trial_type)
+        #    elif trial_type is None:
+        #        idx = self.trial_info['behavioral_response'].isin(behavioral_response)
+        #    else:
+        #        idx = self.trial_info['trial_type'].isin(trial_type) & self.trial_info['behavioral_response'].isin(behavioral_response)
+        #    # Getting the number for ODRT trials
+        #    filtered_trials     = self.trial_info[idx].trial_index.values
+        #    # Getting the index for those trials
+        #    filtered_trials_idx = self.trial_info[idx].index.values
+        #    return filtered_trials, filtered_trials_idx
+
+    def __compute_coherence_thresholds(self, q, relative, verbose):
+        if verbose: print('Computing coherence thresholds') 
+        self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','time')).values, 
+                                                    q=q, relative=relative, verbose=verbose)
+        self.super_tensor.values = (self.super_tensor.stack(observations=('trials','time')) > self.coh_thr).unstack().values
 
     def reshape_trials(self, ):
-        aux = reshape_trials( self.super_tensor, self.session_info['nT'], len(self.tarray) )
-        return aux
-
-    def reshape_trials(self, ):
-        aux = reshape_trials( self.super_tensor, self.session_info['nT'], len(self.tarray) )
-        return aux
+        assert len(self.super_tensor.dims) is 3
+        self.super_tensor.unstack()
 
     def reshape_observations(self, ):
-        aux = reshape_observations( self.super_tensor, self.session_info['nT'], len(self.tarray) )
-        return aux
+        assert len(self.super_tensor.dims) is 4
+        self.super_tensor.stack(observations=('trials','time'))
 
 ################################################ AUX FUNCTIONS ################################################
 
