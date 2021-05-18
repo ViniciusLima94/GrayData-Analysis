@@ -24,7 +24,6 @@ class session_info():
         - date: date of the recording session
         - session: session number
         '''
-
         #Check for incorrect parameter values
         if monkey not in ['lucy', 'ethyl']:
             raise ValueError('monkey should be either "lucy" or "ethyl"')
@@ -32,7 +31,7 @@ class session_info():
         # Class atributes
         self.monkey  = monkey
         self.date    = date
-        self.session = 'session0' + str(session)
+        self.session = f'session0{session}'
         # Creating paths to load and save data
         self.__paths    = set_paths(raw_path = raw_path, monkey = monkey, date = date, session = session)
         # To load .mat files
@@ -99,11 +98,9 @@ class session(session_info):
         # Selecting trials
         self.trial_info = self.trial_info[ (self.trial_info['trial_type'].isin([1.0,2.0,3.0])) ]
         # Reset index and create new column with the index of select trials
-        # self.trial_info.reset_index(inplace=True).rename(columns={self.trial_info.index.name:'trial_index'})
         self.trial_info = self.trial_info.rename_axis('trial_index').reset_index()
 
     def read_from_mat(self, ):
-        
         # Get file names
         files = sorted(glob.glob( os.path.join(self.__paths.dir, self.date+'*') ))
 
