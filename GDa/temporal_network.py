@@ -210,25 +210,6 @@ class temporal_network():
         filtered_trials_idx = self.trial_info[idx].index.values
         return filtered_trials, filtered_trials_idx
 
-        #if trial_type is None and behavioral_response is None:
-        #    # Getting the number for ODRT trials
-        #    filtered_trials     = self.trial_info.trial_index.values
-        #    # Getting the index for those trials
-        #    filtered_trials_idx = self.trial_info.index.values
-        #    return filtered_trials, filtered_trials_idx
-        #else:
-        #    if behavioral_response is None:
-        #        idx = self.trial_info['trial_type'].isin(trial_type)
-        #    elif trial_type is None:
-        #        idx = self.trial_info['behavioral_response'].isin(behavioral_response)
-        #    else:
-        #        idx = self.trial_info['trial_type'].isin(trial_type) & self.trial_info['behavioral_response'].isin(behavioral_response)
-        #    # Getting the number for ODRT trials
-        #    filtered_trials     = self.trial_info[idx].trial_index.values
-        #    # Getting the index for those trials
-        #    filtered_trials_idx = self.trial_info[idx].index.values
-        #    return filtered_trials, filtered_trials_idx
-
     def __compute_coherence_thresholds(self, q, relative, verbose):
         if verbose: print('Computing coherence thresholds') 
         self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','time')).values, 
