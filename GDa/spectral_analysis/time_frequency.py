@@ -5,7 +5,6 @@ import h5py
 import multiprocessing
 from   joblib           import Parallel, delayed
 from   .util            import smooth_spectra
-from   ..util           import downsample
 
 def wavelet_transform(data = None, fs = 20, freqs = np.arange(6,60,1), n_cycles = 7.0, 
                       time_bandwidth = None, delta = 1, method = 'morlet', baseline_correction = False, n_jobs = 1):
