@@ -157,3 +157,56 @@ def transient_oscillation_gauss_non_stationary(trials=1, nvars=1, n=1000, fs=100
                            coords = {"time": np.arange(n)/fs} )
 
     return signal
+
+def ar_model_dhamala(trials = 10, n=5000, fs = 200, C=0.2, t_start=0, t_stop=None, cov = None, verbose=False):
+    r'''
+    Coupled auto-regressive model from Dhamala et. al. (2008)
+    X_{1}(t) = 0.55X_{1}(t-1)-0.8X_{1}(t-2)+C(t)X_{2}(t-1)+\epsilon (t)
+    X_{2}(t) = 0.55X_{2}(t-1)-0.8X_{2}(t-2)+\xi (t)
+    Here, X_1(t) and X_2(t) are AR(2). The variable t is the time step index,
+    such that the actual time is t'=t\,\Delta t=t/f_{\rm s}. Besides, we know by construction that
+    X_2(t) influences X_1(t) through the coupling constant C
+    (although the opposite does not happen). In the simulation C(t)=0.25 for t<15s, and zero otherwise. 
+    > INPUTS:
+    - trials: number of trials
+    - n: number of points in the signal
+    - fs: sampling frequency of the signal
+    - t_start: starting time of coupling
+    - t_stop:  ending time of coupling
+    - cov: normal noise covariance matrix
+    > OUTPUTS:
+    - signal: generated signal with dimensions [trials,channels,time]
+    '''
+
+    from tqdm import tqdm 
+
+    T = n / fs
+
+    time = np.linspace(0, T, n)
+
+    X = np.random.random([trials, n])
+    Y = np.random.random([trials, n])
+
+    def interval(t, t_start, t_stop):
+        if t_stop==None:
+            return (t>=t_start)
+        else:
+            return (t>=t_start)*(t<=t_stop)
+
+    # Iterator
+    itr = range(trials) 
+    for i in ( tqdm( itr ) if verbose else itr ):
+        E = np.random.multivariate_normal(np.zeros(cov.shape[0]), cov, size=(n,))
+        for t in range(2, n):
+            X[i,t] = 0.55*X[i,t-1] - 0.8*X[i,t-2] + interval(time[t],t_start,t_stop)*C*Y[i,t-1] + E[t,0]
+            Y[i,t] = 0.55*Y[i,t-1] - 0.8*Y[i,t-2] + E[t,1]
+
+    Z = np.zeros([trials,2,n])
+
+    Z[:,0,:] = X
+    Z[:,1,:] = Y
+
+    Z = xr.DataArray(Z, dims=('trials', 'roi', 'time'),
+                     coords=(np.arange(trials), ['X_1', 'X_2'], np.arange(n) / fs))
+
+    return Z
