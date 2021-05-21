@@ -453,7 +453,9 @@ def _wilson_factorization(S, freq, fs, Niterations=100, tol=1e-12, verbose=True)
 
 if __name__ == '__main__':
     r'''
-    example model from [Dhamala et. al.](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.100.018701). The model consists of two coupled random variables ($2\rightarrow 1$), the coupling is time-varying therefore the coherence should detect the coupling dynamics. The model is given by the equations bellow:
+    example model from [Dhamala et. al.](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.100.018701). 
+    The model consists of two coupled random variables ($2\rightarrow 1$), the coupling is time-varying therefore 
+    the coherence should detect the coupling dynamics. The model is given by the equations bellow:
 
     $X_{1}(t) = 0.55X_{1}(t-1)-0.8X_{1}(t-2)+C(t)X_{2}(t-1)+\epsilon (t)$
 
@@ -465,4 +467,71 @@ if __name__ == '__main__':
     (although the opposite does not happen). In the simulation $C(t)=0.25$ for $t<15$ s, and zero otherwise. 
     '''
 
-    pass
+    import matplotlib.pyplot as plt
+
+    def ar_model_dhamala(N=5000, Trials = 10, Fs = 200, C=0.2, t_start=0, t_stop=None, cov = None):
+
+        from tqdm import tqdm
+
+        T = N / Fs
+
+        time = np.linspace(0, T, N)
+
+        X = np.random.random([Trials, N])
+        Y = np.random.random([Trials, N])
+
+        def interval(t, t_start, t_stop):
+            if t_stop==None:
+                return (t>=t_start)
+            else:
+                return (t>=t_start)*(t<=t_stop)
+
+        for i in tqdm( range(Trials) ):
+            E = np.random.multivariate_normal(np.zeros(cov.shape[0]), cov, size=(N,))
+            for t in range(2, N):
+                X[i,t] = 0.55*X[i,t-1] - 0.8*X[i,t-2] + interval(time[t],t_start,t_stop)*C*Y[i,t-1] + E[t,0]
+                Y[i,t] = 0.55*Y[i,t-1] - 0.8*Y[i,t-2] + E[t,1]
+
+        Z = np.zeros([Trials,2,N])
+
+        Z[:,0,:] = X
+        Z[:,1,:] = Y
+
+        return Z
+    
+    N  = 5000      # Number of observations
+    Fs = 200       # Sampling frequency
+    dt = 1.0 / Fs  # Time resolution
+    C  = 0.25      # Coupling parameter
+    Trials = 100   # Number of trials
+    freqs  = np.arange(1,100,1) # Frequency axis
+    # Covariance matrix
+    cov = np.array([ [1.00, 0.00],
+                     [0.00, 1.00] ])
+
+    # Generating data
+    X = ar_model_dhamala(N=N, Trials = Trials, C=C, Fs=Fs, t_start=0, t_stop=15, cov=cov)
+
+    X = xr.DataArray(X, dims=('trials', 'roi', 'times'),
+        coords=(np.arange(Trials), ['r0', 'r1'], np.arange(N) / Fs))
+
+    import time
+
+    start = time.time()
+
+    cai = conn_spec_gc(
+        X.values, freqs=freqs, roi=['X1', 'X2'], times=None, sfreq=Fs, pairs=None,
+        win_sample=None, foi=None, mode='morlet', n_cycles=freqs/2.,
+        mt_bandwidth=None, decim=10, kw_cwt={}, kw_mt={}, block_size=None,
+        n_jobs=-1, verbose=None)
+
+    end = time.time()
+    print(f'Elapsd time of {end-start} seconds.')
+
+    plt.figure(figsize=(12,8))
+    plt.subplot(2,1,1)
+    cai[0].plot.imshow(x='times', y='freqs', cmap='RdBu_r', vmin=0, vmax=1)
+    plt.subplot(2,1,2)
+    cai[1].plot.imshow(x='times', y='freqs', cmap='RdBu_r', vmin=0, vmax=1)
+    plt.tight_layout()
+    plt.show()
