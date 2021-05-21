@@ -452,5 +452,17 @@ def _wilson_factorization(S, freq, fs, Niterations=100, tol=1e-12, verbose=True)
     return Snew, Hnew, Znew
 
 if __name__ == '__main__':
+    r'''
+    example model from [Dhamala et. al.](https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.100.018701). The model consists of two coupled random variables ($2\rightarrow 1$), the coupling is time-varying therefore the coherence should detect the coupling dynamics. The model is given by the equations bellow:
+
+    $X_{1}(t) = 0.55X_{1}(t-1)-0.8X_{1}(t-2)+C(t)X_{2}(t-1)+\epsilon (t)$
+
+    $X_{2}(t) = 0.55X_{2}(t-1)-0.8X_{2}(t-2)+\xi (t)$
+
+    Here, $X_1(t)$ and $X_2(t)$ are $AR(2)$. The variable $t$ is the time step index,
+    such that the actual time is $t'=t\,\Delta t=t/f_{\rm s}$. Besides, we know by construction that
+    $X_2(t)$ influences $X_1(t)$ through the coupling constant $C$
+    (although the opposite does not happen). In the simulation $C(t)=0.25$ for $t<15$ s, and zero otherwise. 
+    '''
 
     pass
