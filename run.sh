@@ -7,7 +7,5 @@
 #SBATCH -N 1
 #SBATCH --array=0-5
 
-conda activate gda
-
 python3  -O save_coherences.py $SLURM_ARRAY_TASK_ID
 #python3 -O save_coherences.py
