@@ -23,13 +23,14 @@ align_to  = 'cue'
 behavioral_response = None 
 
 #################################################################################################
-#  Instantiating session
-ses   = session(raw_path = dirs['rawdata'], monkey = dirs['monkey'][nmonkey], date = dirs['date'][nmonkey][idx],
-                session = nses, slvr_msmod = False, align_to = align_to, evt_dt = [-0.65, 3.00])
-# Load data
-ses.read_from_mat()
 
 if  __name__ == '__main__':
+
+    #  Instantiating session
+    ses   = session(raw_path = dirs['rawdata'], monkey = dirs['monkey'][nmonkey], date = dirs['date'][nmonkey][idx],
+                    session = nses, slvr_msmod = False, align_to = align_to, evt_dt = [-0.65, 3.00])
+# Load data
+    ses.read_from_mat()
 
     start = time.time()
 
