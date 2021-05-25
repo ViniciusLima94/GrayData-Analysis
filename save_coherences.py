@@ -42,7 +42,7 @@ if  __name__ == '__main__':
     # compute the coherence
     coh = conn_coherence_wav(ses.data.values.astype(np.float32), **kw)
 
-    path_st = os.path.join('super_tensors', f'{dirs['monkey'][nmonkey]}_session01_{dirs['date'][nmonkey][idx]}.h5')
+    path_st = os.path.join('super_tensors', str(dirs['monkey'][nmonkey])+'_session01_'+str(dirs['date'][nmonkey][idx])+'.h5')
 
     try:
         hf = h5py.File(path_st, 'r+')
