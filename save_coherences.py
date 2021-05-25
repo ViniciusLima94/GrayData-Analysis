@@ -22,14 +22,12 @@ trial_type = 3
 align_to  = 'cue'
 behavioral_response = None 
 
-#################################################################################################
-
 if  __name__ == '__main__':
 
     #  Instantiating session
     ses   = session(raw_path = dirs['rawdata'], monkey = dirs['monkey'][nmonkey], date = dirs['date'][nmonkey][idx],
                     session = nses, slvr_msmod = False, align_to = align_to, evt_dt = [-0.65, 3.00])
-# Load data
+    # Load data
     ses.read_from_mat()
 
     start = time.time()
@@ -50,7 +48,7 @@ if  __name__ == '__main__':
     except:
         hf = h5py.File(path_st, 'w')
 
-    hf = h5py.File(path_st, 'w')
+    #hf = h5py.File(path_st, 'w')
     hf.create_dataset('coherence', data=coh.transpose("roi", "trials", "freqs", "times"))
     hf.create_dataset('freqs',     data=freqs)
     hf.create_dataset('tarray',    data=coh.times.values)
