@@ -30,7 +30,7 @@ sm_times = 300
 sm_freqs = 1
 
 # Defining parameters
-f_start, f_end, n_freqs, sfreq = .1, 80, 50, ses.data.attrs['fsample']
+f_start, f_end, n_freqs, sfreq = .1, 80, 50, 1000
 freqs = np.linspace(f_start, f_end, n_freqs, endpoint=True)
 delta = 15       # Downsampling factor
 mode  = 'morlet' # ("morlet", "mt_1", "mt_2")
