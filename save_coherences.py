@@ -9,7 +9,7 @@ from   GDa.io                          import set_paths
 from   xfrites.conn.conn_coh           import conn_coherence_wav
 from   joblib                          import Parallel, delayed
 
-idx     = 3 #int(sys.argv[-1])
+idx     = int(sys.argv[-1])
 
 nmonkey = 0
 nses    = 1
