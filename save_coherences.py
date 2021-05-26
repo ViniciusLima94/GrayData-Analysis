@@ -29,6 +29,7 @@ if  __name__ == '__main__':
     path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
     # Check if path existis, if not it will be created
     if not os.path.exists(path_st):
+        print('Check')
         os.mkdir(path_st)
     # Add name of the file
     path_st = os.path.join(path_st, 'super_tensor.h5')
