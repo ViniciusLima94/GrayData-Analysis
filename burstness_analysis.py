@@ -21,12 +21,13 @@ import scipy.signal
 
 import GDa.stats.bursting       as       bst
 from   GDa.temporal_network     import   temporal_network
+from   GDa.util                 import   smooth
 
 import sys
 import os
 
 from   config                   import   *
-from   GDa.util                 import   smooth
+from   tqdm                     import   tqdm
 
 ###############################################################################
 # Distribution of the average coherence value per task-stage and band
