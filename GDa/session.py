@@ -25,8 +25,7 @@ class session_info():
         - session: session number
         '''
         #Check for incorrect parameter values
-        if monkey not in ['lucy', 'ethyl']:
-            raise ValueError('monkey should be either "lucy" or "ethyl"')
+        assert monkey in ['lucy', 'ethyl'], 'monkey should be either "lucy" or "ethyl"'
 
         # Class atributes
         self.monkey  = monkey
@@ -77,11 +76,9 @@ class session(session_info):
         - evt_dt: Get signal from evt_dt[0] to evt_dt[1]
         '''
         #Check for incorrect parameter values
-        if monkey not in ['lucy', 'ethyl']:
-            raise ValueError('monkey should be either "lucy" or "ethyl"')
+        assert monkey in ['lucy', 'ethyl'], 'monkey should be either "lucy" or "ethyl"'
             
-        if align_to not in ['cue', 'match']:
-            raise ValueError('align_to should be either "cue" or "match"')
+        assert align_to in ['cue', 'match'], 'align_to should be either "cue" or "match"'
         
         # Instantiating father class session_info
         super().__init__(raw_path = raw_path, monkey = monkey, date = date, session = session)
@@ -142,6 +139,7 @@ class session(session_info):
             # Beggining and ending time index for this t0
             indb     = int(t0[i] + self.recording_info['lfp_sampling_rate']*self.evt_dt[0])
             inde     = int(t0[i] + self.recording_info['lfp_sampling_rate']*self.evt_dt[1])
+            print(f't0 = {t0[i]})
             # Time index array
             ind      = np.arange(indb, inde+1, dtype = int)
             # LFP data, dimension NtrialsxNchannelsxTime
