@@ -24,6 +24,15 @@ behavioral_response = None
 
 if  __name__ == '__main__':
 
+    # Path in which to save coherence data
+    #path_st = os.path.join('Results', str(dirs['monkey'][nmonkey])+'_session01_'+str(dirs['date'][nmonkey][idx])+'.h5')
+    path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
+    # Check if path existis, if not it will be created
+    if not os.path.exists(path_st):
+        os.mkdir(path_st)
+    # Add name of the file
+    path_st = os.path.join(path_st, 'super_tensor.h5')
+
     #  Instantiating session
     ses   = session(raw_path = dirs['rawdata'], monkey = dirs['monkey'][nmonkey], date = dirs['date'][nmonkey][idx],
                     session = nses, slvr_msmod = False, align_to = align_to, evt_dt = [-0.65, 3.00])
@@ -40,8 +49,6 @@ if  __name__ == '__main__':
 
     # compute the coherence
     coh = conn_coherence_wav(ses.data.values.astype(np.float32), **kw)
-
-    path_st = os.path.join('super_tensors', str(dirs['monkey'][nmonkey])+'_session01_'+str(dirs['date'][nmonkey][idx])+'.h5')
 
     try:
         hf = h5py.File(path_st, 'r+')
