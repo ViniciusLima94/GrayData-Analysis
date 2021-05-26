@@ -42,7 +42,7 @@ ntype   = 0
 ###############################################################################
 
 # Path to coherence data 
-path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}', 'super_tensor.h5')
+path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
 
 def set_net_params(path_st, trial_type=None, behavioral_response=None, relative=None, q=None):
     r'''
