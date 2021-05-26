@@ -17,8 +17,10 @@ import numpy                    as       np
 import xarray                   as       xr
 import matplotlib.pyplot        as       plt
 import seaborn                  as       sns
-import GDa.stats.bursting       as       bst
 import scipy.signal
+
+import GDa.stats.bursting       as       bst
+from   GDa.temporal_network     import   temporal_network
 
 import sys
 import os
