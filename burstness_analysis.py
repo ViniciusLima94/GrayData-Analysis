@@ -37,6 +37,10 @@ nmonkey = 0
 nses    = 1
 ntype   = 0
 
+# Bands names
+band_names  = [r'band 1', r'band 2', r'band 3', r'band 4', r'band 5']
+stages      = ['baseline', 'cue', 'delay', 'match']
+
 ###############################################################################
 # Defining parameters to instantiate temporal network
 ###############################################################################
