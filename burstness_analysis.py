@@ -90,26 +90,5 @@ for i in tqdm( range(len(q_list)) ):
                        samples = net.get_number_of_samples(stage=s),
                        dt      = delta/net.super_tensor.attrs['fsample'])
 
-titles = ['Mean burst duration', 'Norm. total active time', 'CV']
-plt.figure(figsize=(12,15))
-count = 1
-for i in range(len(net.bands)):
-    for k in range(3):
-        plt.subplot(5,3,count)
-        for s in range(len(stages)):
-            v_median = np.median(  cv[:,i,k,s,:],axis=0)
-            v_q05    = np.quantile(cv[:,i,k,s,:], 5/100, axis=0)
-            v_q95    = np.quantile(cv[:,i,k,s,:], 95/100, axis=0)
-            diq      = (v_q95-v_q05)/2
-            plt.plot(q_list, v_median, label=stages[s])
-            plt.fill_between(q_list, v_median-diq, v_median+diq, alpha=0.2)
-        count +=1
-        plt.xlim([0.2,0.9])
-        if k == 0: plt.ylabel(f'Band {i}', fontsize=15)
-        if i == 0: plt.title(titles[k], fontsize=15)
-        if i < 4:  plt.xticks([])
-        if i == 0 and k==0: plt.legend()
-        if i == 4: plt.xlabel('q', fontsize=15)
-plt.tight_layout()
 
 

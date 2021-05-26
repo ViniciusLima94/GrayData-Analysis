@@ -83,7 +83,12 @@ class temporal_network():
         #  except (OSError):
         #      raise OSError('File for monkey ' + str(self.monkey) + ', date ' + self.date + ' ' + self.session + '  do not exist.')
 
-        h5_super_tensor_path = os.path.join(self.raw_path, 'super_tensor.h5')
+        # Path to the file
+        h5_super_tensor_path = os.path.join(self.raw_path, 
+                                            self.monkey, 
+                                            self.date, 
+                                            self.session,
+                                            'super_tensor.h5')
         try:
             hf = h5py.File(h5_super_tensor_path, 'r')
         except (OSError):
