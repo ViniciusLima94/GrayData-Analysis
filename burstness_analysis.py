@@ -19,6 +19,7 @@ import matplotlib.pyplot        as       plt
 import seaborn                  as       sns
 import GDa.stats.bursting       as       bst
 import scipy.signal
+import sys
 
 from   config                   import   *
 from   GDa.util                 import   smooth
