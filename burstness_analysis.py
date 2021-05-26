@@ -50,7 +50,7 @@ def set_net_params(path_st, trial_type=None, behavioral_response=None, relative=
     '''
 
     # Default parameters plus params passed to method trial type 1
-    return dict( data_raw_path='GrayLab/', tensor_raw_path=path, monkey=dirs['monkey'][nmonkey],
+    return dict( data_raw_path='GrayLab/', tensor_raw_path=path_st, monkey=dirs['monkey'][nmonkey],
                  session=1, date=dirs['date'][nmonkey][idx], trial_type=trial_type,
                  behavioral_response=behavioral_response, relative=relative, q=q, wt=(30,30) )
 
