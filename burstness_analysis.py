@@ -63,7 +63,7 @@ def set_net_params(trial_type=None, behavioral_response=None, relative=None, q=N
 ###############################################################################
 
 # Instantiating a temporal network object without thresholding the data
-net =  temporal_network( **set_net_params(path_st, [1], [1]) )
+net =  temporal_network( **set_net_params([1], [1]) )
 
 avg_coh = np.zeros((net.super_tensor.sizes['links'], net.super_tensor.sizes['bands'], len(stages)))
 for j in tqdm( range( len(stages) ) ):
@@ -81,7 +81,7 @@ cv     = np.zeros([net.super_tensor.shape[0], len(net.bands), 3, len(stages), le
 
 for i in tqdm( range(len(q_list)) ):
     # Instantiating a temporal network object without thresholding the data
-    net =  temporal_network(**set_net_params(path_st, [1], [1], relative=True, q=q_list[i]) )
+    net =  temporal_network(**set_net_params([1], [1], relative=True, q=q_list[i]) )
 
     for j,s in zip(range(len(stages)),stages):
         cv[...,j,i]  = np.apply_along_axis(bst.compute_burstness_stats, -1,
