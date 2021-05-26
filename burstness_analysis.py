@@ -70,13 +70,46 @@ avg_coh = np.zeros((net.super_tensor.sizes['links'], net.super_tensor.sizes['ban
 for j in tqdm( range( len(stages) ) ):
     avg_coh[:,:,j] = net.get_data_from(stage=stages[j], pad=False).mean(dim='observations')
 
-plt.figure(figsize=(12,8))
-for j in tqdm( range( len(stages) ) ):
-    plt.subplot(2,2,j+1)
-    sns.violinplot(data=avg_coh[:,:,j], color='orange')
-    plt.title(stages[j], fontsize=15)
-    if j%2==0: plt.ylabel('Coherence', fontsize=15)
-    if j==2 or j==3: plt.xticks(range(len(band_names)),band_names, fontsize=15)
-    else: plt.xticks([])
+###############################################################################
+# Effect of threshold variation  
+###############################################################################
+
+# Here we compute the mean and interquartile distances of the measures of interest for
+# different thereshod values
+
+q_list = np.arange(0.2, 1.0, 0.1)
+cv     = np.zeros([net.super_tensor.shape[0], len(net.bands), 3, len(stages), len(q_list)])
+
+for i in tqdm( range(len(q_list)) ):
+    # Instantiating a temporal network object without thresholding the data
+    net =  temporal_network(**set_net_params(path_st, [1], [1], relative=True, q=q_list[i]) )
+
+    for j,s in zip(range(len(stages)),stages):
+        cv[...,j,i]  = np.apply_along_axis(bst.compute_burstness_stats, -1,
+                       net.get_data_from(stage=s,pad=True),
+                       samples = net.get_number_of_samples(stage=s),
+                       dt      = delta/net.super_tensor.attrs['fsample'])
+
+titles = ['Mean burst duration', 'Norm. total active time', 'CV']
+plt.figure(figsize=(12,15))
+count = 1
+for i in range(len(net.bands)):
+    for k in range(3):
+        plt.subplot(5,3,count)
+        for s in range(len(stages)):
+            v_median = np.median(  cv[:,i,k,s,:],axis=0)
+            v_q05    = np.quantile(cv[:,i,k,s,:], 5/100, axis=0)
+            v_q95    = np.quantile(cv[:,i,k,s,:], 95/100, axis=0)
+            diq      = (v_q95-v_q05)/2
+            plt.plot(q_list, v_median, label=stages[s])
+            plt.fill_between(q_list, v_median-diq, v_median+diq, alpha=0.2)
+        count +=1
+        plt.xlim([0.2,0.9])
+        if k == 0: plt.ylabel(f'Band {i}', fontsize=15)
+        if i == 0: plt.title(titles[k], fontsize=15)
+        if i < 4:  plt.xticks([])
+        if i == 0 and k==0: plt.legend()
+        if i == 4: plt.xlabel('q', fontsize=15)
 plt.tight_layout()
+
 
