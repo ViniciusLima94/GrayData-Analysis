@@ -25,7 +25,6 @@ behavioral_response = None
 if  __name__ == '__main__':
 
     # Path in which to save coherence data
-    #path_st = os.path.join('Results', str(dirs['monkey'][nmonkey])+'_session01_'+str(dirs['date'][nmonkey][idx])+'.h5')
     path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
     # Check if path existis, if not it will be created
     if not os.path.exists(path_st):

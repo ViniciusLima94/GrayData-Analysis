@@ -93,6 +93,17 @@ def reshape_observations(tensor, nT, nt):
         aux = tensor.reshape([tensor.shape[0], tensor.shape[1], tensor.shape[2], nT * nt])
     return aux
 
+def smooth(x, w):
+    r'''
+    Auxiliary function to smooth a 1D array using a boxcar function.
+    > INPUTS:
+    - x: A 1D array
+    - w: Size of the window
+    > OUTPUTS:
+    - smoothed array.
+    '''
+    return scipy.signal.fftconvolve(x, np.ones(w)/w, mode='same')
+
 #def create_stim_grid(stim_list, nT, nt):
 #    n_stim           = int(stim_list.max()) 
 #    self.stim_grid   = np.zeros([n_stim, nT*nt])
