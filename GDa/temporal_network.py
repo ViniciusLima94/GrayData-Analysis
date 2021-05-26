@@ -76,12 +76,19 @@ class temporal_network():
 
     def __load_h5(self, wt):
         # Path to the super tensor in h5 format 
-        h5_super_tensor_path = os.path.join(self.raw_path, f'{self.monkey}_{self.session}_{self.date}.h5')
+        #  h5_super_tensor_path = os.path.join(self.raw_path, f'{self.monkey}_{self.session}_{self.date}.h5')
 
+        #  try:
+        #      hf = h5py.File(h5_super_tensor_path, 'r')
+        #  except (OSError):
+        #      raise OSError('File for monkey ' + str(self.monkey) + ', date ' + self.date + ' ' + self.session + '  do not exist.')
+
+        h5_super_tensor_path = os.path.join(self.raw_path, 'super_tensor.h5')
         try:
             hf = h5py.File(h5_super_tensor_path, 'r')
         except (OSError):
-            raise OSError('File for monkey ' + str(self.monkey) + ', date ' + self.date + ' ' + self.session + '  do not exist.')
+            raise OSError('File "super_tensor.h5" not found for monkey')
+
 
         # Reade h5 file containing coherence data
         self.super_tensor = hf['coherence'][:]
