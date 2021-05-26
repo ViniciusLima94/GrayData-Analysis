@@ -47,15 +47,14 @@ stages      = ['baseline', 'cue', 'delay', 'match']
 ###############################################################################
 
 # Path to coherence data 
-path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
 
-def set_net_params(path_st, trial_type=None, behavioral_response=None, relative=None, q=None):
+def set_net_params(trial_type=None, behavioral_response=None, relative=None, q=None):
     r'''
     Return dict. with parameters to instantiate temporal network object.
     '''
 
     # Default parameters plus params passed to method trial type 1
-    return dict( data_raw_path='GrayLab/', tensor_raw_path=path_st, monkey=dirs['monkey'][nmonkey],
+    return dict( data_raw_path='GrayLab/', tensor_raw_path='Results/', monkey=dirs['monkey'][nmonkey],
                  session=1, date=dirs['date'][nmonkey][idx], trial_type=trial_type,
                  behavioral_response=behavioral_response, relative=relative, q=q, wt=(30,30) )
 
