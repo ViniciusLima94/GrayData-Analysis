@@ -59,7 +59,7 @@ def set_net_params(trial_type=None, behavioral_response=None, relative=None, q=N
                  behavioral_response=behavioral_response, relative=relative, q=q, wt=(30,30) )
 
 ###############################################################################
-# Distribution of the average coherence value per task-stage and band
+# 1. Distribution of the average coherence value per task-stage and band
 ###############################################################################
 
 # Instantiating a temporal network object without thresholding the data
@@ -70,7 +70,7 @@ for j in tqdm( range( len(stages) ) ):
     avg_coh[:,:,j] = net.get_data_from(stage=stages[j], pad=False).mean(dim='observations')
 
 ###############################################################################
-# Effect of threshold variation  
+# 2. Effect of threshold variation  
 ###############################################################################
 
 # Here we compute the mean and interquartile distances of the measures of interest for
@@ -88,6 +88,8 @@ for i in tqdm( range(len(q_list)) ):
                        net.get_data_from(stage=s,pad=True),
                        samples = net.get_number_of_samples(stage=s),
                        dt      = delta/net.super_tensor.attrs['fsample'])
+
+
 
 
 
