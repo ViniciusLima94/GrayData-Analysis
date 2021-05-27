@@ -7,7 +7,17 @@ import numpy as np
 # Directories
 #####################################################################################################
 
+dates = np.loadtxt('GrayLab/lucy/sessions.txt', dtype=str)
+
 # Directories
+dirs = {
+        'rawdata':'GrayLab/',
+        'results':'Results/',
+        'monkey' :['lucy', 'ethyl'],
+        'session':'session01',
+        'date'   :[['150128', '150211', '150304'], []]
+        }
+
 dirs = {
         'rawdata':'GrayLab/',
         'results':'Results/',
