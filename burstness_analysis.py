@@ -89,6 +89,51 @@ for i in tqdm( range(len(q_list)) ):
                        samples = net.get_number_of_samples(stage=s),
                        dt      = delta/net.super_tensor.attrs['fsample'])
 
+###############################################################################
+# Define methods
+###############################################################################
+def _compute_stats(q, relative=True):
+    r''' 
+    Method to compute the statistics of interest for a given threshold value q. The statistics are described bellow:
+
+    Next we compute the three quantities of interest: the mean burst duration ($\mu$), the normalized total active time ($\mu_\rm{tot}$), and (CV). 
+    Bellow we briefly describe how each of those measurements in an example scenario. 
+
+    Consider the activation series for the edge $p$ composed by nodes $i$ and $j$ ($p=\{i,j\}$) and trial $T$: $A_{p}^{T}=\{00011100001100111111\}$.
+
+    1. the mean burst duration ($\mu$): 
+    In the example above $A_{p}^{T}$ has three activation bursts of sizes $3$, $2$, and $6$, therefore $\mu$ = mean(3,2,6) ~ 3.7 a.u. and standard deviantion $\sigma_{\mu}$ = std(3,2,6) ~ 1.7 a.u.;
+
+    2. the normalized total active time ($\mu_\rm{tot}$): The total active time is given by: $len(A_{p}^{T})^{-1}\sum A_{p}^{T}$. 
+    If a specif stage $s$ of the experiment is analysed for all trials we consider the concatenated activations series: 
+    $A_{p}(s)$, if $n(s)^T$ is the number of observations in stage $s$ at trial $T$ then: $\mu_\rm{tot} = 
+    (\sum_{T}n(s)^T)^{-1}\sum A_{p}(s)$;
+
+    3. Burstness CV: The burstness CV is computed from step one as: CV = $\sigma_{\mu}/\mu$.
+
+    > INPUTS:
+    - q: The quqartile to use to threshold the data.
+    '''
+
+    net =  temporal_network( **set_net_params([1], [1], relative=relative, q=q) )
+
+    # Burstiness analysis statistics
+    bs_stats = np.zeros((net.super_tensor.sizes['links'],net.super_tensor.sizes['bands'],len(stages), 3))
+    for j in tqdm( range(len(stages)) ):
+        bs_stats[:,:,j,:]=np.apply_along_axis(bst.compute_burstness_stats, -1,
+                          net.get_data_from(stage=stages[j], pad=True),
+                          samples = net.get_number_of_samples(stage=stages[j]),
+                          dt=delta/net.super_tensor.attrs['fsample'])
+
+
+
+
+
+
+
+
+
+
 
 
 
