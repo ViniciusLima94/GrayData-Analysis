@@ -65,6 +65,8 @@ def _compute_stats(q, relative=True):
                           samples = net.get_number_of_samples(stage=stages[j]),
                           dt=delta/net.super_tensor.attrs['fsample'])
 
+    return bs_stats
+
 ###############################################################################
 # Distribution of the average coherence value per task-stage and band
 ###############################################################################
