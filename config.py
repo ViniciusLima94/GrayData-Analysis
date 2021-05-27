@@ -15,16 +15,16 @@ dirs = {
         'results':'Results/',
         'monkey' :['lucy', 'ethyl'],
         'session':'session01',
-        'date'   :[['150128', '150211', '150304'], []]
+        'date'   :[dates, []]
         }
 
-dirs = {
-        'rawdata':'GrayLab/',
-        'results':'Results/',
-        'monkey' :['lucy', 'ethyl'],
-        'session':'session01',
-        'date'   :[['150128', '150211', '150304'], []]
-        }
+#  dirs = {
+#          'rawdata':'GrayLab/',
+#          'results':'Results/',
+#          'monkey' :['lucy', 'ethyl'],
+#          'session':'session01',
+#          'date'   :[['150128', '150211', '150304'], []]
+#          }
  
 #####################################################################################################
 # Spectral analysis
