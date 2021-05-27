@@ -90,6 +90,16 @@ for i in tqdm( range(len(q_list)) ):
                        dt      = delta/net.super_tensor.attrs['fsample'])
 
 ###############################################################################
+# 3. Compute statistics for three different thresholds
+###############################################################################
+q_list = np.array([0.3, 0.5, 0.8, 0.9]) # Overwriting q_list
+
+bs_stats = [] 
+
+for q in tqdm( q_list ):
+    bs_stats += [_compute_stats(q, relative=True)]
+
+###############################################################################
 # Define methods
 ###############################################################################
 def _compute_stats(q, relative=True):
