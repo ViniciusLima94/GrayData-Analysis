@@ -7,6 +7,7 @@ import seaborn                  as       sns
 from   GDa.temporal_network     import   temporal_network
 from   GDa.util                 import   smooth
 
+import scipy
 import sys
 import os
 import h5py
