@@ -7,4 +7,5 @@
 #SBATCH -N 1
 #SBATCH --array=0-25
 
+
 python3.6 -O burstness_analysis.py $SLURM_ARRAY_TASK_ID
