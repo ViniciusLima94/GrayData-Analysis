@@ -37,7 +37,8 @@ path_st = os.path.join('figures', str(dirs['monkey'][nmonkey]), str(dirs['date']
 if not os.path.exists(path_st):
     os.makedirs(path_st)
 
-hf = h5py.File(os.path.join(path_st, 'burstness_analysis.h5'), 'r')
+path_stats = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
+hf = h5py.File(os.path.join(path_stats, 'burstness_analysis.h5'), 'r')
 
 ###############################################################################
 # Defining parameters to instantiate temporal network
