@@ -14,17 +14,14 @@ level influnces the statistics measured. It is also important to note that since
 trial types (ODRT, int. fixation, blocked fixation) the threshold is computed commonly for all the trials.
 '''
 import numpy                    as       np
-import xarray                   as       xr
-import matplotlib.pyplot        as       plt
-import seaborn                  as       sns
 import scipy.signal
 
 import GDa.stats.bursting       as       bst
 from   GDa.temporal_network     import   temporal_network
-from   GDa.util                 import   smooth
 
 import sys
 import os
+import h5py
 
 from   config                   import   *
 from   tqdm                     import   tqdm
