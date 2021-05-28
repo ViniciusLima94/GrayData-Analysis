@@ -143,13 +143,12 @@ for q in tqdm( q_list ):
 # . Saving computed statistics
 ###############################################################################
 
-try:
-    hf = h5py.File(path_st, 'r+')
-except:
-    hf = h5py.File(path_st, 'w')
+# If file alerdy exists it will be replaced.
+if os.path.isfile(path_st):
+    os.system(f'rm {path_st}')
 
-hf.create_dataset('q_dependence', cv)
-hf.create_dataset('bs_stats',     bs_stats)
+hf = h5py.File(path_st, 'w')
+
+hf.create_dataset('q_dependence', data=cv)
+hf.create_dataset('bs_stats',     data=bs_stats)
 hf.close()
-
-
