@@ -67,7 +67,7 @@ for i in range(len(band_names)):
 plt.xlabel('Time [a.u.]', fontsize=15)
 plt.tight_layout()
 plt.savefig(
-    os.path.join(path_st, f"trial_averaged_super_tensor_{dirs['date'][nmonkey][idx]}.png")
+    os.path.join(path_st, f"trial_averaged_super_tensor_{dirs['date'][nmonkey][idx]}.png"),
     dpi=300)
 plt.close()
 
@@ -98,7 +98,7 @@ for i in range(len(band_names)):
 plt.xlabel('Time [s]', fontsize=15)
 plt.tight_layout()
 plt.savefig(
-    os.path.join(path_st, f"evoked_reponse_potential_{dirs['date'][nmonkey][idx]}.png")
+    os.path.join(path_st, f"evoked_reponse_potential_{dirs['date'][nmonkey][idx]}.png"),
     dpi=300)
 plt.close()
 
