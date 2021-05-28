@@ -86,11 +86,13 @@ for i in range(len(band_names)):
         color='b', lw=.1)
     plt.plot(net.tarray, 
              mu_filtered_super_tensor.isel(bands=i).median(dim='trials'),
-            color='k', lw=3)
+             color='k', lw=3)
     plt.plot(net.tarray, 
-         mu_filtered_super_tensor.isel(bands=i).quantile(q=5/100,dim='trials'),
-        color='r', lw=3)
-    plt.plot(net.tarray, 
+             mu_filtered_super_tensor.isel(bands=i).quantile(q=5/100,dim='trials'),
+             color='r', lw=3)
+    plt.plot(net.tarray,
+             mu_filtered_super_tensor.isel(bands=i).quantile(q=95/100,dim='trials'),
+             color='r', lw=3)
     plt.title(band_names[i])
     mu_filtered_super_tensor.isel(bands=i).quantile(q=95/100,dim='trials'),
     color='r', lw=3)
@@ -113,4 +115,5 @@ plt.close()
 q_list = np.array([0.3, 0.5, 0.8, 0.9]) # Overwriting q_list
 
 for q in tqdm( q_list ):
+    pass
 
