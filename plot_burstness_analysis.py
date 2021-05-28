@@ -36,10 +36,8 @@ stages      = ['baseline', 'cue', 'delay', 'match']
 path_st = os.path.join('figures', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
 if not os.path.exists(path_st):
     os.makedirs(path_st)
-# Add name of the file
-path_st = os.path.join(path_st, 'burstness_stats.h5')
 
-hf = h5py.File(path_st, 'r')
+hf = h5py.File(os.path.join(path_st, 'burstness_analysis.h5', 'r')
 
 ###############################################################################
 # Defining parameters to instantiate temporal network
@@ -64,7 +62,7 @@ net =  temporal_network( **set_net_params([1], [1]) )
 
 plt.figure(figsize=(20,30))
 aux = scipy.stats.zscore(net.super_tensor.mean(dim='trials'), axis=-1)
-for i in range(len(band_names)):
+for i in tqdm( range(len(band_names)) ):
     plt.subplot(len(band_names), 1, i+1)
     plt.imshow(aux[:,i,:], 
                aspect = 'auto', cmap = 'RdBu_r', origin = 'lower',
@@ -87,7 +85,7 @@ plt.close()
 plt.figure(figsize=(20,30))
 # Average activation sequences over links
 mu_filtered_super_tensor = net.super_tensor.mean(dim='links')
-for i in range(len(band_names)):
+for i in tqdm( range(len(band_names)) ):
     plt.subplot(len(band_names), 1, i+1)
     for t in range(net.super_tensor.shape[2]):
         plt.plot(net.tarray, 
@@ -119,7 +117,7 @@ cv = hf['q_dependence'][:]
 titles = ['Mean burst duration', 'Norm. total active time', 'CV']
 plt.figure(figsize=(12,15))
 count = 1
-for i in range(len(net.bands)):
+for i in tqdm( range(len(net.bands)) ):
     for k in range(3):
         plt.subplot(5,3,count)
         for s in range(len(stages)):
