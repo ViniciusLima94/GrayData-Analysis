@@ -24,14 +24,22 @@ nmonkey = 0
 nses    = 1
 ntype   = 0
 
-# Path in which to save coherence data
-path_st = os.path.join('figures', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
-if not os.path.exists(path_st):
-    os.makedirs(path_st)
 
 # Bands names
 band_names  = [r'band 1', r'band 2', r'band 3', r'band 4', r'band 5']
 stages      = ['baseline', 'cue', 'delay', 'match']
+
+###############################################################################
+# Reading file with the computed statistics (burstness_stats.h5)
+###############################################################################
+# Path in which to save coherence data
+path_st = os.path.join('figures', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
+if not os.path.exists(path_st):
+    os.makedirs(path_st)
+# Add name of the file
+path_st = os.path.join(path_st, 'burstness_stats.h5')
+
+hf = h5py.File(path_st, 'r')
 
 ###############################################################################
 # Defining parameters to instantiate temporal network
@@ -106,13 +114,57 @@ plt.close()
 ###############################################################################
 # 3. Burstness statistics dependence on the threshold
 ###############################################################################
+cv = hf['q_dependence'][:]
+
+titles = ['Mean burst duration', 'Norm. total active time', 'CV']
+plt.figure(figsize=(12,15))
+count = 1
+for i in range(len(net.bands)):
+    for k in range(3):
+        plt.subplot(5,3,count)
+        for s in range(len(stages)):
+            v_median = np.median(  cv[:,i,k,s,:],axis=0)
+            v_q05    = np.quantile(cv[:,i,k,s,:], 5/100, axis=0)
+            v_q95    = np.quantile(cv[:,i,k,s,:], 95/100, axis=0)
+            diq      = (v_q95-v_q05)/2
+            plt.plot(q_list, v_median, label=stages[s])
+            plt.fill_between(q_list, v_median-diq, v_median+diq, alpha=0.2)
+        count +=1
+        plt.xlim([0.2,0.9])
+        if k == 0: plt.ylabel(f'Band {i}', fontsize=15)
+        if i == 0: plt.title(titles[k], fontsize=15)
+        if i < 4:  plt.xticks([])
+        if i == 0 and k==0: plt.legend()
+        if i == 4: plt.xlabel('q', fontsize=15)
+plt.tight_layout()
+plt.savefig(
+    os.path.join(path_st, f"q_dependence_{dirs['date'][nmonkey][idx]}.png"),
+    dpi=300)
+plt.close()
 
 ###############################################################################
 # 4. Burstness statistics distributions
 ###############################################################################
+cv = hf['bs_stats'][:]
 
 q_list = np.array([0.3, 0.5, 0.8, 0.9]) # Overwriting q_list
 
-for q in tqdm( q_list ):
-    pass
-
+for idx, q in tqdm( enumerate(q_list) ):
+    titles = ['Mean burst duration', 'Norm. total active time', 'CV']
+    bins   = [np.linspace(0.07,0.14,50), np.linspace(0.12,0.30,50), np.linspace(0.55,0.85,50) ]
+    plt.figure(figsize=(20,20))
+    count = 1
+    for i in range(len(net.bands)):
+        for k in range(3):
+            plt.subplot(5,3,count)
+            for j in range(len(stages)):
+                sns.kdeplot(data=bs_stats[idx][:,i,j,k], shade=True)
+                if i==0: plt.title(titles[k], fontsize=15)
+                if count in [1,4,7,10,13]: plt.ylabel(f'Band {i}', fontsize=15)
+            plt.legend(['baseline','cue','delay','match'])
+            count+=1
+    plt.tight_layout()
+    plt.savefig(
+        os.path.join(path_st, f"stats_dists_q_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
+        dpi=300)
+    plt.close()
