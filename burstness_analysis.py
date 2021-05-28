@@ -76,6 +76,13 @@ nmonkey = 0
 nses    = 1
 ntype   = 0
 
+# Path in which to save coherence data
+path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
+if not os.path.exists(path_st):
+    os.makedirs(path_st)
+# Add name of the file
+path_st = os.path.join(path_st, 'burstness_stats.h5')
+
 # Bands names
 band_names  = [r'band 1', r'band 2', r'band 3', r'band 4', r'band 5']
 stages      = ['baseline', 'cue', 'delay', 'match']
@@ -112,18 +119,18 @@ for j in tqdm( range( len(stages) ) ):
 # Here we compute the mean and interquartile distances of the measures of interest for
 # different thereshod values
 
-#  q_list = np.arange(0.2, 1.0, 0.1)
-#  cv     = np.zeros([net.super_tensor.shape[0], len(net.bands), 3, len(stages), len(q_list)])
+q_list = np.arange(0.2, 1.0, 0.1)
+cv     = np.zeros([net.super_tensor.shape[0], len(net.bands), 3, len(stages), len(q_list)])
 
-#  for i in tqdm( range(len(q_list)) ):
-#      # Instantiating a temporal network object without thresholding the data
-#      net =  temporal_network(**set_net_params([1], [1], relative=True, q=q_list[i]) )
+for i in tqdm( range(len(q_list)) ):
+    # Instantiating a temporal network object without thresholding the data
+    net =  temporal_network(**set_net_params([1], [1], relative=True, q=q_list[i]) )
 
-#      for j,s in zip(range(len(stages)),stages):
-#          cv[...,j,i]  = np.apply_along_axis(bst.compute_burstness_stats, -1,
-#                         net.get_data_from(stage=s,pad=True),
-#                         samples = net.get_number_of_samples(stage=s),
-#                         dt      = delta/net.super_tensor.attrs['fsample'])
+    for j,s in zip(range(len(stages)),stages):
+        cv[...,j,i]  = np.apply_along_axis(bst.compute_burstness_stats, -1,
+                       net.get_data_from(stage=s,pad=True),
+                       samples = net.get_number_of_samples(stage=s),
+                       dt      = delta/net.super_tensor.attrs['fsample'])
 
 ###############################################################################
 # 3. Compute statistics for three different thresholds
@@ -134,4 +141,17 @@ bs_stats = []
 
 for q in tqdm( q_list ):
     bs_stats += [_compute_stats(q, relative=True)]
+
+###############################################################################
+# . Saving computed statistics
+###############################################################################
+
+try:
+    hf = h5py.File(path_st, 'r+')
+except:
+    hf = h5py.File(path_st, 'w')
+
+hf.create_dataset('q_dependence', cv)
+hf.create_dataset('bs_stats',     bs_stats)
+hf.close()
 
