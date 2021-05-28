@@ -94,8 +94,6 @@ for i in range(len(band_names)):
              mu_filtered_super_tensor.isel(bands=i).quantile(q=95/100,dim='trials'),
              color='r', lw=3)
     plt.title(band_names[i])
-    mu_filtered_super_tensor.isel(bands=i).quantile(q=95/100,dim='trials'),
-    color='r', lw=3)
     plt.xlim([net.tarray[0],net.tarray[-1]])
 plt.xlabel('Time [s]', fontsize=15)
 plt.tight_layout()
