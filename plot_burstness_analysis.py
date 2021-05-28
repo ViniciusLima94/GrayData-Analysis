@@ -115,6 +115,8 @@ plt.close()
 ###############################################################################
 cv = hf['q_dependence'][:]
 
+q_list = np.arange(0.2, 1.0, 0.1)
+
 titles = ['Mean burst duration', 'Norm. total active time', 'CV']
 plt.figure(figsize=(12,15))
 count = 1
