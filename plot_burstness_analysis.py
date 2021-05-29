@@ -15,6 +15,9 @@ import h5py
 from   config                   import   *
 from   tqdm                     import   tqdm
 
+import matplotlib
+matplotlib.use('Agg')
+
 ###############################################################################
 # Setting parameters to read and save data as usual
 ###############################################################################
