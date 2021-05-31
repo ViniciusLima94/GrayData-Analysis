@@ -113,7 +113,7 @@ class temporal_network():
         # Convert to xarray
         self.super_tensor = xr.DataArray(self.super_tensor, dims=("links","bands","trials","time"),
                                          coords={"trials": self.trial_info.trial_index.values, 
-                                                 "time":   self.tarray
+                                                 "time":   self.tarray,
                                                  "links":  self.roi} )
         # Metadata (the same as session_info)
         self.super_tensor.attrs         = self.session_info
