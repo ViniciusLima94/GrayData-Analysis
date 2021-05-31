@@ -222,6 +222,25 @@ class temporal_network():
         filtered_trials_idx = self.trial_info[idx].index.values
         return filtered_trials, filtered_trials_idx
 
+    def get_coords(self, ):
+        r'''
+        Get the channels coordinates.
+        '''
+        return scipy.io.loadmat('Brain Areas/lucy_brainsketch_xy.mat')['xy']
+
+    def get_euclidean_distances(self, ):
+        r'''
+        Get the channels euclidean distances based on their coordinates.
+        '''
+        d_eu = np.zeros(net.session_info['pairs'].shape[0])
+        for i in range(net.session_info['pairs'].shape[0]):
+            c1 = net.session_info['channels_labels'].astype(int)[net.session_info['pairs'][i,0]]
+            c2 = net.session_info['channels_labels'].astype(int)[net.session_info['pairs'][i,1]]
+            dx = xy[c1-1,0] - xy[c2-1,0]
+            dy = xy[c1-1,1] - xy[c2-1,1]
+            d_eu[i] = np.sqrt(dx**2 + dy**2)
+        return d_eu
+
     def __compute_coherence_thresholds(self, q, relative, verbose):
         if verbose: print('Computing coherence thresholds') 
         self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','time')).values, 
