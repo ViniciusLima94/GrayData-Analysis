@@ -360,4 +360,3 @@ for idx, q in tqdm( enumerate(q_list) ):
         dpi=300)
     plt.close()
 
-
