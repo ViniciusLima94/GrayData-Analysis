@@ -49,17 +49,11 @@ if  __name__ == '__main__':
     # compute the coherence
     coh = conn_coherence_wav(ses.data.values.astype(np.float32), **kw)
 
-    #  try:
-    #      hf = h5py.File(path_st, 'r+')
-    #  except:
-    #      hf = h5py.File(path_st, 'w')
-
     if os.path.isfile(path_st):
         os.system(f'rm {path_st}')
 
     hf = h5py.File(path_st, 'w')
 
-    #hf = h5py.File(path_st, 'w')
     hf.create_dataset('coherence', data=coh.transpose("roi", "trials", "freqs", "times"))
     hf.create_dataset('freqs',     data=freqs)
     hf.create_dataset('roi',       data=np.array( coh.roi.values, dtype='S' ) )
