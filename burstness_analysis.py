@@ -72,7 +72,7 @@ def _compute_meta_conn(q, relative=True):
     - q: The quqartile to use to threshold the data.
     '''
 
-    net =  temporal_network( **set_net_params([1], [1], relative=relative, q=q) )
+    net  =  temporal_network( **set_net_params([1], [1], relative=relative, q=q) )
 
     CCij = np.zeros([len(net.bands), net.session_info['nP'],net.session_info['nP'],len(stages)])
 
@@ -80,7 +80,8 @@ def _compute_meta_conn(q, relative=True):
         aux = net.get_data_from(stage=stages[s],pad=False)
         for b in range(len(net.bands)):
             CCij[b,:,:,s] = np.corrcoef(aux[:,b,:].values, rowvar=True)
-    CCij[:,net.session_info['nP'],net.session_info['nP'],:] = 0
+    ii   = range(net.session_info['nP'])
+    CCij[:,ii,ii,:] = 0
 
     return CCij
     
