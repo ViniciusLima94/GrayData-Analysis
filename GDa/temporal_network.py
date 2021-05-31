@@ -1,10 +1,12 @@
 import numpy                as     np
 import xarray               as     xr
+import scipy
+
 import GDa.session          
 from   GDa.misc.reshape      import reshape_trials, reshape_observations
 from   GDa.misc.create_grids import create_stages_time_grid
 from   GDa.net.util          import compute_coherence_thresholds, convert_to_adjacency
-import scipy
+
 from   scipy                 import stats
 import os
 import h5py
