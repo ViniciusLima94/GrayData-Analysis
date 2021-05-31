@@ -115,8 +115,8 @@ class temporal_network():
         # Convert to xarray
         self.super_tensor = xr.DataArray(self.super_tensor, dims=("links","bands","trials","time"),
                                          coords={"trials": self.trial_info.trial_index.values, 
-                                                 "time":   self.tarray,
-                                                 "links":  self.roi} )
+                                                 "time":   self.tarray} )
+
         # Metadata (the same as session_info)
         self.super_tensor.attrs         = self.session_info
         # Getting euclidian distance between each pair of nodes
