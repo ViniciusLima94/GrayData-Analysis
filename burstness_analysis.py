@@ -64,6 +64,29 @@ def _compute_stats(q, relative=True):
 
     return bs_stats
 
+def _compute_meta_conn(q, relative=True):
+    r'''
+    Method to compute the metaconnectivity between links for each threshold value.
+
+    > INPUTS:
+    - q: The quqartile to use to threshold the data.
+    '''
+
+    net =  temporal_network( **set_net_params([1], [1], relative=relative, q=q) )
+
+    nP  = net.super_tensor.shape[0]
+
+    CCij = np.zeros([len(net.bands), net.session_info['nP'],net.session_info['nP'],len(stages)])
+
+    for s in tqdm( range(len(stages)) ):
+        aux = net.get_data_from(stage=stages[s],pad=False)
+        for b in range(len(net.bands)):
+            CCij[b,:,:,s] = np.corrcoef(aux[:,b,:].values, rowvar=True)
+    CCij[:,net.session_info['nP'],net.session_info['nP'],:] = 0
+
+    return CCij
+    
+
 ###############################################################################
 # Distribution of the average coherence value per task-stage and band
 ###############################################################################
@@ -118,7 +141,6 @@ for j in tqdm( range( len(stages) ) ):
 
 q_list = np.arange(0.2, 1.0, 0.1)
 cv     = np.zeros([net.super_tensor.shape[0], len(net.bands), 3, len(stages), len(q_list)])
-
 #  for i in tqdm( range(len(q_list)) ):
 #      # Instantiating a temporal network object without thresholding the data
 #      net =  temporal_network(**set_net_params([1], [1], relative=True, q=q_list[i]) )
@@ -140,6 +162,14 @@ for q in tqdm( q_list ):
     bs_stats += [_compute_stats(q, relative=True)]
 
 ###############################################################################
+# 4. Meta-connectivity analysis
+###############################################################################
+CCij = []
+
+for q in tqdm( q_list ):
+    CCij += [_compute_meta_conn(q, relative=True)]
+
+###############################################################################
 # . Saving computed statistics
 ###############################################################################
 
@@ -151,4 +181,5 @@ hf = h5py.File(path_st, 'w')
 
 hf.create_dataset('q_dependence', data=cv)
 hf.create_dataset('bs_stats',     data=bs_stats)
+hf.create_dataset('meta_conn',    data=CCij)
 hf.close()
