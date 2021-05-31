@@ -87,7 +87,6 @@ class temporal_network():
         except (OSError):
             raise OSError('File "super_tensor.h5" not found for monkey')
 
-
         # Reade h5 file containing coherence data
         self.super_tensor = hf['coherence'][:]
         self.tarray       = hf['tarray'][:]
