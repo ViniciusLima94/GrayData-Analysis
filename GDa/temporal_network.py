@@ -4,6 +4,7 @@ import GDa.session
 from   GDa.misc.reshape      import reshape_trials, reshape_observations
 from   GDa.misc.create_grids import create_stages_time_grid
 from   GDa.net.util          import compute_coherence_thresholds, convert_to_adjacency
+import scipy
 from   scipy                 import stats
 import os
 import h5py
@@ -232,10 +233,11 @@ class temporal_network():
         r'''
         Get the channels euclidean distances based on their coordinates.
         '''
-        d_eu = np.zeros(net.session_info['pairs'].shape[0])
-        for i in range(net.session_info['pairs'].shape[0]):
-            c1 = net.session_info['channels_labels'].astype(int)[net.session_info['pairs'][i,0]]
-            c2 = net.session_info['channels_labels'].astype(int)[net.session_info['pairs'][i,1]]
+        xy   = self.get_coords()
+        d_eu = np.zeros(self.session_info['pairs'].shape[0])
+        for i in range( self.session_info['pairs'].shape[0] ):
+            c1 = self.session_info['channels_labels'].astype(int)[self.session_info['pairs'][i,0]]
+            c2 = self.session_info['channels_labels'].astype(int)[self.session_info['pairs'][i,1]]
             dx = xy[c1-1,0] - xy[c2-1,0]
             dy = xy[c1-1,1] - xy[c2-1,1]
             d_eu[i] = np.sqrt(dx**2 + dy**2)
