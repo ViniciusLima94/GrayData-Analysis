@@ -32,6 +32,14 @@ ntype   = 0
 band_names  = [r'band 1', r'band 2', r'band 3', r'band 4', r'band 5']
 stages      = ['baseline', 'cue', 'delay', 'match']
 
+xy   = scipy.io.loadmat('Brain Areas/lucy_brainsketch_xy.mat')['xy'] # Channels coordinates
+d_eu = np.zeros(net.session_info['pairs'].shape[0])
+for i in range(net.session_info['pairs'].shape[0]):
+    c1, c2 = net.session_info['channels_labels'].astype(int)[net.session_info['pairs'][i,0]], net.session_info['channels_labels'].astype(int)[net.session_info['pairs'][i,1]]
+    dx = xy[c1-1,0] - xy[c2-1,0]
+    dy = xy[c1-1,1] - xy[c2-1,1]
+    d_eu[i] = np.sqrt(dx**2 + dy**2)
+
 ###############################################################################
 # Reading file with the computed statistics (burstness_stats.h5)
 ###############################################################################
@@ -172,3 +180,184 @@ for idx, q in tqdm( enumerate(q_list) ):
         os.path.join(path_st, f"stats_dists_q_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
         dpi=300)
     plt.close()
+
+###############################################################################
+# 5. Burstness statistics averaged for all links
+###############################################################################
+
+titles = ['Mean burst duration', 'Norm. total active time', 'CV']
+for idx, q in tqdm( enumerate(q_list) ):
+    plt.figure(figsize=(20,5))
+    for k in range(3):
+        plt.subplot(1,3,k+1)
+        for j in range(len(net.bands)):
+            p=bs_stats[idx][:,j,0,k]
+            c=bs_stats[idx][:,j,1,k]
+            d=bs_stats[idx][:,j,2,k]
+            m=bs_stats[idx][:,j,3,k]
+            nf=np.sqrt(net.super_tensor.shape[0])
+            plt.errorbar(range(4), [p.mean(), c.mean(), d.mean(), m.mean()], 
+                         [p.std()/nf, c.std()/nf, d.std()/nf, m.std()/nf])
+            plt.xticks(range(4), ['baseline', 'cue', 'delay', 'match'], fontsize=15)
+            plt.title(titles[k], fontsize=15)
+        plt.legend(band_names)
+    plt.savefig(
+        os.path.join(path_st, f"stats_link_avg_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
+        dpi=300)
+    plt.close()
+
+###############################################################################
+# 6. Burstness statistics ploted as matrix Nodes x Nodes 
+###############################################################################
+
+nC = ses.data.attrs['nC'] # Number of channels
+
+for idx, q in tqdm( enumerate(q_list) ):
+    # Converting stats to matrix
+    mu     = np.zeros([nC, nC, len(net.bands), len(stages)])  
+    mu_tot = np.zeros([nC, nC, len(net.bands), len(stages)]) 
+    CV     = np.zeros([nC, nC, len(net.bands), len(stages)]) 
+    for j in range( net.session_info['pairs'].shape[0]):
+        mu[net.session_info['pairs'][j,0], net.session_info['pairs'][j,1], :, :]     = bs_stats[idx][j,:,:,0]
+        mu_tot[net.session_info['pairs'][j,0], net.session_info['pairs'][j,1], :, :] = bs_stats[idx][j,:,:,1]
+        CV[net.session_info['pairs'][j,0], net.session_info['pairs'][j,1], :, :]     = bs_stats[idx][j,:,:,2]
+
+    # Plotting
+    ################################################ MU ################################################
+    plt.figure(figsize=(15,15))
+    count = 1
+    for k in tqdm( range(len(net.bands)) ):
+        for i in range(len(stages)):
+            plt.subplot(len(net.bands),len(stages),count)
+            aux = (mu[:,:,k,i]+mu[:,:,k,i].T)
+            plt.imshow(aux, aspect='auto',
+                       cmap='jet', origin='lower',
+                       vmin=0, vmax=np.median(mu[:,:,k,:]+mu[:,:,k,:].transpose(1,0,2)*4) )
+            plt.colorbar()
+            if stages[i] == 'baseline': plt.yticks(range(nC), ses.data.roi.values)
+            else: plt.yticks([])
+            if k == 4: plt.xticks(range(nC), ses.data.roi.values, rotation=90)
+            else: plt.xticks([])
+            if k == 0: plt.title(stages[i], fontsize=15)
+            if stages[i] == 'baseline': plt.ylabel(band_names[k], fontsize=15)
+            #plt.colorbar()
+            count+=1
+    plt.tight_layout()
+    plt.savefig(
+        os.path.join(path_st, f"matrix_mu_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
+        dpi=300)
+    plt.close()
+    ############################################## MU_tot ##############################################
+    plt.figure(figsize=(15,15))
+    count = 1
+    for k in tqdm( range(len(net.bands)) ):
+        for i in range(len(stages)):
+            plt.subplot(len(net.bands),len(stages),count)
+            aux = (mu_tot[:,:,k,i]+mu_tot[:,:,k,i].T)
+            plt.imshow(aux, aspect='auto', cmap='jet', origin='lower', vmin=0, vmax=0.3)
+            plt.colorbar()
+            if stages[i] == 'baseline': plt.yticks(range(49), ses.data.roi.values)
+            else: plt.yticks([])
+            if k == 4: plt.xticks(range(49), ses.data.roi.values, rotation=90)
+            else: plt.xticks([])
+            if k == 0: plt.title(stages[i], fontsize=15)
+            if stages[i] == 'baseline': plt.ylabel(band_names[k], fontsize=15)
+            #plt.colorbar()
+            count+=1
+    plt.tight_layout()
+    plt.savefig(
+        os.path.join(path_st, f"matrix_mu_tot_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
+        dpi=300)
+    plt.close()
+    ################################################ CV ################################################
+    plt.figure(figsize=(15,15))
+    count = 1
+    for k in tqdm( range(len(net.bands)) ):
+        for i in range(len(stages)):
+            plt.subplot(len(net.bands),len(stages),count)
+            aux = (CV[:,:,k,i]+CV[:,:,k,i].T)
+            plt.imshow(aux**6, aspect='auto', cmap='jet', origin='lower', vmin=0, vmax=0.3)
+            plt.colorbar()
+            if stages[i] == 'baseline': plt.yticks(range(49), ses.data.roi.values)
+            else: plt.yticks([])
+            if k == 4: plt.xticks(range(49), ses.data.roi.values, rotation=90)
+            else: plt.xticks([])
+            if k == 0: plt.title(stages[i], fontsize=15)
+            if stages[i] == 'baseline': plt.ylabel(band_names[k], fontsize=15)
+            #plt.colorbar()
+            count+=1
+    plt.tight_layout()
+    plt.savefig(
+        os.path.join(path_st, f"matrix_cv_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
+        dpi=300)
+    plt.close()
+
+###############################################################################
+# 7. Burstness vs mean active time 
+###############################################################################
+
+for idx, q in tqdm( enumerate(q_list) ):
+    plt.figure(figsize=(15,20))
+    count = 1
+    x_min, x_max = bs_stats[idx][...,0].min(), bs_stats[idx][...,0].max()
+    y_min, y_max = bs_stats[idx][...,2].min(), bs_stats[idx][...,2].max()
+    bins         = [np.linspace(x_min,x_max,20),np.linspace(y_min, y_max,20)]
+    for j in tqdm( range(len(net.bands)) ):
+        Hb, xb, yb = np.histogram2d(bs_stats[idx][:,j,0,0], bs_stats[idx][:,j,0,2],
+                                    bins=bins, density = True  )
+        for i in range(1,len(stages)):
+            # Plotting top links
+            plt.subplot(len(net.bands), len(stages)-1, count)
+            H, xb, yb = np.histogram2d(bs_stats[idx][:,j,i,0], bs_stats[idx][:,j,i,2],
+                                   bins=bins, density = True )
+            plt.imshow(H-Hb, aspect='auto', cmap='RdBu_r', origin='lower',
+                       extent=[1000*xb[0],1000*xb[-1],yb[0],yb[-1]],
+                       interpolation='gaussian', vmin=-1000, vmax=1000)
+            plt.colorbar()
+            if j < 4 : plt.xticks([])
+            if i > 1 : plt.yticks([])
+            if j == 4: plt.xlabel('Mean burst dur. [ms]', fontsize=15)
+            if j == 0: plt.title(f'{stages[i]}-baseline', fontsize=15)
+            if i == 1: plt.ylabel('CV', fontsize=15)
+            count += 1
+    plt.tight_layout()
+    plt.savefig(
+        os.path.join(path_st, f"bst_mu_dist_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
+        dpi=300)
+    plt.close()
+
+###############################################################################
+# 8. Burstness vs euclidean distance 
+###############################################################################
+
+for idx, q in tqdm( enumerate(q_list) ):
+    plt.figure(figsize=(15,20))
+    count = 1
+    x_min, x_max = d_eu.min(), d_eu.max()
+    y_min, y_max = bs_stats[idx][...,2].min(), bs_stats[idx][...,2].max()
+    bins         = [np.linspace(x_min,x_max,20),np.linspace(y_min, y_max,20)]
+    for j in tqdm( range(len(net.bands)) ):
+        Hb, xb, yb = np.histogram2d(d_eu, bs_stats[idx][:,j,0,2],
+                                    bins=bins, density = True  )
+        for i in range(1,len(stages)):
+            # Plotting top links
+            plt.subplot(len(net.bands), len(stages)-1, count)
+            H, xb, yb = np.histogram2d(d_eu, bs_stats[idx][:,j,i,2],
+                                   bins=bins, density = True )
+            plt.imshow(H-Hb, aspect='auto', cmap='RdBu_r', origin='lower',
+                       extent=[xb[0],xb[-1],yb[0],yb[-1]],
+                       interpolation='gaussian', vmin=-0.02, vmax=0.02)
+            plt.colorbar()
+            if j < 4 : plt.xticks([])
+            if i > 1 : plt.yticks([])
+            if j == 4: plt.xlabel('Euclidian distance', fontsize=15)
+            if j == 0: plt.title(f'{stages[i]}-baseline', fontsize=15)
+            if i == 1: plt.ylabel('CV', fontsize=15)
+            count += 1
+    plt.tight_layout()
+    plt.savefig(
+        os.path.join(path_st, f"bst_eucl_dist_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
+        dpi=300)
+    plt.close()
+
+
