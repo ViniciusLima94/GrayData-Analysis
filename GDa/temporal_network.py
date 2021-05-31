@@ -227,7 +227,8 @@ class temporal_network():
         r'''
         Get the channels coordinates.
         '''
-        return scipy.io.loadmat('Brain Areas/lucy_brainsketch_xy.mat')['xy']
+        xy = scipy.io.loadmat(os.path.jois(os.getcwd(), 'Brain Areas/lucy_brainsketch_xy.mat'))['xy']
+        return xy
 
     def get_euclidean_distances(self, ):
         r'''
