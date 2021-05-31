@@ -118,7 +118,7 @@ class temporal_network():
         # Metadata (the same as session_info)
         self.super_tensor.attrs         = self.session_info
         # Getting euclidian distance between each pair of nodes
-        self.super_tensor.attr['d_eu'] = self.__get_coords()
+        self.super_tensor.attrs['d_eu'] = self.__get_coords()
 
     def convert_to_adjacency(self, ):
         self.A = xr.DataArray( convert_to_adjacency(self.super_tensor.values), 
