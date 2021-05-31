@@ -62,8 +62,8 @@ if  __name__ == '__main__':
     #hf = h5py.File(path_st, 'w')
     hf.create_dataset('coherence', data=coh.transpose("roi", "trials", "freqs", "times"))
     hf.create_dataset('freqs',     data=freqs)
-    hf.create_dataset('roi',       data=coh.roi.values)
-    hf.create_dataset('tarray',    data=np.array( coh.times.values, dtype='S' ) )
+    hf.create_dataset('roi',       data=np.array( coh.roi.values, dtype='S' ) )
+    hf.create_dataset('tarray',    data=coh.times.values)
     hf.create_dataset('bands',     data=foi)
     [hf.create_dataset('info/'+k,  data=ses.data.attrs[k]) for k in ses.data.attrs.keys()]
     hf.close()
