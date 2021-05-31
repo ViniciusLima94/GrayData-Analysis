@@ -74,8 +74,6 @@ def _compute_meta_conn(q, relative=True):
 
     net =  temporal_network( **set_net_params([1], [1], relative=relative, q=q) )
 
-    nP  = net.super_tensor.shape[0]
-
     CCij = np.zeros([len(net.bands), net.session_info['nP'],net.session_info['nP'],len(stages)])
 
     for s in tqdm( range(len(stages)) ):
