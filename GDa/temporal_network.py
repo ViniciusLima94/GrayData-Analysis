@@ -76,14 +76,6 @@ class temporal_network():
                 self.__filter_trials(trial_type, behavioral_response)
 
     def __load_h5(self, wt):
-        # Path to the super tensor in h5 format 
-        #  h5_super_tensor_path = os.path.join(self.raw_path, f'{self.monkey}_{self.session}_{self.date}.h5')
-
-        #  try:
-        #      hf = h5py.File(h5_super_tensor_path, 'r')
-        #  except (OSError):
-        #      raise OSError('File for monkey ' + str(self.monkey) + ', date ' + self.date + ' ' + self.session + '  do not exist.')
-
         # Path to the file
         h5_super_tensor_path = os.path.join(self.raw_path, 
                                             self.monkey, 
@@ -101,6 +93,7 @@ class temporal_network():
         self.tarray       = hf['tarray'][:]
         self.freqs        = hf['freqs'][:]
         self.bands        = hf['bands'][:]
+        self.roi          = hf['roi'][:]
 
         # Reading metadata
         self.session_info = {}
@@ -113,7 +106,7 @@ class temporal_network():
 
         if isinstance(wt, tuple):
             self.tarray       = self.tarray[wt[0]:-wt[1]]
-            self.super_tensor = self.super_tensor[:,:,:,wt[0]:-wt[1]]
+            self.super_tensor = self.super_tensor[...,wt[0]:-wt[1]]
 
         # Concatenate trials in the super tensor
         self.super_tensor = self.super_tensor.swapaxes(1,2)
@@ -121,9 +114,12 @@ class temporal_network():
         # Convert to xarray
         self.super_tensor = xr.DataArray(self.super_tensor, dims=("links","bands","trials","time"),
                                          coords={"trials": self.trial_info.trial_index.values, 
-                                                 "time":   self.tarray} )
+                                                 "time":   self.tarray
+                                                 "links":  self.roi} )
         # Metadata (the same as session_info)
-        self.super_tensor.attrs = self.session_info
+        self.super_tensor.attrs         = self.session_info
+        # Getting euclidian distance between each pair of nodes
+        sself.super_tensor.attr['d_eu'] = self.__get_coords()
 
     def convert_to_adjacency(self, ):
         self.A = xr.DataArray( convert_to_adjacency(self.super_tensor.values), 
@@ -223,7 +219,7 @@ class temporal_network():
         filtered_trials_idx = self.trial_info[idx].index.values
         return filtered_trials, filtered_trials_idx
 
-    def get_coords(self, ):
+    def __get_coords(self, ):
         r'''
         Get the channels coordinates.
         '''
@@ -232,11 +228,11 @@ class temporal_network():
         xy    = scipy.io.loadmat(_path)['xy']
         return xy
 
-    def get_euclidean_distances(self, ):
+    def __get_euclidean_distances(self, ):
         r'''
         Get the channels euclidean distances based on their coordinates.
         '''
-        xy   = self.get_coords()
+        xy   = self.__get_coords()
         d_eu = np.zeros(self.session_info['pairs'].shape[0])
         for i in range( self.session_info['pairs'].shape[0] ):
             c1 = self.session_info['channels_labels'].astype(int)[self.session_info['pairs'][i,0]]
