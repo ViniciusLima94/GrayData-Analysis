@@ -140,15 +140,15 @@ for j in tqdm( range( len(stages) ) ):
 
 q_list = np.arange(0.2, 1.0, 0.1)
 cv     = np.zeros([net.super_tensor.shape[0], len(net.bands), 3, len(stages), len(q_list)])
-#  for i in tqdm( range(len(q_list)) ):
-#      # Instantiating a temporal network object without thresholding the data
-#      net =  temporal_network(**set_net_params([1], [1], relative=True, q=q_list[i]) )
+for i in tqdm( range(len(q_list)) ):
+    # Instantiating a temporal network object without thresholding the data
+    net =  temporal_network(**set_net_params([1], [1], relative=True, q=q_list[i]) )
 
-#      for j,s in zip(range(len(stages)),stages):
-#          cv[...,j,i]  = np.apply_along_axis(bst.compute_burstness_stats, -1,
-#                         net.get_data_from(stage=s,pad=True),
-#                         samples = net.get_number_of_samples(stage=s),
-#                         dt      = delta/net.super_tensor.attrs['fsample'])
+    for j,s in zip(range(len(stages)),stages):
+        cv[...,j,i]  = np.apply_along_axis(bst.compute_burstness_stats, -1,
+                       net.get_data_from(stage=s,pad=True),
+                       samples = net.get_number_of_samples(stage=s),
+                       dt      = delta/net.super_tensor.attrs['fsample'])
 
 ###############################################################################
 # 3. Compute statistics for three different thresholds
