@@ -32,14 +32,6 @@ ntype   = 0
 band_names  = [r'band 1', r'band 2', r'band 3', r'band 4', r'band 5']
 stages      = ['baseline', 'cue', 'delay', 'match']
 
-xy   = scipy.io.loadmat('Brain Areas/lucy_brainsketch_xy.mat')['xy'] # Channels coordinates
-d_eu = np.zeros(net.session_info['pairs'].shape[0])
-for i in range(net.session_info['pairs'].shape[0]):
-    c1, c2 = net.session_info['channels_labels'].astype(int)[net.session_info['pairs'][i,0]], net.session_info['channels_labels'].astype(int)[net.session_info['pairs'][i,1]]
-    dx = xy[c1-1,0] - xy[c2-1,0]
-    dy = xy[c1-1,1] - xy[c2-1,1]
-    d_eu[i] = np.sqrt(dx**2 + dy**2)
-
 ###############################################################################
 # Reading file with the computed statistics (burstness_stats.h5)
 ###############################################################################
@@ -49,7 +41,7 @@ if not os.path.exists(path_st):
     os.makedirs(path_st)
 
 path_stats = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
-hf = h5py.File(os.path.join(path_stats, 'burstness_stats.h5'), 'r')
+hf         = h5py.File(os.path.join(path_stats, 'burstness_stats.h5'), 'r')
 
 ###############################################################################
 # Defining parameters to instantiate temporal network
@@ -87,7 +79,7 @@ plt.xlabel('Time [a.u.]', fontsize=15)
 plt.tight_layout()
 plt.savefig(
     os.path.join(path_st, f"trial_averaged_super_tensor_{dirs['date'][nmonkey][idx]}.png"),
-    dpi=300)
+    dpi=120)
 plt.close()
 
 ###############################################################################
@@ -124,7 +116,7 @@ plt.xlabel('Time [s]', fontsize=15)
 plt.tight_layout()
 plt.savefig(
     os.path.join(path_st, f"evoked_reponse_potential_{dirs['date'][nmonkey][idx]}.png"),
-    dpi=300)
+    dpi=120)
 plt.close()
 
 ###############################################################################
@@ -157,7 +149,7 @@ for i in tqdm( range(len(net.bands)) ):
 plt.tight_layout()
 plt.savefig(
     os.path.join(path_st, f"q_dependence_{dirs['date'][nmonkey][idx]}.png"),
-    dpi=300)
+    dpi=120)
 plt.close()
 
 ###############################################################################
@@ -184,7 +176,7 @@ for idx, q in tqdm( enumerate(q_list) ):
     plt.tight_layout()
     plt.savefig(
         os.path.join(path_st, f"stats_dists_q_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=300)
+        dpi=120)
     plt.close()
 
 ###############################################################################
@@ -209,7 +201,7 @@ for idx, q in tqdm( enumerate(q_list) ):
         plt.legend(band_names)
     plt.savefig(
         os.path.join(path_st, f"stats_link_avg_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=300)
+        dpi=120)
     plt.close()
 
 ###############################################################################
@@ -251,7 +243,7 @@ for idx, q in tqdm( enumerate(q_list) ):
     plt.tight_layout()
     plt.savefig(
         os.path.join(path_st, f"matrix_mu_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=300)
+        dpi=120)
     plt.close()
     ############################################## MU_tot ##############################################
     plt.figure(figsize=(15,15))
@@ -273,7 +265,7 @@ for idx, q in tqdm( enumerate(q_list) ):
     plt.tight_layout()
     plt.savefig(
         os.path.join(path_st, f"matrix_mu_tot_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=300)
+        dpi=120)
     plt.close()
     ################################################ CV ################################################
     plt.figure(figsize=(15,15))
@@ -295,7 +287,7 @@ for idx, q in tqdm( enumerate(q_list) ):
     plt.tight_layout()
     plt.savefig(
         os.path.join(path_st, f"matrix_cv_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=300)
+        dpi=120)
     plt.close()
 
 ###############################################################################
@@ -329,7 +321,7 @@ for idx, q in tqdm( enumerate(q_list) ):
     plt.tight_layout()
     plt.savefig(
         os.path.join(path_st, f"bst_mu_dist_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=300)
+        dpi=120)
     plt.close()
 
 ###############################################################################
@@ -363,11 +355,29 @@ for idx, q in tqdm( enumerate(q_list) ):
     plt.tight_layout()
     plt.savefig(
         os.path.join(path_st, f"bst_eucl_dist_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=300)
+        dpi=120)
     plt.close()
 
 ###############################################################################
 # 9. Meta-connectivity analysis
 ###############################################################################
 
+CCij = hf['meta_conn'][:]
 
+for idx, q in tqdm( enumerate(q_list) ):
+    plt.figure(figsize=(20,20))
+    count = 1
+    for b in range(len(net.bands)):
+        for i in range(len(stages)):
+            plt.subplot(len(net.bands),len(stages),count)
+            plt.imshow(CCij[idx][b,...,i], aspect='auto', cmap='RdBu_r', origin='lower',
+                       vmin=-CCij[idx][b,...].mean()*3, vmax=CCij[idx][b,...].mean()*3)
+            if b == 0: plt.title(stages[i], fontsize=15)
+            if i == 0: plt.ylabel(band_names[b], fontsize=15)
+            plt.colorbar(extend='both')
+            count+=1
+    plt.tight_layout()
+    plt.savefig(
+        os.path.join(path_st, f"meta_conn_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
+        dpi=120)
+    plt.close()
