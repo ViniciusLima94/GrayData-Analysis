@@ -1,7 +1,7 @@
 import numpy as np
 from   .util import custom_mean, custom_std
 
-def find_activation_sequences(spike_train, dt=None, pad=False, max_size=None):
+def find_activation_sequences(spike_train, dt=None, drop_edges=False, pad=False, max_size=None):
     r'''
     Given a spike-train, it finds the length of all activations in it.
     For example, for the following spike-train: x = {0111000011000011111},
@@ -36,6 +36,8 @@ def find_activation_sequences(spike_train, dt=None, pad=False, max_size=None):
         max_size    = int( np.round(len(spike_train)/2) )
     if pad and len(act_lengths)<max_size:
         act_lengths = np.hstack( (act_lengths,np.ones(max_size-len(act_lengths))*np.nan) )
+    if spike_train[-1]==1 and drop_edges==True:
+        act_lengths = act_lengths[:-1]
     return act_lengths
 
 def compute_burstness_stats(spike_train, samples=None, dt=None):
