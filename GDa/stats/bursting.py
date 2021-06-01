@@ -10,6 +10,7 @@ def find_activation_sequences(spike_train, dt=None, drop_edges=False, pad=False,
     > INPUTS:
     - spike_train: The binary spike train.
     - dt: If providade the returned array with the length of activations will be given in seconds.
+    - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
     - pad: Wheter to pad or not the array containing the size of the activations lengths in spike_train.
            For example for an spike-train (x) with size N, the maximum number of activations happens when 
            x=[0,1,0,1,0....], therefore the maximum size of the activations lengths array will be
@@ -40,7 +41,7 @@ def find_activation_sequences(spike_train, dt=None, drop_edges=False, pad=False,
         act_lengths = act_lengths[:-1]
     return act_lengths
 
-def compute_burstness_stats(spike_train, samples=None, dt=None):
+def compute_burstness_stats(spike_train, drop_edges=False, samples=None, dt=None):
     r'''
     Given a spike_train the sequence of activations of it 
     will be determined (see find_activations_squences) and 
@@ -58,7 +59,7 @@ CV (mean activation time over its std).
     if samples is None:
         samples = len(spike_train)
     # Find activation lengths
-    act_lengths = find_activation_sequences(spike_train,dt=dt)
+    act_lengths = find_activation_sequences(spike_train,dt=dt, drop_edges=drop_edges)
     # Compute stats 
     # Mean act. time
     mu     = custom_mean(act_lengths)#act_lengths.mean()
@@ -68,7 +69,7 @@ CV (mean activation time over its std).
     cv     = mu_st / mu
     # Normalized total act. time
     mu_tot = act_lengths.sum() / ( samples * dt )
-    return np.array([mu,mu_tot,cv])
+    return np.array([mu,mu_st,mu_tot,cv])
 
 def compute_burstness_stats_from_act_seq(act_lengths, dt=None):
     r'''
