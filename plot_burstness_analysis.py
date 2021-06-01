@@ -33,6 +33,15 @@ band_names  = [r'band 1', r'band 2', r'band 3', r'band 4', r'band 5']
 stages      = ['baseline', 'cue', 'delay', 'match']
 
 ###############################################################################
+# Instantiating session 
+###############################################################################
+#  Instantiating session
+ses   = session(raw_path = dirs['rawdata'], monkey = dirs['monkey'][nmonkey], date = dirs['date'][nmonkey][idx],
+                session = nses, slvr_msmod = False, align_to = align_to, evt_dt = [-0.65, 3.00])
+# Load data
+ses.read_from_mat()
+
+###############################################################################
 # Reading file with the computed statistics (burstness_stats.h5)
 ###############################################################################
 # Path in which to save coherence data
