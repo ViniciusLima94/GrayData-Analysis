@@ -139,7 +139,7 @@ for j in tqdm( range( len(stages) ) ):
 # different thereshod values
 
 q_list = np.arange(0.2, 1.0, 0.1)
-cv     = np.zeros([net.super_tensor.shape[0], len(net.bands), 3, len(stages), len(q_list)])
+cv     = np.zeros([net.super_tensor.shape[0], len(net.bands), 4, len(stages), len(q_list)])
 for i in tqdm( range(len(q_list)) ):
     # Instantiating a temporal network object without thresholding the data
     net =  temporal_network(**set_net_params([1], [1], relative=True, q=q_list[i]) )
