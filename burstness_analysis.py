@@ -55,12 +55,12 @@ def _compute_stats(q, relative=True):
     net =  temporal_network( **set_net_params([1], [1], relative=relative, q=q) )
 
     # Burstiness analysis statistics
-    bs_stats = np.zeros((net.super_tensor.sizes['links'],net.super_tensor.sizes['bands'],len(stages), 3))
+    bs_stats = np.zeros((net.super_tensor.sizes['links'],net.super_tensor.sizes['bands'],len(stages), 4))
     for j in tqdm( range(len(stages)) ):
         bs_stats[:,:,j,:]=np.apply_along_axis(bst.compute_burstness_stats, -1,
                           net.get_data_from(stage=stages[j], pad=True),
                           samples = net.get_number_of_samples(stage=stages[j]),
-                          dt=delta/net.super_tensor.attrs['fsample'])
+                          dt=delta/net.super_tensor.attrs['fsample'], drop_edges=True)
 
     return bs_stats
 
@@ -148,7 +148,7 @@ for i in tqdm( range(len(q_list)) ):
         cv[...,j,i]  = np.apply_along_axis(bst.compute_burstness_stats, -1,
                        net.get_data_from(stage=s,pad=True),
                        samples = net.get_number_of_samples(stage=s),
-                       dt      = delta/net.super_tensor.attrs['fsample'])
+                       dt      = delta/net.super_tensor.attrs['fsample'], drop_edges=True)
 
 ###############################################################################
 # 3. Compute statistics for three different thresholds

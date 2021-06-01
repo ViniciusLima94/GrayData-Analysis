@@ -50,6 +50,7 @@ def compute_burstness_stats(spike_train, drop_edges=False, samples=None, dt=None
 CV (mean activation time over its std).
     > INPUTS:
     - spike_train: The binary spike train.
+    - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
     - dt: If providade the returned array with the length of activations will be given in seconds.
     > OUTPUTS:
     array containing mu, mu_tot, and CV computed from the activation sequences in the spike train.
