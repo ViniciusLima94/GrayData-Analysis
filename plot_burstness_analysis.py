@@ -208,7 +208,7 @@ for idx, q in tqdm( enumerate(q_list) ):
 # 6. Burstness statistics ploted as matrix Nodes x Nodes 
 ###############################################################################
 
-nC = ses.data.attrs['nC'] # Number of channels
+nC = net.super_ternsor.attrs['nC'] # Number of channels
 
 for idx, q in tqdm( enumerate(q_list) ):
     # Converting stats to matrix
