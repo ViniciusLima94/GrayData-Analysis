@@ -277,7 +277,6 @@ class temporal_network():
 ################################################ AUX FUNCTIONS ################################################
 
 def _check_values(values, in_list):
-    if type(values) is not list: values=[values]
     is_valid=True
     for val in values:
         if val not in in_list:
