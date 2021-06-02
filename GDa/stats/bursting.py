@@ -1,4 +1,5 @@
 import numpy as np
+from   frites.utils   import parallel_func
 from   .util import custom_mean, custom_std
 
 def find_activation_sequences(spike_train, dt=None, drop_edges=False, pad=False, max_size=None):
@@ -71,6 +72,27 @@ CV (mean activation time over its std).
     # Normalized total act. time
     mu_tot = act_lengths.sum() / ( samples * dt )
     return np.array([mu,mu_st,mu_tot,cv])
+
+def burstness_stats(data, drop_edges=False, samples=None, dt=None):
+    r'''
+    Given a data tensor (shape n_trials, n_roi, n_times) composed of spike trains the sequence 
+    of activations of it will be determined (see find_activations_squences) and 
+    the following burstness stats computed: link avg. activation
+    time (mu), total act. time relative to task stage time (mu_tot), 
+CV (mean activation time over its std).
+    > INPUTS:
+    - data: Tensor containing the data with shape n_trials, n_roi, n_times.
+    - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
+    - dt: If providade the returned array with the length of activations will be given in seconds.
+    > OUTPUTS:
+    array containing mu, mu_tot, and CV computed from the activation sequences in the spike train.
+    '''
+
+    # Checking inputs
+    assert isinstance(data, np.ndarray)
+    assert len(np.shape(data)) is 3
+
+    return None
 
 def compute_burstness_stats_from_act_seq(act_lengths, dt=None):
     r'''
