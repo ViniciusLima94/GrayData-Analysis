@@ -65,13 +65,13 @@ class temporal_network():
         # Threshold the super tensor
         if isinstance(q, (int,float)):
             # Drop trials before thresholding
-            if trial_type is not None or behavioral_response is not None and drop_trials_after is False:
+            if (trial_type is not None or behavioral_response is not None) and (drop_trials_after is False):
                 print(f'drop_trials_after={drop_trials_after}')
                 self.__filter_trials(trial_type, behavioral_response)
             # Threshold
             self.__compute_coherence_thresholds(q, relative, verbose)
             # Drop trials after threshold
-            if trial_type is not None or behavioral_response is not None and drop_trials_after is True:
+            if (trial_type is not None or behavioral_response is not None) and (drop_trials_after is True):
                 print(f'drop_trials_after={drop_trials_after}')
                 self.__filter_trials(trial_type, behavioral_response)
         else:
