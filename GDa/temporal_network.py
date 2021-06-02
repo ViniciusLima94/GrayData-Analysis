@@ -66,13 +66,13 @@ class temporal_network():
         if isinstance(q, (int,float)):
             # Drop trials before thresholding
             if (trial_type is not None or behavioral_response is not None) and (drop_trials_after is False):
-                print(f'drop_trials_after={drop_trials_after}')
+                #  print(f'drop_trials_after={drop_trials_after}')
                 self.__filter_trials(trial_type, behavioral_response)
             # Threshold
             self.__compute_coherence_thresholds(q, relative, verbose)
             # Drop trials after threshold
             if (trial_type is not None or behavioral_response is not None) and (drop_trials_after is True):
-                print(f'drop_trials_after={drop_trials_after}')
+                #  print(f'drop_trials_after={drop_trials_after}')
                 self.__filter_trials(trial_type, behavioral_response)
         else:
             # Othrwise simply drop the trials if needed
@@ -201,7 +201,7 @@ class temporal_network():
         self.super_tensor = self.super_tensor.sel(trials=filtered_trials)
         # Filtering attributes
         for key in ['stim', 't_cue_off', 't_cue_on', 't_match_on']:
-            print(f'key={key}')
+            #  print(f'key={key}')
             self.super_tensor.attrs[key] = self.super_tensor.attrs[key][filtered_trials_idx]
     
     def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
