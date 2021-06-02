@@ -195,6 +195,10 @@ class temporal_network():
     def __filter_trials(self, trial_type, behavioral_response):
         filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=trial_type, behavioral_response=behavioral_response)
         self.super_tensor = self.super_tensor.sel(trials = filtered_trials)
+        # Filtering attributes
+        for idx, key in enumerate( self.super_tensor.attrs.keys() ):
+            if key in ['stim', 't_cue_off', 't_cue_on', 't_match_on']:
+                self.super_tensor.attrs[key] = self.super_tensor.attrs[key][filtered_trials_idx]
     
     def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
         r'''
