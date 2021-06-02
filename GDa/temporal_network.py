@@ -137,12 +137,19 @@ class temporal_network():
     def create_stage_masks(self, flatten=False):
         filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=self.trial_type, behavioral_response=self.behavioral_response)
         self.s_mask = create_stages_time_grid(
-                      self.super_tensor.attrs['t_cue_on'][filtered_trials_idx],
-                      self.super_tensor.attrs['t_cue_off'][filtered_trials_idx],
-                      self.super_tensor.attrs['t_match_on'][filtered_trials_idx], 
+                      self.super_tensor.attrs['t_cue_on'],
+                      self.super_tensor.attrs['t_cue_off'],
+                      self.super_tensor.attrs['t_match_on'], 
                       self.super_tensor.attrs['fsample'],
-                      self.tarray, len(filtered_trials_idx), flatten=flatten
+                      self.tarray, net.super_tensor.sizes['trials'], flatten=flatten
                       )
+        #  self.s_mask = create_stages_time_grid(
+        #                self.super_tensor.attrs['t_cue_on'][filtered_trials_idx],
+        #                self.super_tensor.attrs['t_cue_off'][filtered_trials_idx],
+        #                self.super_tensor.attrs['t_match_on'][filtered_trials_idx], 
+        #                self.super_tensor.attrs['fsample'],
+        #                self.tarray, len(filtered_trials_idx), flatten=flatten
+        #                )
         # Convert each mask to xarray
         if flatten: 
             dims=("observations")
