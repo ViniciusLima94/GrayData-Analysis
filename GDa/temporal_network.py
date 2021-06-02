@@ -278,8 +278,11 @@ class temporal_network():
 
 def _check_values(values, in_list):
     is_valid=True
-    for val in values:
-        if val not in in_list:
-            is_valid=False
-            break
-    return is_valid
+    if values is None:
+        return is_valid
+    else:
+        for val in values:
+            if val not in in_list:
+                is_valid=False
+                break
+        return is_valid
