@@ -141,7 +141,7 @@ class temporal_network():
                       self.super_tensor.attrs['t_cue_off'],
                       self.super_tensor.attrs['t_match_on'], 
                       self.super_tensor.attrs['fsample'],
-                      self.tarray, net.super_tensor.sizes['trials'], flatten=flatten
+                      self.tarray, self.super_tensor.sizes['trials'], flatten=flatten
                       )
         #  self.s_mask = create_stages_time_grid(
         #                self.super_tensor.attrs['t_cue_on'][filtered_trials_idx],
