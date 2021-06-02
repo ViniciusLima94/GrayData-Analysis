@@ -77,6 +77,8 @@ class temporal_network():
             if trial_type is not None or behavioral_response is not None:
                 self.__filter_trials(trial_type, behavioral_response)
 
+        self.filtered_trials, self.filtered_trials_idx = self.__filter_trial_indexes(trial_type, behavioral_response)
+
     def __load_h5(self, wt):
         # Path to the file
         h5_super_tensor_path = os.path.join(self.raw_path, 
@@ -222,8 +224,8 @@ class temporal_network():
             idx = self.trial_info['trial_type'].isin(trial_type) & self.trial_info['behavioral_response'].isin(behavioral_response)
         filtered_trials     = self.trial_info[idx].trial_index.values
         filtered_trials_idx = self.trial_info[idx].index.values
-        print(f'filtered_trials={filtered_trials}')
-        print(f'filtered_trials_idx={filtered_trials_idx}')
+        #  print(f'filtered_trials={filtered_trials}')
+        #  print(f'filtered_trials_idx={filtered_trials_idx}')
         return filtered_trials, filtered_trials_idx
 
     def __get_coords(self, ):
