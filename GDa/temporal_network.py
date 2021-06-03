@@ -2,7 +2,7 @@ import numpy                as     np
 import xarray               as     xr
 import scipy
 
-import GDa.session          
+import GDa.session
 from   GDa.misc.reshape      import reshape_trials, reshape_observations
 from   GDa.misc.create_grids import create_stages_time_grid
 from   GDa.net.util          import compute_coherence_thresholds, convert_to_adjacency
@@ -54,11 +54,11 @@ class temporal_network():
         # Setting up mokey and recording info to load and save files
         self.raw_path = tensor_raw_path
         self.monkey   = monkey
-        self.date     = date                            
-        self.session  = f'session0{session}'       
+        self.date     = date
+        self.session  = f'session0{session}'
         self.trial_type          = trial_type
         self.behavioral_response = behavioral_response 
-        
+
         # Load super-tensor
         self.__load_h5(wt)
 
@@ -201,14 +201,14 @@ class temporal_network():
         if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
             self.create_stage_masks(flatten=True)
         return np.int( self.s_mask[stage].sum() )
-    
+
     def __filter_trials(self, trial_type, behavioral_response):
         filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=trial_type, behavioral_response=behavioral_response)
         self.super_tensor = self.super_tensor.sel(trials=filtered_trials)
         # Filtering attributes
         for key in ['stim', 't_cue_off', 't_cue_on', 't_match_on']:
             self.super_tensor.attrs[key] = self.super_tensor.attrs[key][filtered_trials_idx]
-    
+
     def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
         r'''
         Filter super-tensor by desired trials based on trial_type and behav. response.
