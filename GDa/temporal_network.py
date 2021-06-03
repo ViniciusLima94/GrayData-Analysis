@@ -143,14 +143,6 @@ class temporal_network():
                       self.super_tensor.attrs['fsample'],
                       self.tarray, self.super_tensor.sizes['trials'], flatten=flatten
                       )
-        #  self.s_mask = create_stages_time_grid(
-        #                self.super_tensor.attrs['t_cue_on'][filtered_trials_idx],
-        #                self.super_tensor.attrs['t_cue_off'][filtered_trials_idx],
-        #                self.super_tensor.attrs['t_match_on'][filtered_trials_idx], 
-        #                self.super_tensor.attrs['fsample'],
-        #                self.tarray, len(filtered_trials_idx), flatten=flatten
-        #                )
-        # Convert each mask to xarray
         if flatten: 
             dims=("observations")
         else:
@@ -158,6 +150,37 @@ class temporal_network():
 
         for k in self.s_mask.keys():
             self.s_mask[k] = xr.DataArray(self.s_mask[k], dims=dims)
+
+    def __filter_trials(self, trial_type, behavioral_response):
+        filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=trial_type, behavioral_response=behavioral_response)
+        self.super_tensor = self.super_tensor.sel(trials=filtered_trials)
+        # Filtering attributes
+        for key in ['stim', 't_cue_off', 't_cue_on', 't_match_on']:
+            self.super_tensor.attrs[key] = self.super_tensor.attrs[key][filtered_trials_idx]
+
+    def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
+        r'''
+        Filter super-tensor by desired trials based on trial_type and behav. response.
+        > INPUTS:
+        - trial_type: List with the number of the desired trial_types to load
+        - behavioral_response: List with the number of the desired behavioral_responses to load
+        > OUTPUTS:
+        - filtered_trials: The number of the trials correspondent to the selected trial_type and behavioral_response
+        - filtered_trials_idx: The index of the trials corresponding to the selected trial_type and behavioral_response
+        '''
+        # Check for invalid values
+        assert _check_values(trial_type,[None, 1.0, 2.0, 3.0]) is True, "Trial type should be either 1, 2, 3 or None."
+        assert _check_values(behavioral_response,[None,np.nan, 0.0, 1.0]) is True, "Behavioral response should be either 0, 1, NaN or None."
+
+        if isinstance(trial_type, np.ndarray) and behavioral_response is None:
+            idx = self.trial_info['trial_type'].isin(trial_type)
+        if trial_type is None and isinstance(behavioral_response, np.ndarray):
+            idx = self.trial_info['behavioral_response'].isin(behavioral_response)
+        if isinstance(trial_type, np.ndarray) and isinstance(behavioral_response, np.ndarray):
+            idx = self.trial_info['trial_type'].isin(trial_type) & self.trial_info['behavioral_response'].isin(behavioral_response)
+        filtered_trials     = self.trial_info[idx].trial_index.values
+        filtered_trials_idx = self.trial_info[idx].index.values
+        return filtered_trials, filtered_trials_idx
 
     def get_data_from(self, stage=None, pad=False):
         r'''
@@ -201,37 +224,6 @@ class temporal_network():
         if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
             self.create_stage_masks(flatten=True)
         return np.int( self.s_mask[stage].sum() )
-
-    def __filter_trials(self, trial_type, behavioral_response):
-        filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=trial_type, behavioral_response=behavioral_response)
-        self.super_tensor = self.super_tensor.sel(trials=filtered_trials)
-        # Filtering attributes
-        for key in ['stim', 't_cue_off', 't_cue_on', 't_match_on']:
-            self.super_tensor.attrs[key] = self.super_tensor.attrs[key][filtered_trials_idx]
-
-    def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
-        r'''
-        Filter super-tensor by desired trials based on trial_type and behav. response.
-        > INPUTS:
-        - trial_type: List with the number of the desired trial_types to load
-        - behavioral_response: List with the number of the desired behavioral_responses to load
-        > OUTPUTS:
-        - filtered_trials: The number of the trials correspondent to the selected trial_type and behavioral_response
-        - filtered_trials_idx: The index of the trials corresponding to the selected trial_type and behavioral_response
-        '''
-        # Check for invalid values
-        assert _check_values(trial_type,[None, 1.0, 2.0, 3.0]) is True, "Trial type should be either 1, 2, 3 or None."
-        assert _check_values(behavioral_response,[None,np.nan, 0.0, 1.0]) is True, "Behavioral response should be either 0, 1, NaN or None."
-
-        if isinstance(trial_type, np.ndarray) and behavioral_response is None:
-            idx = self.trial_info['trial_type'].isin(trial_type)
-        if trial_type is None and isinstance(behavioral_response, np.ndarray):
-            idx = self.trial_info['behavioral_response'].isin(behavioral_response)
-        if isinstance(trial_type, np.ndarray) and isinstance(behavioral_response, np.ndarray):
-            idx = self.trial_info['trial_type'].isin(trial_type) & self.trial_info['behavioral_response'].isin(behavioral_response)
-        filtered_trials     = self.trial_info[idx].trial_index.values
-        filtered_trials_idx = self.trial_info[idx].index.values
-        return filtered_trials, filtered_trials_idx
 
     def get_averaged_st(self, win_delay=None):
         r'''
