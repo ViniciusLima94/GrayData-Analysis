@@ -143,14 +143,6 @@ class temporal_network():
                       self.super_tensor.attrs['fsample'],
                       self.tarray, self.super_tensor.sizes['trials'], flatten=flatten
                       )
-        #  self.s_mask = create_stages_time_grid(
-        #                self.super_tensor.attrs['t_cue_on'][filtered_trials_idx],
-        #                self.super_tensor.attrs['t_cue_off'][filtered_trials_idx],
-        #                self.super_tensor.attrs['t_match_on'][filtered_trials_idx], 
-        #                self.super_tensor.attrs['fsample'],
-        #                self.tarray, len(filtered_trials_idx), flatten=flatten
-        #                )
-        # Convert each mask to xarray
         if flatten: 
             dims=("observations")
         else:
@@ -233,29 +225,28 @@ class temporal_network():
         filtered_trials_idx = self.trial_info[idx].index.values
         return filtered_trials, filtered_trials_idx
 
-def get_averaged_st(self, win_delay=None):
-    r'''
-    Get the trial averaged super-tensor, it averages togheter the trials for delays in
-    the ranges specified by win_delay.
-    > INPUTS:
-    - win_delay: The delay durations that should be averaged together, e.g., 
-           if win_delay = [[800, 1000],[1000,1200]] all the trials
-           in which the delays are between 800-1000ms will be averaged together, 
-           likewise for 1000-1200, therefore two averaged super-tensors will be 
-           returnd. If None the average is done for all trials.
-    > OUTPUTS:
-    - The trial averaged super-tensor.
-    '''
-    assert isinstance(win_delay, (type(None), list))
+    def get_averaged_st(self, win_delay=None):
+        r'''
+        Get the trial averaged super-tensor, it averages togheter the trials for delays in
+        the ranges specified by win_delay.
+        > INPUTS:
+        - win_delay: The delay durations that should be averaged together, e.g., 
+               if win_delay = [[800, 1000],[1000,1200]] all the trials
+               in which the delays are between 800-1000ms will be averaged together, 
+               likewise for 1000-1200, therefore two averaged super-tensors will be 
+               returnd. If None the average is done for all trials.
+        > OUTPUTS:
+        - The trial averaged super-tensor.
+        '''
+        assert isinstance(win_delay, (type(None), list))
 
-    # Delay duration for each trial
-    delay = (self.super_tensor.attrs['t_match_on']-self.super_tensor.attrs['t_cue_off'])/self.super_tensor.attrs['fsample']
-    avg_super_tensor = []
-    for i, wd in enumerate( win_delay ):
-    # Get index for delays within the window
-        idx = (delay>=wd[0])*(delay<wd[-1])
-        print(f'idx={idx}')
-        avg_super_tensor += [self.super_tensor.isel(trials=idx)]
+        delay = (self.super_tensor.attrs['t_match_on']-self.super_tensor.attrs['t_cue_off'])/self.super_tensor.attrs['fsample']
+        avg_super_tensor = []
+        for i, wd in enumerate( win_delay ):
+            idx = (delay>=wd[0])*(delay<wd[-1])
+            print(f'idx={idx}')
+            avg_super_tensor += [self.super_tensor.isel(trials=idx)]
+        return avg_super_tensor
 
     def get_stages_duration(self, stage=None):
         r'''
@@ -271,14 +262,11 @@ def get_averaged_st(self, win_delay=None):
         # If the variable exists but the dimensios are not flattened create again
         if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
 
-    def __get_coords(self,):
-        r'''
-        Get the channels coordinates.
-        '''
-        from pathlib import Path
-        _path = os.path.join(Path.home(), 'GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat')
-        xy    = scipy.io.loadmat(_path)['xy']
-        return xy
+        def __get_coords(self, ):
+            from pathlib import Path
+            _path = os.path.join(Path.home(), 'GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat')
+            xy    = scipy.io.loadmat(_path)['xy']
+            return xy
 
     def __get_euclidean_distances(self, ):
         r'''
