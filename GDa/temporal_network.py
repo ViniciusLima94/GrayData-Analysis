@@ -303,7 +303,6 @@ class temporal_network():
         self.super_tensor.stack(observations=('trials','time'))
 
 ################################################ AUX FUNCTIONS ################################################
-
 def _check_values(values, in_list):
     is_valid=True
     if values is None:
