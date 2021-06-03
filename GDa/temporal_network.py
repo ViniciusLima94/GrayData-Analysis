@@ -271,28 +271,28 @@ class temporal_network():
         # If the variable exists but the dimensios are not flattened create again
         if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
 
-    #  def __get_coords(self,):
-    #      r'''
-    #      Get the channels coordinates.
-    #      '''
-    #      from pathlib import Path
-    #      _path = os.path.join(Path.home(), 'GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat')
-    #      xy    = scipy.io.loadmat(_path)['xy']
-    #      return xy
+    def __get_coords(self,):
+        r'''
+        Get the channels coordinates.
+        '''
+        from pathlib import Path
+        _path = os.path.join(Path.home(), 'GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat')
+        xy    = scipy.io.loadmat(_path)['xy']
+        return xy
 
-    #  def __get_euclidean_distances(self, ):
-    #      r'''
-    #      Get the channels euclidean distances based on their coordinates.
-    #      '''
-    #      xy   = self.__get_coords()
-    #      d_eu = np.zeros(self.session_info['pairs'].shape[0])
-    #      for i in range( self.session_info['pairs'].shape[0] ):
-    #          c1 = self.session_info['channels_labels'].astype(int)[self.session_info['pairs'][i,0]]
-    #          c2 = self.session_info['channels_labels'].astype(int)[self.session_info['pairs'][i,1]]
-    #          dx = xy[c1-1,0] - xy[c2-1,0]
-    #          dy = xy[c1-1,1] - xy[c2-1,1]
-    #          d_eu[i] = np.sqrt(dx**2 + dy**2)
-    #      return d_eu
+    def __get_euclidean_distances(self, ):
+        r'''
+        Get the channels euclidean distances based on their coordinates.
+        '''
+        xy   = self.__get_coords()
+        d_eu = np.zeros(self.session_info['pairs'].shape[0])
+        for i in range( self.session_info['pairs'].shape[0] ):
+            c1 = self.session_info['channels_labels'].astype(int)[self.session_info['pairs'][i,0]]
+            c2 = self.session_info['channels_labels'].astype(int)[self.session_info['pairs'][i,1]]
+            dx = xy[c1-1,0] - xy[c2-1,0]
+            dy = xy[c1-1,1] - xy[c2-1,1]
+            d_eu[i] = np.sqrt(dx**2 + dy**2)
+        return d_eu
 
     def __compute_coherence_thresholds(self, q, relative, verbose):
         if verbose: print('Computing coherence thresholds') 
