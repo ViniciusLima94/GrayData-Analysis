@@ -242,6 +242,8 @@ class temporal_network():
         delay = (self.super_tensor.attrs['t_match_on']-self.super_tensor.attrs['t_cue_off'])/self.super_tensor.attrs['fsample']
         avg_super_tensor = [] # Averaged super-tensor
         n_obs            = [] # Number of observations for each window
+        # If no window is provided average over all trials otherwise average
+        # for each delay duration window.
         if win_delay is None:
             return self.super_tensor.mean(dim='trials')
         else:
