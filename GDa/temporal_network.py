@@ -143,6 +143,14 @@ class temporal_network():
                       self.super_tensor.attrs['fsample'],
                       self.tarray, self.super_tensor.sizes['trials'], flatten=flatten
                       )
+        #  self.s_mask = create_stages_time_grid(
+        #                self.super_tensor.attrs['t_cue_on'][filtered_trials_idx],
+        #                self.super_tensor.attrs['t_cue_off'][filtered_trials_idx],
+        #                self.super_tensor.attrs['t_match_on'][filtered_trials_idx], 
+        #                self.super_tensor.attrs['fsample'],
+        #                self.tarray, len(filtered_trials_idx), flatten=flatten
+        #                )
+        # Convert each mask to xarray
         if flatten: 
             dims=("observations")
         else:
@@ -240,13 +248,14 @@ class temporal_network():
         '''
         assert isinstance(win_delay, (type(None), list))
 
+        # Delay duration for each trial
         delay = (self.super_tensor.attrs['t_match_on']-self.super_tensor.attrs['t_cue_off'])/self.super_tensor.attrs['fsample']
         avg_super_tensor = []
         for i, wd in enumerate( win_delay ):
+        # Get index for delays within the window
             idx = (delay>=wd[0])*(delay<wd[-1])
             print(f'idx={idx}')
             avg_super_tensor += [self.super_tensor.isel(trials=idx)]
-        return avg_super_tensor
 
     def get_stages_duration(self, stage=None):
         r'''
@@ -262,11 +271,14 @@ class temporal_network():
         # If the variable exists but the dimensios are not flattened create again
         if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
 
-        def __get_coords(self, ):
-            from pathlib import Path
-            _path = os.path.join(Path.home(), 'GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat')
-            xy    = scipy.io.loadmat(_path)['xy']
-            return xy
+    def __get_coords(self,):
+        r'''
+        Get the channels coordinates.
+        '''
+        from pathlib import Path
+        _path = os.path.join(Path.home(), 'GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat')
+        xy    = scipy.io.loadmat(_path)['xy']
+        return xy
 
     def __get_euclidean_distances(self, ):
         r'''
@@ -308,4 +320,3 @@ def _check_values(values, in_list):
                 is_valid=False
                 break
         return is_valid
-
