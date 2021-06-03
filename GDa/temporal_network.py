@@ -205,11 +205,13 @@ class temporal_network():
         else:
             return self.super_tensor.stack(observations=("trials","time")).isel(observations=self.s_mask[stage])
 
-    def get_number_of_samples(self, stage=None):
+    def get_number_of_samples(self, stage=None, total=False):
         r'''
         Return the number of samples for a given stage for all the trials.
         > INPUT: 
         - stage: Name of the stage from which to get number of samples from.
+        - total: If True will get the total number of observations for all trials
+                 otherwise will get the number of observations per trial.
         > OUTPUTS:
         Return the number of samples for the stage provided for all trials concatenated.
         '''
@@ -217,11 +219,14 @@ class temporal_network():
 
         # Check if the binary mask was already created
         if not hasattr(self, 's_mask'):
-            self.create_stage_masks(flatten=True)
+            self.create_stage_masks(flatten=False)
         # If the variable exists but the dimensios are not flattened create again
-        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
-            self.create_stage_masks(flatten=True)
-        return np.int( self.s_mask[stage].sum() )
+        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==1:
+            self.create_stage_masks(flatten=False)
+        if total:
+            return np.int( self.s_mask[stage].sum() )
+        else:
+            return np.int( self.s_mask[stage].sum(dim='time') )
 
     def get_averaged_st(self, win_delay=None):
         r'''
@@ -263,10 +268,12 @@ class temporal_network():
         '''
         # Check if the binary mask was already created
         if not hasattr(self, 's_mask'):
-            self.create_stage_masks(flatten=True)
+            self.create_stage_masks(flatten=False)
         # If the variable exists but the dimensios are not flattened create again
-        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
-            pass
+        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==1:
+            self.create_stage_masks(flatten=False)
+
+
 
     def __get_coords(self,):
         r'''
