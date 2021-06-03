@@ -270,6 +270,7 @@ class temporal_network():
             self.create_stage_masks(flatten=True)
         # If the variable exists but the dimensios are not flattened create again
         if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
+
     def __get_coords(self, ):
         r'''
         Get the channels coordinates.
