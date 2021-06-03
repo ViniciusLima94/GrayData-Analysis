@@ -236,7 +236,7 @@ class temporal_network():
         - win_delay: The delay durations that should be averaged together, e.g., 
                if win_delay = [[800, 1000],[1000,1200]] all the trials
                in which the delays are between 800-1000ms will be averaged together, 
-               likewise for 1000-1200, therefore two averaged super-tensors will be 
+               likewise for 1000-1200ms, therefore two averaged super-tensors will be 
                returnd. If None the average is done for all trials.
         > OUTPUTS:
         - The trial averaged super-tensor.
