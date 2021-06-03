@@ -254,7 +254,7 @@ class temporal_network():
         for i, wd in enumerate( win_delay ):
         # Get index for delays within the window
             idx = (delay>=wd[0])*(delay<wd[-1])
-            print(f'idx={idx}')
+            #  print(f'idx={idx}')
             avg_super_tensor += [self.super_tensor.isel(trials=idx).mean(dim='trials')]
         return avg_super_tensor
 
