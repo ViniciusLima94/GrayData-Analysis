@@ -256,6 +256,7 @@ class temporal_network():
             idx = (delay>=wd[0])*(delay<wd[-1])
             print(f'idx={idx}')
             avg_super_tensor += [self.super_tensor.isel(trials=idx)]
+        return avg_super_tensor
 
     def get_stages_duration(self, stage=None):
         r'''
