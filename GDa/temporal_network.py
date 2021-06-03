@@ -258,23 +258,6 @@ class temporal_network():
                 avg_super_tensor += [self.super_tensor.isel(trials=idx).mean(dim='trials')]
             return avg_super_tensor
 
-    def get_stages_duration(self, stage=None):
-        r'''
-        Return the duration of the specified stage for each trial.
-        > INPUT: 
-        - stage: Name of the stage from which to get number of samples from.
-        > OUTPUTS:
-        Return the duration for the stage provided for each trial.
-        '''
-        # Check if the binary mask was already created
-        if not hasattr(self, 's_mask'):
-            self.create_stage_masks(flatten=False)
-        # If the variable exists but the dimensios are not flattened create again
-        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==1:
-            self.create_stage_masks(flatten=False)
-
-
-
     def __get_coords(self,):
         r'''
         Get the channels coordinates.
