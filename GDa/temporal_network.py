@@ -284,6 +284,7 @@ class temporal_network():
         r'''
         Get the channels euclidean distances based on their coordinates.
         '''
+
         xy   = self.__get_coords()
         d_eu = np.zeros(self.session_info['pairs'].shape[0])
         for i in range( self.session_info['pairs'].shape[0] ):
