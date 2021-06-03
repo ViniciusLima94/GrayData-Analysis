@@ -232,31 +232,31 @@ class temporal_network():
         filtered_trials     = self.trial_info[idx].trial_index.values
         filtered_trials_idx = self.trial_info[idx].index.values
         return filtered_trials, filtered_trials_idx
-#
-#    def get_averaged_st(self, win_delay=None):
-#        r'''
-#        Get the trial averaged super-tensor, it averages togheter the trials for delays in
-#        the ranges specified by win_delay.
-#        > INPUTS:
-#        - win_delay: The delay durations that should be averaged together, e.g., 
-#                     if win_delay = [[800, 1000],[1000,1200]] all the trials
-#                     in which the delays are between 800-1000ms will be averaged together, 
-#                     likewise for 1000-1200, therefore two averaged super-tensors will be 
-#                     returnd. If None the average is done for all trials.
-#        > OUTPUTS:
-#        - The trial averaged super-tensor.
-#        '''
-#        assert isinstance(win_delay, (type(None), list))
-#
-#        # Delay duration for each trial
-#        delay = (self.super_tensor.attrs['t_match_on']-self.super_tensor.attrs['t_cue_off'])/self.super_tensor.attrs['fsample']
-#        avg_super_tensor = []
-#        for i, wd in enumerate( win_delay ):
-#            # Get index for delays within the window
-#            idx = (delay>=wd[0])*(delay<wd[-1])
-#            print(f'idx={idx}')
-#            avg_super_tensor += [self.super_tensor.isel(trials=idx)]
-#
+
+    def get_averaged_st(self, win_delay=None):
+      r'''
+      Get the trial averaged super-tensor, it averages togheter the trials for delays in
+      the ranges specified by win_delay.
+      > INPUTS:
+      - win_delay: The delay durations that should be averaged together, e.g., 
+                   if win_delay = [[800, 1000],[1000,1200]] all the trials
+                   in which the delays are between 800-1000ms will be averaged together, 
+                   likewise for 1000-1200, therefore two averaged super-tensors will be 
+                   returnd. If None the average is done for all trials.
+      > OUTPUTS:
+      - The trial averaged super-tensor.
+      '''
+      assert isinstance(win_delay, (type(None), list))
+
+      # Delay duration for each trial
+      delay = (self.super_tensor.attrs['t_match_on']-self.super_tensor.attrs['t_cue_off'])/self.super_tensor.attrs['fsample']
+      avg_super_tensor = []
+      for i, wd in enumerate( win_delay ):
+          # Get index for delays within the window
+          idx = (delay>=wd[0])*(delay<wd[-1])
+          print(f'idx={idx}')
+          avg_super_tensor += [self.super_tensor.isel(trials=idx)]
+
     def get_stages_duration(self, stage=None):
         r'''
         Return the duration of the specified stage for each trial.
