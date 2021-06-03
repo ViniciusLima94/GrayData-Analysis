@@ -240,13 +240,16 @@ class temporal_network():
 
         # Delay duration for each trial
         delay = (self.super_tensor.attrs['t_match_on']-self.super_tensor.attrs['t_cue_off'])/self.super_tensor.attrs['fsample']
-        avg_super_tensor = []
-        for i, wd in enumerate( win_delay ):
-        # Get index for delays within the window
-            idx = (delay>=wd[0])*(delay<wd[-1])
-            #  print(f'idx={idx}')
-            avg_super_tensor += [self.super_tensor.isel(trials=idx).mean(dim='trials')]
-        return avg_super_tensor
+        avg_super_tensor = [] # Averaged super-tensor
+        n_obs            = [] # Number of observations for each window
+        if win_delay is None:
+            return self.super_tensor.mean(dim='trials')
+        else:
+            for i, wd in enumerate( win_delay ):
+                # Get index for delays within the window
+                idx = (delay>=wd[0])*(delay<wd[-1])
+                avg_super_tensor += [self.super_tensor.isel(trials=idx).mean(dim='trials')]
+            return avg_super_tensor
 
     def get_stages_duration(self, stage=None):
         r'''
