@@ -226,7 +226,7 @@ class temporal_network():
         if total:
             return np.int( self.s_mask[stage].sum() )
         else:
-            return np.int( self.s_mask[stage].sum(dim='time') )
+            return self.s_mask[stage].sum(dim='time')
 
     def get_averaged_st(self, win_delay=None):
         r'''
