@@ -159,7 +159,7 @@ class temporal_network():
         for k in self.s_mask.keys():
             self.s_mask[k] = xr.DataArray(self.s_mask[k], dims=dims)
 
-    def get_data_from(self,stage=None, pad=False):
+    def get_data_from(self, stage=None, pad=False):
         r'''
         Return a copy of the super-tensor only for the data points correspondent for a 
         given experiment stage (baseline, cue, delay, match).
@@ -200,7 +200,6 @@ class temporal_network():
         # If the variable exists but the dimensios are not flattened create again
         if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
             self.create_stage_masks(flatten=True)
-
         return np.int( self.s_mask[stage].sum() )
     
     def __filter_trials(self, trial_type, behavioral_response):
@@ -208,7 +207,6 @@ class temporal_network():
         self.super_tensor = self.super_tensor.sel(trials=filtered_trials)
         # Filtering attributes
         for key in ['stim', 't_cue_off', 't_cue_on', 't_match_on']:
-            #  print(f'key={key}')
             self.super_tensor.attrs[key] = self.super_tensor.attrs[key][filtered_trials_idx]
     
     def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
@@ -233,9 +231,45 @@ class temporal_network():
             idx = self.trial_info['trial_type'].isin(trial_type) & self.trial_info['behavioral_response'].isin(behavioral_response)
         filtered_trials     = self.trial_info[idx].trial_index.values
         filtered_trials_idx = self.trial_info[idx].index.values
-        #  print(f'filtered_trials={filtered_trials}')
-        #  print(f'filtered_trials_idx={filtered_trials_idx}')
         return filtered_trials, filtered_trials_idx
+
+    def get_averaged_st(self, win_delay=None):
+        r'''
+        Get the trial averaged super-tensor, it averages togheter the trials for delays in
+        the ranges specified by win_delay.
+        > INPUTS:
+        - win_delay: The delay durations that should be averaged together, e.g., 
+                     if win_delay = [[800, 1000],[1000,1200]] all the trials
+                     in which the delays are between 800-1000ms will be averaged together, 
+                     likewise for 1000-1200, therefore two averaged super-tensors will be 
+                     returnd. If None the average is done for all trials.
+        > OUTPUTS:
+        - The trial averaged super-tensor.
+        '''
+        assert isinstance(win_delay, (type(None), list))
+
+        # Delay duration for each trial
+        delay = (self.super_tensor.attrs['t_match_on']-self.super_tensor.attrs['t_cue_off'])/self.super_tensor.attrs['fsample']
+        avg_super_tensor = []
+        for i, wd in enumerate( win_delay ):
+            # Get index for delays within the window
+            idx = (delay>=wd[0])*(delay<wd[-1])
+            print(f'idx={idx}')
+            avg_super_tensor += [self.super_tensor.isel(trials=idx)]
+
+    def get_stages_duration(self, stage=None):
+        r'''
+        Return the duration of the specified stage for each trial.
+        > INPUT: 
+        - stage: Name of the stage from which to get number of samples from.
+        > OUTPUTS:
+        Return the duration for the stage provided for each trial.
+        '''
+        # Check if the binary mask was already created
+        if not hasattr(self, 's_mask'):
+            self.create_stage_masks(flatten=True)
+        # If the variable exists but the dimensios are not flattened create again
+        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
 
     def __get_coords(self, ):
         r'''
@@ -286,3 +320,4 @@ def _check_values(values, in_list):
                 is_valid=False
                 break
         return is_valid
+
