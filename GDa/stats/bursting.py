@@ -143,6 +143,7 @@ CV (mean activation time over its std).
     return np.array([mu,mu_st,mu_tot,cv])
 
 def burstness_stats(data, drop_edges=False, samples=None, dt=None):
+
     r'''
     Given a data tensor (shape n_trials, n_roi, n_times) composed of spike trains the sequence 
     of activations of it will be determined (see find_activations_squences) and 
