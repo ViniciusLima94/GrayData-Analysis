@@ -78,7 +78,7 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     '''
     act_lengths = []
     for i in range(spike_train.shape[0]):
-        act_lengths += [np.apply_along_axis(bst.masked_find_activation_sequences, -1, 
+        act_lengths += [np.apply_along_axis(masked_find_activation_sequences, -1, 
                         spike_train[i,...], mask[i,...], drop_edges=drop_edges, 
                         dt=dt)]
     return act_lengths
