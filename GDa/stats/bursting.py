@@ -2,7 +2,7 @@ import numpy as np
 from   frites.utils   import parallel_func
 from   .util import custom_mean, custom_std
 
-def find_activation_sequences(spike_train, dt=None, drop_edges=False, pad=False, max_size=None):
+def find_activation_sequences(spike_train, dt=None, pad=False, max_size=None):
     r'''
     Given a spike-train, it finds the length of all activations in it.
     For example, for the following spike-train: x = {0111000011000011111},
@@ -11,7 +11,6 @@ def find_activation_sequences(spike_train, dt=None, drop_edges=False, pad=False,
     > INPUTS:
     - spike_train: The binary spike train.
     - dt: If providade the returned array with the length of activations will be given in seconds.
-    - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
     - pad: Wheter to pad or not the array containing the size of the activations lengths in spike_train.
            For example for an spike-train (x) with size N, the maximum number of activations happens when 
            x=[0,1,0,1,0....], therefore the maximum size of the activations lengths array will be
@@ -38,11 +37,9 @@ def find_activation_sequences(spike_train, dt=None, drop_edges=False, pad=False,
         max_size    = int( np.round(len(spike_train)/2) )
     if pad and len(act_lengths)<max_size:
         act_lengths = np.hstack( (act_lengths,np.ones(max_size-len(act_lengths))*np.nan) )
-    if spike_train[-1]==1 and drop_edges==True:
-        act_lengths = act_lengths[:-1]
     return act_lengths
 
-def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=False, pad=False, max_size=None):
+def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=False):
     r'''
     Similar to "find_activation_sequences" but a mask is applied to the spike_train while computing
     the size of the activation sequences.'
@@ -51,16 +48,21 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     - mask: Binary mask applied to the spike-train.
     - dt: If providade the returned array with the length of activations will be given in seconds.
     - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
-    - pad: Wheter to pad or not the array containing the size of the activations lengths in spike_train.
-           For example for an spike-train (x) with size N, the maximum number of activations happens when 
-           x=[0,1,0,1,0....], therefore the maximum size of the activations lengths array will be
-           round(N/2). If the option pad is set to true the act_lengths will be padded at the right side of 
-           the array with NaN in order to it have size round(N/2) or the provided max_size.
-    - max_size: Max size of the returned array, if none it is set as round(N/2)
     > OUTPUTS:
     - act_lengths: Array containing the length of activations
     '''
-    None
+    # Find the size of the activations lengths for the masked spike_train
+    act_length = find_activation_sequences(spike_train*mask, dt=None, pad=False, max_size=None):
+    # If drop_edges is true it will check if activation at the left and right edges crosses the mask
+    # limits.
+    if drop_edges:
+        idx,        = np.where(mask==True)
+        i,j         = idx[0], idx[-1]
+        if spike_train[i-1] is 1 and spike_train[i] is 1:
+            act_lengths = np.delete(act_lengths,0)
+        if spike_train[j] is 1 and spike_train[j+1] is 1:
+            act_lengths = np.delete(act_lengths,-1)
+    return act_length
 
 def compute_burstness_stats(spike_train, drop_edges=False, samples=None, dt=None):
     r'''
