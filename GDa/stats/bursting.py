@@ -52,7 +52,7 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     - act_lengths: Array containing the length of activations
     '''
     # Find the size of the activations lengths for the masked spike_train
-    act_length = find_activation_sequences(spike_train*mask, dt=None, pad=False, max_size=None)
+    act_lengths = find_activation_sequences(spike_train*mask, dt=None, pad=False, max_size=None)
     # If drop_edges is true it will check if activation at the left and right edges crosses the mask
     # limits.
     if drop_edges:
@@ -62,7 +62,7 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
             act_lengths = np.delete(act_lengths,0)
         if spike_train[j]==1 and spike_train[j+1]==1:
             act_lengths = np.delete(act_lengths,-1)
-    return act_length
+    return act_lengths
 
 def compute_burstness_stats(spike_train, drop_edges=False, samples=None, dt=None):
     r'''
