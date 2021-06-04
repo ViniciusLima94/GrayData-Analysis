@@ -59,10 +59,10 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     if drop_edges:
         idx,        = np.where(mask==True)
         i,j         = idx[0], idx[-1]
-        if i>=1:
+        if i>=1 and len(act_lengths)>0:
             if spike_train[i-1]==1 and spike_train[i]==1:
                 act_lengths = np.delete(act_lengths,0)
-        if j<len(mask)-1:
+        if j<len(mask)-1 and len(act_lengths)>0:
             if spike_train[j]==1 and spike_train[j+1]==1:
                 act_lengths = np.delete(act_lengths,-1)
     return act_lengths
