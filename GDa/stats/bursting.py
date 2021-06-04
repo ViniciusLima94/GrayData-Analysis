@@ -80,6 +80,7 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     - act_lengths: Array containing the length of activations for each link and trial
     '''
     assert isinstance(spike_train, (np.ndarray, xr.DataArray))
+    assert isinstance(mask, (dict, np.ndarray, xr.DataArray))
     assert len(spike_train.shape) is 3
 
     n_edges=spike_train.shape[0]
@@ -99,11 +100,13 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     total=n_edges)
 
     if isinstance(mask, (np.ndarray, xr.DataArray)):
+        assert len(mask.shape) is 2
         act_lengths = parallel(p_fun(spike_train[e,...], mask) for e in range(n_edges))
     elif isinstance(mask, dict):
         # Use the same keys as the mask
         act_lengths = dict.fromkeys(mask.keys())
         for key in mask.keys():
+            assert len(mask[key].shape) is 2
             act_lengths[key] = parallel(p_fun(spike_train[e,...], mask[key]) for e in range(n_edges))
     return act_lengths
 
