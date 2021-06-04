@@ -197,7 +197,7 @@ class temporal_network():
         if not hasattr(self, 's_mask'):
             self.create_stage_masks(flatten=True)
         # If the variable exists but the dimensios are not flattened create again
-        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
+        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape) is 2:
             self.create_stage_masks(flatten=True)
 
         if pad:
@@ -221,7 +221,7 @@ class temporal_network():
         if not hasattr(self, 's_mask'):
             self.create_stage_masks(flatten=False)
         # If the variable exists but the dimensios are not flattened create again
-        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==1:
+        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape) is 1:
             self.create_stage_masks(flatten=False)
         if total:
             return np.int( self.s_mask[stage].sum() )

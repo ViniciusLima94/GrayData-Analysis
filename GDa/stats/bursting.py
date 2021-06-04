@@ -42,6 +42,26 @@ def find_activation_sequences(spike_train, dt=None, drop_edges=False, pad=False,
         act_lengths = act_lengths[:-1]
     return act_lengths
 
+def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=False, pad=False, max_size=None):
+    r'''
+    Similar to "find_activation_sequences" but a mask is applied to the spike_train while computing
+    the size of the activation sequences.'
+    > INPUTS:
+    - spike_train: The binary spike train.
+    - mask: Binary mask applied to the spike-train.
+    - dt: If providade the returned array with the length of activations will be given in seconds.
+    - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
+    - pad: Wheter to pad or not the array containing the size of the activations lengths in spike_train.
+           For example for an spike-train (x) with size N, the maximum number of activations happens when 
+           x=[0,1,0,1,0....], therefore the maximum size of the activations lengths array will be
+           round(N/2). If the option pad is set to true the act_lengths will be padded at the right side of 
+           the array with NaN in order to it have size round(N/2) or the provided max_size.
+    - max_size: Max size of the returned array, if none it is set as round(N/2)
+    > OUTPUTS:
+    - act_lengths: Array containing the length of activations
+    '''
+    None
+
 def compute_burstness_stats(spike_train, drop_edges=False, samples=None, dt=None):
     r'''
     Given a spike_train the sequence of activations of it 
