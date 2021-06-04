@@ -85,7 +85,7 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
             act_lengths += [np.apply_along_axis(masked_find_activation_sequences, -1, 
                             x[i,...], mask[i,...], drop_edges=drop_edges, 
                             dt=dt)]
-            act_lengths = nnumpy.concatenate( act_lengths, axis=0 )
+            act_lengths = np.concatenate( act_lengths, axis=0 )
         return act_lengths 
 
     # Computed in parallel for each edge
