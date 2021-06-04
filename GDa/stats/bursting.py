@@ -70,20 +70,25 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     of shape [links, trials, time].
     > INPUTS:
     - spike_train: The binary spike train tensor with size [links, trials, time].
-    - mask: Binary mask applied to the spike-train with size [trials, time].
+    - mask: Binary mask applied to the spike-train with size [trials, time]. For more than one mask
+            a dicitionary should be provided where for each key an array with size [trials, time]
+            is provided.
     - dt: If providade the returned array with the length of activations will be given in seconds.
     - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
     > OUTPUTS:
     - act_lengths: Array containing the length of activations for each link and trial
     '''
 
+    assert isinstance(spike_train, (np.ndarray, xr.DataArray))
+    assert len(spike_train.shape) is 3
+
     n_edges=spike_train.shape[0]
 
-    def _edgewise(x):
+    def _edgewise(x, m):
         act_lengths = []
         for i in range(x.shape[0]):
             act_lengths += [np.apply_along_axis(masked_find_activation_sequences, -1, 
-                            x[i,...], mask[i,...], drop_edges=drop_edges, 
+                            x[i,...], m[i,...], drop_edges=drop_edges, 
                             dt=dt)]
         act_lengths = np.concatenate( act_lengths, axis=0 )
         return act_lengths 
@@ -93,8 +98,13 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     _edgewise, n_jobs=n_jobs, verbose=False,
     total=n_edges)
 
-    # compute the single trial coherence
-    act_lengths = parallel(p_fun(spike_train[e,...]) for e in range(n_edges))
+    if isinstance(mask, np.ndarray):
+        act_lengths = parallel(p_fun(spike_train[e,...], mask) for e in range(n_edges))
+    elif isinstance(mask, dict):
+        # Use the same keys as the mask
+        act_lengths = dict.fromkeys(mask.keys())
+        for key in mask.keys():
+            act_lengths[key] = parallel(p_fun(spike_train[e,...], mask[key]) for e in range(n_edges))
     return act_lengths
 
 def compute_burstness_stats(spike_train, drop_edges=False, samples=None, dt=None):
