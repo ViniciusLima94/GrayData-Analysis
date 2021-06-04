@@ -1,6 +1,7 @@
-import numpy as np
+import numpy  as np
+import xarray as xr
 from   frites.utils   import parallel_func
-from   .util import custom_mean, custom_std
+from   .util          import custom_mean, custom_std
 
 def find_activation_sequences(spike_train, dt=None, pad=False, max_size=None):
     r'''
