@@ -93,7 +93,7 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     total=n_edges)
 
     # compute the single trial coherence
-    act_lengths = parallel(p_fun(spike_train[e,...], mask) for e in range(n_edges))
+    act_lengths = parallel(p_fun(spike_train[e,...]) for e in range(n_edges))
     return act_lengths
 
 def compute_burstness_stats(spike_train, drop_edges=False, samples=None, dt=None):
