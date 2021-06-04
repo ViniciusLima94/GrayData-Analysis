@@ -99,7 +99,7 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     _edgewise, n_jobs=n_jobs, verbose=False,
     total=n_edges)
 
-    if isinstance(mask, np.ndarray):
+    if isinstance(mask, (np.ndarray, xr.DataArray)):
         act_lengths = parallel(p_fun(spike_train[e,...], mask) for e in range(n_edges))
     elif isinstance(mask, dict):
         # Use the same keys as the mask
