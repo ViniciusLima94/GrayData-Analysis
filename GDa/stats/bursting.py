@@ -76,11 +76,24 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     > OUTPUTS:
     - act_lengths: Array containing the length of activations for each link and trial
     '''
-    act_lengths = []
-    for i in range(spike_train.shape[0]):
-        act_lengths += [np.apply_along_axis(masked_find_activation_sequences, -1, 
-                        spike_train[i,...], mask[i,...], drop_edges=drop_edges, 
-                        dt=dt)]
+
+    n_edges=spike_train.shape[0]
+
+    def _edgewise(x):
+        act_lengths = []
+        for i in range(x.shape[0]):
+            act_lengths += [np.apply_along_axis(masked_find_activation_sequences, -1, 
+                            x[i,...], mask[i,...], drop_edges=drop_edges, 
+                            dt=dt)]
+        return act_lengths
+
+    # Computed in parallel for each edge
+    parallel, p_fun = parallel_func(
+    _edgewise, n_jobs=n_jobs, verbose=False,
+    total=n_edges)
+
+    # compute the single trial coherence
+    act_lengths = parallel(p_fun(spike_train[e,...], mask) for e in range(n_edges))
     return act_lengths
 
 def compute_burstness_stats(spike_train, drop_edges=False, samples=None, dt=None):
@@ -92,7 +105,7 @@ def compute_burstness_stats(spike_train, drop_edges=False, samples=None, dt=None
 CV (mean activation time over its std).
     > INPUTS:
     - spike_train: The binary spike train.
-    - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
+    - drop_edges: If True will remove the size of the last burst size in cakse the spike trains ends at one.
     - dt: If providade the returned array with the length of activations will be given in seconds.
     > OUTPUTS:
     array containing mu, mu_tot, and CV computed from the activation sequences in the spike train.
