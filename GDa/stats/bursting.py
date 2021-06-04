@@ -52,7 +52,7 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     - act_lengths: Array containing the length of activations
     '''
     # Find the size of the activations lengths for the masked spike_train
-    act_lengths = find_activation_sequences(spike_train*mask, dt=None, pad=False, max_size=None)
+    act_lengths = find_activation_sequences(spike_train[mask], dt=None, pad=False, max_size=None)
     # If drop_edges is true it will check if activation at the left and right edges crosses the mask
     # limits.
     if drop_edges:
@@ -62,6 +62,25 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
             act_lengths = np.delete(act_lengths,0)
         if spike_train[j]==1 and spike_train[j+1]==1:
             act_lengths = np.delete(act_lengths,-1)
+    return act_lengths
+
+def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=False, n_jobs=1):
+    r'''
+    A wrapper from "masked_find_activation_sequences" to run for tensor data 
+    of shape [links, trials, time].
+    > INPUTS:
+    - spike_train: The binary spike train tensor with size [links, trials, time].
+    - mask: Binary mask applied to the spike-train with size [trials, time].
+    - dt: If providade the returned array with the length of activations will be given in seconds.
+    - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
+    > OUTPUTS:
+    - act_lengths: Array containing the length of activations for each link and trial
+    '''
+    act_lengths = []
+    for i in range(spike_train.shape[0]):
+        act_lengths += [np.apply_along_axis(bst.masked_find_activation_sequences, -1, 
+                        spike_train[i,...], mask[i,...], drop_edges=drop_edges, 
+                        dt=dt)]
     return act_lengths
 
 def compute_burstness_stats(spike_train, drop_edges=False, samples=None, dt=None):
