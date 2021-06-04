@@ -81,6 +81,7 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     > OUTPUTS:
     - act_lengths: Array containing the length of activations for each link and trial
     '''
+
     # Checking inputs
     assert isinstance(spike_train, (np.ndarray, xr.DataArray))
     assert isinstance(mask, (dict, np.ndarray, xr.DataArray))
