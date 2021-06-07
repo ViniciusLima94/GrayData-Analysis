@@ -114,7 +114,7 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
             act_lengths[key] = parallel(p_fun(spike_train[e,...], mask[key]) for e in range(n_edges))
     return act_lengths
 
-def compute_burstness_stats(spike_train, drop_edges=False, samples=None, dt=None):
+def compute_burstness_stats(spike_train, samples=None, dt=None):
     r'''
     Given a spike_train the sequence of activations of it 
     will be determined (see find_activations_squences) and 
@@ -123,7 +123,6 @@ def compute_burstness_stats(spike_train, drop_edges=False, samples=None, dt=None
 CV (mean activation time over its std).
     > INPUTS:
     - spike_train: The binary spike train.
-    - drop_edges: If True will remove the size of the last burst size in cakse the spike trains ends at one.
     - dt: If providade the returned array with the length of activations will be given in seconds.
     > OUTPUTS:
     array containing mu, mu_tot, and CV computed from the activation sequences in the spike train.
@@ -133,7 +132,7 @@ CV (mean activation time over its std).
     if samples is None:
         samples = len(spike_train)
     # Find activation lengths
-    act_lengths = find_activation_sequences(spike_train,dt=dt, drop_edges=drop_edges)
+    act_lengths = find_activation_sequences(spike_train,dt=dt)
     # Compute stats 
     # Mean act. time
     mu     = custom_mean(act_lengths)#act_lengths.mean()
