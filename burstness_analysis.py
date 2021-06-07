@@ -138,7 +138,7 @@ def set_net_params(trial_type=None, behavioral_response=None, relative=None, q=N
 ###############################################################################
 
 # Instantiating a temporal network object without thresholding the data
-#  net =  temporal_network( **set_net_params([1], [1]) )
+net =  temporal_network( **set_net_params([1], [1]) )
 
 #  avg_coh = np.zeros((net.super_tensor.sizes['links'], net.super_tensor.sizes['bands'], len(stages)))
 #  for j in tqdm( range( len(stages) ) ):
