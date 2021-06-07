@@ -160,6 +160,10 @@ for j in tqdm( range(len(q_list)) ):
 
     net.create_stage_masks(flatten=False)
 
+    n_samp = []
+    for stage in stages:
+        n_samp += [net.get_number_of_samples(stage=stage, total=True)]
+
     for i in range(len(band_names)):
         cv[:,i,...,j] = bst.tensor_burstness_stats(net.super_tensor.isel(bands=i), net.s_mask,
                                                    drop_edges=True, samples=n_samp,
