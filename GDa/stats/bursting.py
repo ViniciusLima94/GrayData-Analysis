@@ -176,7 +176,7 @@ CV (mean activation time over its std).
         bs_stats[:,idx,0] = [custom_mean( v ) for v in out[key]]
         bs_stats[:,idx,1] = [custom_std( v )  for v in out[key]]
         bs_stats[:,idx,2] = [np.sum( v )/n_samp for v in out[key]]
-        bs_stats[:,idx,3] = bs_stats[:,idx,0]/bs_stats[:,idx,1]
+        bs_stats[:,idx,3] = bs_stats[:,idx,1]/bs_stats[:,idx,0]
     
     return bs_stats
 
