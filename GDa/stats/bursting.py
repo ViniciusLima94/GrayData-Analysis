@@ -174,7 +174,7 @@ CV (mean activation time over its std).
         # Computing statistics for each link
         bs_stats[:,0] = [custom_mean( v ) for v in out]
         bs_stats[:,1] = [custom_std( v )  for v in out]
-        bs_stats[:,2] = [np.sum( v )/(samples*dt) for v in out]]
+        bs_stats[:,2] = [np.sum( v )/(samples*dt) for v in out]
         bs_stats[:,3] = bs_stats[:,1]/bs_stats[:,0]
     elif isinstance(out, dict):
         # Getting keys
