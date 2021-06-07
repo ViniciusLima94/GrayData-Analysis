@@ -171,9 +171,8 @@ CV (mean activation time over its std).
     # Getting keys
     keys = out.keys()
 
-    bs_stats = np.zeros((out.shape[0],len(out.), 4))
+    bs_stats = np.zeros((out[keys[0]].shape[0],len(keys), 4))
     for idx, key in enumerate(out.keys()):
-        n_samp = net.get_number_of_samples(stage=stage, total=True)
         bs_stats[:,idx,0] = [custom_mean( v ) for v in out[key]]
         bs_stats[:,idx,1] = [custom_std( v )  for v in out[key]]
         bs_stats[:,idx,2] = [np.sum( v )/n_samp for v in out[key]]
