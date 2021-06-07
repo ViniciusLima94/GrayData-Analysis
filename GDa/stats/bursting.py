@@ -78,6 +78,7 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
             is provided.
     - dt: If providade the returned array with the length of activations will be given in seconds.
     - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
+    - n_jobs: Number of jobs to use
     > OUTPUTS:
     - act_lengths: Array containing the length of activations for each link and trial
     '''
@@ -144,27 +145,42 @@ CV (mean activation time over its std).
     mu_tot = act_lengths.sum() / ( samples * dt )
     return np.array([mu,mu_st,mu_tot,cv])
 
-def burstness_stats(data, drop_edges=False, samples=None, dt=None):
-
+def tensor_burstness_stats(spike_train, mask, drop_edges=False, samples=None, dt=None, n_jobs=1):
     r'''
     Given a data tensor (shape n_trials, n_roi, n_times) composed of spike trains the sequence 
-    of activations of it will be determined (see find_activations_squences) and 
+    of activations of it will be determined (see tensor_find_activations_squences) and 
     the following burstness stats computed: link avg. activation
     time (mu), total act. time relative to task stage time (mu_tot), 
 CV (mean activation time over its std).
     > INPUTS:
-    - data: Tensor containing the data with shape n_trials, n_roi, n_times.
-    - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
+    - spike_train: The binary spike train tensor with size [links, trials, time].
+    - mask: Binary mask applied to the spike-train with size [trials, time]. For more than one mask
+            a dicitionary should be provided where for each key an array with size [trials, time]
+            is provided.
     - dt: If providade the returned array with the length of activations will be given in seconds.
+    - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
+    - n_jobs: Number of jobs to use
     > OUTPUTS:
-    array containing mu, mu_tot, and CV computed from the activation sequences in the spike train.
+    - array containing mu, mu_tot, and CV computed from the activation sequences in the spike train.
     '''
 
-    # Checking inputs
-    assert isinstance(data, np.ndarray)
-    assert len(np.shape(data)) is 3
+    assert len(mask)==len(samples)
 
-    return None
+    # Computing activation lengths
+    out  = tensor_find_activation_sequences(spike_train, mask, dt=dt, drop_edges=drop_edges, n_jobs=n_jobs)
+    # Getting keys
+    keys = out.keys()
+
+    bs_stats = np.zeros((out.shape[0],len(out.), 4))
+    for idx, key in enumerate(out.keys()):
+        n_samp = net.get_number_of_samples(stage=stage, total=True)
+        bs_stats[:,idx,0] = [custom_mean( v ) for v in out[key]]
+        bs_stats[:,idx,1] = [custom_std( v )  for v in out[key]]
+        bs_stats[:,idx,2] = [np.sum( v )/n_samp for v in out[key]]
+        bs_stats[:,idx,3] = bs_stats[:,idx,1]/bs_stats[:,idx,0]
+    
+    return bs_stats
+
 
 def compute_burstness_stats_from_act_seq(act_lengths, dt=None):
     r'''
