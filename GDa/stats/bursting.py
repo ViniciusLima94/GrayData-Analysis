@@ -167,6 +167,7 @@ CV (mean activation time over its std).
 
     # Computing activation lengths
     out  = tensor_find_activation_sequences(spike_train, mask, dt=dt, drop_edges=drop_edges, n_jobs=n_jobs)
+    print(f'out={out}')
 
     if isinstance(out, (np.ndarray, xr.DataArray)):
         bs_stats = np.zeros((out.shape[0],4))
