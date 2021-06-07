@@ -163,7 +163,6 @@ CV (mean activation time over its std).
     > OUTPUTS:
     - array containing mu, mu_tot, and CV computed from the activation sequences in the spike train.
     '''
-
     assert len(mask)==len(samples)
 
     # Computing activation lengths
@@ -185,7 +184,6 @@ CV (mean activation time over its std).
             bs_stats[:,idx,1] = [custom_std( v )  for v in out[key]]
             bs_stats[:,idx,2] = [np.sum( v )/(samples[idx]*dt) for v in out[key]]
             bs_stats[:,idx,3] = bs_stats[:,idx,1]/bs_stats[:,idx,0]
-    
     return bs_stats
 
 
