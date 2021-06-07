@@ -54,15 +54,28 @@ def _compute_stats(q, relative=True):
 
     net =  temporal_network( **set_net_params([1], [1], relative=relative, q=q) )
 
-    # Burstiness analysis statistics
     bs_stats = np.zeros((net.super_tensor.sizes['links'],net.super_tensor.sizes['bands'],len(stages), 4))
-    for j in tqdm( range(len(stages)) ):
-        bs_stats[:,:,j,:]=np.apply_along_axis(bst.compute_burstness_stats, -1,
-                          net.get_data_from(stage=stages[j], pad=True),
-                          samples = net.get_number_of_samples(stage=stages[j]),
-                          dt=delta/net.super_tensor.attrs['fsample'], drop_edges=True)
 
+    n_samp = []
+    for stage in stages:
+        n_samp += [net.get_number_of_samples(stage=stage, total=True)]
+
+    for i in tqdm( range(len(band_names)) ):
+        bs_stats[:,i,...] = bst.tensor_burstness_stats(net.super_tensor.isel(bands=i), net.s_mask,
+                                                       drop_edges=True, samples=n_samp,
+                                                       dt=delta/net.super_tensor.attrs['fsample'],
+                                                       n_jobs=-1);
     return bs_stats
+
+    # Burstiness analysis statistics
+    #  bs_stats = np.zeros((net.super_tensor.sizes['links'],net.super_tensor.sizes['bands'],len(stages), 4))
+    #  for j in tqdm( range(len(stages)) ):
+    #      bs_stats[:,:,j,:]=np.apply_along_axis(bst.compute_burstness_stats, -1,
+    #                        net.get_data_from(stage=stages[j], pad=True),
+    #                        samples = net.get_number_of_samples(stage=stages[j]),
+    #                        dt=delta/net.super_tensor.attrs['fsample'], drop_edges=True)
+
+    #  return bs_stats
 
 def _compute_meta_conn(q, relative=True):
     r'''
@@ -125,11 +138,11 @@ def set_net_params(trial_type=None, behavioral_response=None, relative=None, q=N
 ###############################################################################
 
 # Instantiating a temporal network object without thresholding the data
-net =  temporal_network( **set_net_params([1], [1]) )
+#  net =  temporal_network( **set_net_params([1], [1]) )
 
-avg_coh = np.zeros((net.super_tensor.sizes['links'], net.super_tensor.sizes['bands'], len(stages)))
-for j in tqdm( range( len(stages) ) ):
-    avg_coh[:,:,j] = net.get_data_from(stage=stages[j], pad=False).mean(dim='observations')
+#  avg_coh = np.zeros((net.super_tensor.sizes['links'], net.super_tensor.sizes['bands'], len(stages)))
+#  for j in tqdm( range( len(stages) ) ):
+#      avg_coh[:,:,j] = net.get_data_from(stage=stages[j], pad=False).mean(dim='observations')
 
 ###############################################################################
 # 2. Effect of threshold variation  
@@ -139,16 +152,25 @@ for j in tqdm( range( len(stages) ) ):
 # different thereshod values
 
 q_list = np.arange(0.2, 1.0, 0.1)
-cv     = np.zeros([net.super_tensor.shape[0], len(net.bands), 4, len(stages), len(q_list)])
-for i in tqdm( range(len(q_list)) ):
+#  cv     = np.zeros([net.super_tensor.shape[0], len(net.bands), 4, len(stages), len(q_list)])
+cv     = np.zeros([net.super_tensor.shape[0], len(net.bands), len(stages), 4, len(q_list)])
+for j in tqdm( range(len(q_list)) ):
     # Instantiating a temporal network object without thresholding the data
-    net =  temporal_network(**set_net_params([1], [1], relative=True, q=q_list[i]) )
+    net = temporal_network(**set_net_params([1], [1], relative=True, q=q_list[j]) )
 
-    for j,s in zip(range(len(stages)),stages):
-        cv[...,j,i]  = np.apply_along_axis(bst.compute_burstness_stats, -1,
-                       net.get_data_from(stage=s,pad=True),
-                       samples = net.get_number_of_samples(stage=s),
-                       dt      = delta/net.super_tensor.attrs['fsample'], drop_edges=True)
+    net.create_stage_masks(flatten=False)
+
+    for i in range(len(band_names)):
+        cv[:,i,...,j] = bst.tensor_burstness_stats(net.super_tensor.isel(bands=i), net.s_mask,
+                                                   drop_edges=True, samples=n_samp,
+                                                   dt=delta/net.super_tensor.attrs['fsample'],
+                                                   n_jobs=-1);
+
+    #  for j,s in zip(range(len(stages)),stages):
+    #      cv[...,j,i]  = np.apply_along_axis(bst.compute_burstness_stats, -1,
+    #                     net.get_data_from(stage=s,pad=True),
+    #                     samples = net.get_number_of_samples(stage=s),
+    #                     dt      = delta/net.super_tensor.attrs['fsample'], drop_edges=True)
 
 ###############################################################################
 # 3. Compute statistics for three different thresholds
