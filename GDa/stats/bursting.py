@@ -168,15 +168,23 @@ CV (mean activation time over its std).
 
     # Computing activation lengths
     out  = tensor_find_activation_sequences(spike_train, mask, dt=dt, drop_edges=drop_edges, n_jobs=n_jobs)
-    # Getting keys
-    keys = out.keys()
 
-    bs_stats = np.zeros((out[keys[0]].shape[0],len(keys), 4))
-    for idx, key in enumerate(out.keys()):
-        bs_stats[:,idx,0] = [custom_mean( v ) for v in out[key]]
-        bs_stats[:,idx,1] = [custom_std( v )  for v in out[key]]
-        bs_stats[:,idx,2] = [np.sum( v )/n_samp for v in out[key]]
-        bs_stats[:,idx,3] = bs_stats[:,idx,1]/bs_stats[:,idx,0]
+    if isinstance(out, (np.ndarray, xr.DataArray)):
+        bs_stats = np.zeros((out.shape[0],4))
+        # Computing statistics for each link
+        bs_stats[:,0] = [custom_mean( v ) for v in out]
+        bs_stats[:,1] = [custom_std( v )  for v in out]
+        bs_stats[:,2] = [np.sum( v )/(samples*dt) for v in out]]
+        bs_stats[:,3] = bs_stats[:,1]/bs_stats[:,0]
+    elif isinstance(out, dict):
+        # Getting keys
+        keys = out.keys()
+        bs_stats = np.zeros((out[keys[0]].shape[0],len(keys),4))
+        for idx, key in enumerate(out.keys()):
+            bs_stats[:,idx,0] = [custom_mean( v ) for v in out[key]]
+            bs_stats[:,idx,1] = [custom_std( v )  for v in out[key]]
+            bs_stats[:,idx,2] = [np.sum( v )/(samples[idx]*dt) for v in out[key]]
+            bs_stats[:,idx,3] = bs_stats[:,idx,1]/bs_stats[:,idx,0]
     
     return bs_stats
 
