@@ -167,7 +167,6 @@ CV (mean activation time over its std).
 
     # Computing activation lengths
     out  = tensor_find_activation_sequences(spike_train, mask, dt=dt, drop_edges=drop_edges, n_jobs=n_jobs)
-    print(f'out={out}')
 
     if isinstance(out, (np.ndarray, xr.DataArray)):
         bs_stats = np.zeros((out.shape[0],4))
@@ -179,7 +178,8 @@ CV (mean activation time over its std).
     elif isinstance(out, dict):
         # Getting keys
         keys = list( out.keys() )
-        bs_stats = np.zeros((out[keys[0]].shape[0],len(keys),4))
+        print(f'out={out[keys[0]]}')
+        bs_stats = np.zeros((len(out[keys[0]]),len(keys),4))
         for idx, key in enumerate(out.keys()):
             bs_stats[:,idx,0] = [custom_mean( v ) for v in out[key]]
             bs_stats[:,idx,1] = [custom_std( v )  for v in out[key]]
