@@ -178,7 +178,7 @@ CV (mean activation time over its std).
         bs_stats[:,3] = bs_stats[:,1]/bs_stats[:,0]
     elif isinstance(out, dict):
         # Getting keys
-        keys = out.keys()
+        keys = list( out.keys() )
         bs_stats = np.zeros((out[keys[0]].shape[0],len(keys),4))
         for idx, key in enumerate(out.keys()):
             bs_stats[:,idx,0] = [custom_mean( v ) for v in out[key]]
