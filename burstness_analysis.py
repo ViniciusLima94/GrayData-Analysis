@@ -154,21 +154,21 @@ net =  temporal_network( **set_net_params([1], [1]) )
 q_list = np.arange(0.2, 1.0, 0.1)
 #  cv     = np.zeros([net.super_tensor.shape[0], len(net.bands), 4, len(stages), len(q_list)])
 cv     = np.zeros([net.super_tensor.shape[0], len(net.bands), len(stages), 4, len(q_list)])
-for j in tqdm( range(len(q_list)) ):
-    # Instantiating a temporal network object without thresholding the data
-    net = temporal_network(**set_net_params([1], [1], relative=True, q=q_list[j]) )
+#  for j in tqdm( range(len(q_list)) ):
+#      # Instantiating a temporal network object without thresholding the data
+#      net = temporal_network(**set_net_params([1], [1], relative=True, q=q_list[j]) )
 
-    net.create_stage_masks(flatten=False)
+#      net.create_stage_masks(flatten=False)
 
-    n_samp = []
-    for stage in stages:
-        n_samp += [net.get_number_of_samples(stage=stage, total=True)]
+#      n_samp = []
+#      for stage in stages:
+#          n_samp += [net.get_number_of_samples(stage=stage, total=True)]
 
-    for i in range(len(band_names)):
-        cv[:,i,...,j] = bst.tensor_burstness_stats(net.super_tensor.isel(bands=i), net.s_mask,
-                                                   drop_edges=True, samples=n_samp,
-                                                   dt=delta/net.super_tensor.attrs['fsample'],
-                                                   n_jobs=-1);
+#      for i in range(len(band_names)):
+#          cv[:,i,...,j] = bst.tensor_burstness_stats(net.super_tensor.isel(bands=i), net.s_mask,
+#                                                     drop_edges=True, samples=n_samp,
+#                                                     dt=delta/net.super_tensor.attrs['fsample'],
+#                                                     n_jobs=-1);
 
     #  for j,s in zip(range(len(stages)),stages):
     #      cv[...,j,i]  = np.apply_along_axis(bst.compute_burstness_stats, -1,
