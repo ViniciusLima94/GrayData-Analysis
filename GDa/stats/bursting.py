@@ -69,7 +69,7 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     - act_lengths: Array containing the length of activations
     '''
     # Find the size of the activations lengths for the masked spike_train
-    act_lengths = find_activation_sequences(spike_train[mask], dt=None, pad=False, max_size=None)
+    act_lengths = find_activation_sequences(spike_train*mask, dt=None, pad=False, max_size=None)
     # If drop_edges is true it will check if activation at the left and right edges crosses the mask
     # limits.
     if drop_edges:
@@ -307,6 +307,7 @@ CV (mean activation time over its std).
     - array containing mu, mu_tot, and CV computed from the activation sequences in the spike train.
     '''
     assert len(mask)==len(samples)
+    if dt is None: dt = 1
 
     # Computing activation lengths
     out  = tensor_find_activation_sequences(spike_train, mask, dt=dt, drop_edges=drop_edges, n_jobs=n_jobs)
