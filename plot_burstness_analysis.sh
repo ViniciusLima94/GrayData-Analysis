@@ -7,5 +7,5 @@
 #SBATCH -N 1
 #SBATCH --array=0-25
 
-
-python3.6 -O plot_burstness_analysis.py $SLURM_ARRAY_TASK_ID
+module load python/3.6.8
+python3 -O plot_burstness_analysis.py $SLURM_ARRAY_TASK_ID
