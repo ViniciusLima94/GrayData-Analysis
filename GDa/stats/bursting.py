@@ -3,6 +3,23 @@ import xarray as xr
 from   frites.utils   import parallel_func
 from   .util          import custom_mean, custom_std
 
+def find_start_end(array):
+    r'''
+    Given a binary array find thje indexes where the sequences of ones start and begin.
+    e.g., for the array [0,1,1,1,0,0], would return 1 and 3 respectively.
+    > INPUTS:
+    - array: Binary array.
+    > OUTPUTS:
+    - A matrix containing the start anb ending index for each sequence of consecutive ones.
+    '''
+    bounded = np.hstack(([0], array, [0]))
+    # get 1 at run starts and -1 at run ends
+    difs        = np.diff(bounded)
+    run_starts, = np.where(difs > 0)
+    run_ends,   = np.where(difs < 0)
+    return np.array([run_starts,run_ends]).T
+
+
 def find_activation_sequences(spike_train, dt=None, pad=False, max_size=None):
     r'''
     Given a spike-train, it finds the length of all activations in it.
@@ -112,6 +129,91 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
         act_lengths = dict.fromkeys(mask.keys())
         for key in mask.keys():
             assert len(mask[key].shape) is 2
+            act_lengths[key] = parallel(p_fun(spike_train[e,...], mask[key]) for e in range(n_edges))
+    return act_lengths
+
+def masked_find_activation_sequences2(spike_train, mask, dt=None, drop_edges=False):
+    r'''
+    Given a spike-train with concatenated trials and a mask tracking different experimental events/stages
+    find the length of activation bursts (sequences of ones).
+    > INPUTS:
+    - spike_train: The binary spike train.
+    - mask: Binary mask applied to the spike-train.
+    - dt: If providade the returned array with the length of activations will be given in seconds.
+    - drop_edges: If True burts at the beggining and end of the spike-train will not be considered.
+    > OUTPUTS:
+    - act_lengths: Array containing the length of activations for each link and trial
+    '''
+
+    # Input assertions
+    assert len(spike_train)==len(mask)
+    if dt is None: dt = 1
+
+    # Starting and end of each stage for each trial
+    m_start_end = find_start_end(mask)
+    # Starting and end of bursts of the spike-train
+    start_end   = find_start_end(spike_train*mask)
+
+    if drop_edges:
+        for i in range(m_start_end.shape[0]):
+            # Check if any left edge has a burst
+            _left  = np.where(m_start_end[i,0]-start_end[:,0] == 0)[0]
+            # Check if any right edge has a burst
+            _right = np.where(m_start_end[i,1]-start_end[:,1] == 0)[0]
+            if len( _left ) != 0:
+                try:
+                    start_end = np.delete( start_end, _left[0], 0)
+                except:
+                    pass
+            if len( _right ) != 0:
+                try:
+                    start_end = np.delete( start_end, _right[0], 0)
+                except:
+                    pass
+
+    act_lengths = dt * (start_end[:,1]-start_end[:,0]).T
+    return act_lengths
+
+def tensor_find_activation_sequences2(spike_train, mask, dt=None, drop_edges=False, n_jobs=1):
+    r'''
+    The same as "tensor_find_activation_sequences" but for the trials and time axis concatenated.
+    of shape [links, trials*time].
+    > INPUTS:
+    - spike_train: The binary spike train tensor with size [links, trials*time].
+    - mask: Binary mask applied to the spike-train with size [trials*time]. For more than one mask
+            a dicitionary should be provided where for each key an array with size [trials*time]
+            is provided.
+    - dt: If providade the returned array with the length of activations will be given in seconds.
+    - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
+    - n_jobs: Number of jobs to use
+    > OUTPUTS:
+    - act_lengths: Array containing the length of activations for each link and trial
+    '''
+
+    # Checking inputs
+    assert isinstance(spike_train, (np.ndarray, xr.DataArray))
+    assert isinstance(mask, (dict, np.ndarray, xr.DataArray))
+    assert len(spike_train.shape) is 2
+
+    n_edges=spike_train.shape[0]
+
+    def _edgewise(x, m):
+        act_lengths = masked_find_activation_sequences2(x, m, drop_edges=drop_edges, dt=dt)
+        return act_lengths 
+
+    # Computed in parallel for each edge
+    parallel, p_fun = parallel_func(
+    _edgewise, n_jobs=n_jobs, verbose=False,
+    total=n_edges)
+
+    if isinstance(mask, (np.ndarray, xr.DataArray)):
+        assert len(mask.shape) is 1
+        act_lengths = parallel(p_fun(spike_train[e,...], mask) for e in range(n_edges))
+    elif isinstance(mask, dict):
+        # Use the same keys as the mask
+        act_lengths = dict.fromkeys(mask.keys())
+        for key in mask.keys():
+            assert len(mask[key].shape) is 1
             act_lengths[key] = parallel(p_fun(spike_train[e,...], mask[key]) for e in range(n_edges))
     return act_lengths
 
