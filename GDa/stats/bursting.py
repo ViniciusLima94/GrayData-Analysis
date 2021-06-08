@@ -19,7 +19,6 @@ def find_start_end(array):
     run_ends,   = np.where(difs < 0)
     return np.array([run_starts,run_ends]).T
 
-
 def find_activation_sequences(spike_train, dt=None, pad=False, max_size=None):
     r'''
     Given a spike-train, it finds the length of all activations in it.
@@ -236,6 +235,7 @@ CV (mean activation time over its std).
     - array containing mu, sig, mu_tot, and CV computed from the activation sequences in the spike train.
     '''
     assert len(mask)==len(samples)
+    if dt is None: dt = 1
 
     # Computing activation lengths
     out  = tensor_find_activation_sequences2(spike_train, mask, dt=dt, drop_edges=drop_edges, n_jobs=n_jobs)
