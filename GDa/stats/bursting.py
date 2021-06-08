@@ -329,7 +329,6 @@ CV (mean activation time over its std).
             bs_stats[:,idx,3] = bs_stats[:,idx,1]/bs_stats[:,idx,0]
     return bs_stats
 
-
 def compute_burstness_stats_from_act_seq(act_lengths, dt=None):
     r'''
     Given a activation sequence of activations  it 
