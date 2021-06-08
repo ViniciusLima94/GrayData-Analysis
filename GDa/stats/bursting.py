@@ -217,6 +217,47 @@ def tensor_find_activation_sequences2(spike_train, mask, dt=None, drop_edges=Fal
             act_lengths[key] = parallel(p_fun(spike_train[e,...], mask[key]) for e in range(n_edges))
     return act_lengths
 
+def tensor_burstness_stats2(spike_train, mask, drop_edges=False, samples=None, dt=None, n_jobs=1):
+    r'''
+    Given a data tensor (shape n_roi, n_trials*n_times) composed of spike trains the sequence 
+    of activations of it will be determined (see tensor_find_activations_squences2) and 
+    the following burstness stats computed: link avg. activation
+    time (mu), total act. time relative to task stage time (mu_tot), 
+CV (mean activation time over its std).
+    > INPUTS:
+    - spike_train: The binary spike train tensor with size [links, trials*time].
+    - mask: Binary mask applied to the spike-train with size [trials*time]. For more than one mask
+            a dicitionary should be provided where for each key an array with size [trials*time]
+            is provided.
+    - dt: If providade the returned array with the length of activations will be given in seconds.
+    - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
+    - n_jobs: Number of jobs to use
+    > OUTPUTS:
+    - array containing mu, sig, mu_tot, and CV computed from the activation sequences in the spike train.
+    '''
+    assert len(mask)==len(samples)
+
+    # Computing activation lengths
+    out  = tensor_find_activation_sequences2(spike_train, mask, dt=dt, drop_edges=drop_edges, n_jobs=n_jobs)
+
+    if isinstance(out, (np.ndarray, xr.DataArray)):
+        bs_stats = np.zeros((out.shape[0],4))
+        # Computing statistics for each link
+        bs_stats[:,0] = [custom_mean( v ) for v in out]
+        bs_stats[:,1] = [custom_std( v )  for v in out]
+        bs_stats[:,2] = [np.sum( v )/(samples*dt) for v in out]
+        bs_stats[:,3] = bs_stats[:,1]/bs_stats[:,0]
+    elif isinstance(out, dict):
+        # Getting keys
+        keys = list( out.keys() )
+        bs_stats = np.zeros((len(out[keys[0]]),len(keys),4))
+        for idx, key in enumerate(out.keys()):
+            bs_stats[:,idx,0] = [custom_mean( v ) for v in out[key]]
+            bs_stats[:,idx,1] = [custom_std( v )  for v in out[key]]
+            bs_stats[:,idx,2] = [np.sum( v )/(samples[idx]*dt) for v in out[key]]
+            bs_stats[:,idx,3] = bs_stats[:,idx,1]/bs_stats[:,idx,0]
+    return bs_stats
+
 def compute_burstness_stats(spike_train, samples=None, dt=None):
     r'''
     Given a spike_train the sequence of activations of it 
