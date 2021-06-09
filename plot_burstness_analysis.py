@@ -120,7 +120,7 @@ for b in tqdm( range(len(band_names)) ):
         plt.xlabel('Time [a.u.]')
         plt.title(f'alpha band, delay window = {win_delay[i]}')
     plt.savefig(
-        os.path.join(path_st, f"trial_averaged_delays_super_tensor_band_{i}_{dirs['date'][nmonkey][idx]}.png"),
+        os.path.join(path_st, f"trial_averaged_delays_super_tensor_band_{b}_{dirs['date'][nmonkey][idx]}.png"),
         dpi=120)
     plt.close()
 
