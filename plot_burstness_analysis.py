@@ -80,7 +80,7 @@ for i in tqdm( range(len(band_names)) ):
     plt.subplot(len(band_names), 1, i+1)
     plt.imshow(aux[:,i,:], 
                aspect = 'auto', cmap = 'RdBu_r', origin = 'lower',
-               extent = [0, net.tarray[-1], 1, net.session_info['nP']], 
+               extent = [net.tarray[0], net.tarray[-1], 1, net.session_info['nP']], 
                vmin=-4, vmax=4)
     plt.colorbar()
     plt.ylabel('Pair Number', fontsize=15)
@@ -91,6 +91,38 @@ plt.savefig(
     os.path.join(path_st, f"trial_averaged_super_tensor_{dirs['date'][nmonkey][idx]}.png"),
     dpi=120)
 plt.close()
+
+###############################################################################
+# 1.1. Trial averaged (for similar delay periods) super-tensor for each band 
+###############################################################################
+win_delay=[
+           [1,1.1],
+           [1.1, 1.2],
+           [1.2, 1.3],
+           [1.3, 1.4],
+           [1.4, 1.6]
+          ]
+
+avg_st = net.get_averaged_st(win_delay=win_delay)
+
+for b in tqdm( range(len(band_names)) ):
+    plt.figure(figsize=(20,30))
+    aux  = scipy.stats.zscore(net.super_tensor.mean(dim='trials'), axis=-1)
+    for i in range(len(avg_st)):
+        plt.subplot(len(avg_st), 1, i+1)
+        aux = ( avg_st[i][:,b,:]-avg_st[i][:,b,:].mean(dim='time') ) / avg_st[i][:,b,:].std(dim='time')
+        plt.imshow(aux,
+                   aspect = 'auto', cmap = 'RdBu_r', origin = 'lower',
+                   extent = [net.tarray[0], net.tarray[-1], 1, net.session_info['nP']],
+                   )
+        plt.colorbar()
+        plt.ylabel('Pair Number')
+        plt.xlabel('Time [a.u.]')
+        plt.title(f'alpha band, delay window = {win_delay[i]}')
+    plt.savefig(
+        os.path.join(path_st, f"trial_averaged_delays_super_tensor_band_{i}_{dirs['date'][nmonkey][idx]}.png"),
+        dpi=120)
+    plt.close()
 
 ###############################################################################
 # Saving euclidian distances of edges
