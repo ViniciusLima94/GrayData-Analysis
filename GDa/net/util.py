@@ -4,6 +4,17 @@ import xarray as xr
 from   scipy  import stats
 from   tqdm   import tqdm
 
+def _check_inputs(array, dims):
+    r'''
+    Check the input type and size.
+    > INPUT:
+    - array: The data array.
+    - dims: The number of dimensions the array should have.
+    '''
+    assert isinstance(dims, int)
+    assert isinstance(array, (np.ndarray, xr.DataArray))
+    assert len(array.shape)==dims, f"The adjacency tensor should be {dims}D."
+
 def convert_to_adjacency(tensor,):
     # Number of pairs
     n_pairs    = tensor.shape[0]

@@ -6,18 +6,7 @@ from   frites.utils          import parallel_func
 from   joblib                import Parallel, delayed
 from   .null_models          import *
 from   tqdm                  import tqdm
-from   .util                 import instantiate_graph
-
-def _check_inputs(array, dims):
-    r'''
-    Check the input type and size.
-    > INPUT:
-    - array: The data array.
-    - dims: The number of dimensions the array should have.
-    '''
-    assert isinstance(dims, int)
-    assert isinstance(array, (np.ndarray, xr.DataArray))
-    assert len(array.shape)==dims, f"The adjacency tensor should be {dims}D."
+from   .util                 import instantiate_graph, _check_inputs
 
 def compute_nodes_degree(A, mirror=False):
     r'''
