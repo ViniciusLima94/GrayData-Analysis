@@ -77,7 +77,7 @@ def compute_nodes_clustering(A, is_weighted=False, verbose=False):
         roi    = np.arange(0, A.shape[0])
         trials = np.arange(0, A.shape[2])
         time   = np.arange(0, A.shape[3])
-        A = A.reshape( (len(roi),len(roi),len(trials)*len(time) )
+        A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
 
     #  Number of channels
     nC = A.shape[0]
@@ -133,7 +133,7 @@ def compute_nodes_coreness(A, is_weighted=False, verbose=False):
         roi    = np.arange(0, A.shape[0])
         trials = np.arange(0, A.shape[2])
         time   = np.arange(0, A.shape[3])
-        A = A.reshape( (len(roi),len(roi),len(trials)*len(time) )
+        A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
 
     #  Number of channels
     nC = A.shape[0]
@@ -185,7 +185,7 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False):
         roi    = np.arange(0, A.shape[0])
         trials = np.arange(0, A.shape[2])
         time   = np.arange(0, A.shape[3])
-        A = A.reshape( (len(roi),len(roi),len(trials)*len(time) )
+        A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
 
     #  Number of channels
     nC = A.shape[0]
