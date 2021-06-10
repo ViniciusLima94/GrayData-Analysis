@@ -22,7 +22,6 @@ def compute_nodes_degree(A, mirror=False):
     _check_inputs(A, 4)
     # Get values in case it is an xarray
     if isinstance(A, xr.DataArray): 
-        A    = A.values
         try:
             roi    = A.roi_1.values
             trials = A.trials.values
@@ -31,6 +30,7 @@ def compute_nodes_degree(A, mirror=False):
             roi    = np.arange(0, A.shape[0])
             trials = np.arange(0, A.shape[2])
             time   = np.arange(0, A.shape[3])
+        A    = A.values
     else:
         roi    = np.arange(0, A.shape[0])
         trials = np.arange(0, A.shape[2])
