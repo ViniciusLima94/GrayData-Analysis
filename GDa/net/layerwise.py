@@ -253,4 +253,4 @@ def null_model_statistics(A, f_name, n_stat, n_rewires=1000, n_jobs=1, seed=0, *
         return f_name(A_null, is_weighted=False, **kwargs)
     
     measures = Parallel(n_jobs=n_jobs, backend='loky')(delayed(single_estimative)(A, f_name, n_rewires, seed = i*(seed+100), **kwargs) for i in range(n_stat) )
-    aeturn np.array( measures )
+    return np.array( measures )
