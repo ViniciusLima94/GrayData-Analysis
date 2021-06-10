@@ -61,7 +61,17 @@ def compute_nodes_clustering(A, is_weighted=False, verbose=False):
     # Check inputs
     _check_inputs(A, 3)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): A = A.values
+    if isinstance(A, xr.DataArray): 
+        try:
+            roi = A.roi_1.values
+            observations = A.observations.values
+        except:
+            roi = np.arange(0, A.shape[0])
+            observations = np.arange(0, A.shape[2])
+        A = A.values
+    else:
+        roi = np.arange(0, A.shape[0])
+        observations = np.arange(0, A.shape[2])
 
     #  Number of channels
     nC = A.shape[0]
@@ -95,7 +105,17 @@ def compute_nodes_coreness(A, is_weighted=False, verbose=False):
     # Check inputs
     _check_inputs(A, 3)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): A = A.values
+    if isinstance(A, xr.DataArray): 
+        try:
+            roi = A.roi_1.values
+            observations = A.observations.values
+        except:
+            roi = np.arange(0, A.shape[0])
+            observations = np.arange(0, A.shape[2])
+        A = A.values
+    else:
+        roi = np.arange(0, A.shape[0])
+        observations = np.arange(0, A.shape[2])
 
     #  Number of channels
     nC = A.shape[0]
@@ -125,7 +145,17 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False):
     # Check inputs
     _check_inputs(A, 3)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): A = A.values
+    if isinstance(A, xr.DataArray): 
+        try:
+            roi = A.roi_1.values
+            observations = A.observations.values
+        except:
+            roi = np.arange(0, A.shape[0])
+            observations = np.arange(0, A.shape[2])
+        A = A.values
+    else:
+        roi = np.arange(0, A.shape[0])
+        observations = np.arange(0, A.shape[2])
 
     #  Number of channels
     nC = A.shape[0]
@@ -158,7 +188,17 @@ def compute_network_partition(A, is_weighted=False, verbose=False):
     # Check inputs
     _check_inputs(A, 3)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): A = A.values
+    if isinstance(A, xr.DataArray): 
+        try:
+            roi = A.roi_1.values
+            observations = A.observations.values
+        except:
+            roi = np.arange(0, A.shape[0])
+            observations = np.arange(0, A.shape[2])
+        A = A.values
+    else:
+        roi = np.arange(0, A.shape[0])
+        observations = np.arange(0, A.shape[2])
 
     #  Number of channels
     nC = A.shape[0]
@@ -190,7 +230,17 @@ def compute_network_modularity(A, is_weighted=False):
     # Check inputs
     _check_inputs(A, 3)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): A = A.values
+    if isinstance(A, xr.DataArray): 
+        try:
+            roi = A.roi_1.values
+            observations = A.observations.values
+        except:
+            roi = np.arange(0, A.shape[0])
+            observations = np.arange(0, A.shape[2])
+        A = A.values
+    else:
+        roi = np.arange(0, A.shape[0])
+        observations = np.arange(0, A.shape[2])
 
     #  Number of observations
     nt = A.shape[-1]
@@ -219,7 +269,17 @@ def compute_allegiance_matrix(A, is_weighted=False, verbose=False):
     # Check inputs
     _check_inputs(A, 3)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): A = A.values
+    if isinstance(A, xr.DataArray): 
+        try:
+            roi = A.roi_1.values
+            observations = A.observations.values
+        except:
+            roi = np.arange(0, A.shape[0])
+            observations = np.arange(0, A.shape[2])
+        A = A.values
+    else:
+        roi = np.arange(0, A.shape[0])
+        observations = np.arange(0, A.shape[2])
 
     #  Number of channels
     nC = A.shape[0]
