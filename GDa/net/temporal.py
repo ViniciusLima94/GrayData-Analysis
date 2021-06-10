@@ -1,15 +1,17 @@
-import numpy as np
-from   .util import check_symmetric
+import numpy  as np
+import xarray as xr
+from   .util  import instantiate_graph, _check_inputs
 
-def compute_temporal_correlation(A, tau = 1):
-    # Check the dimension
-    assert len(A.shape)==3, "The adjacency tensor should be 3D."
+def compute_temporal_correlation(A, tau = 1, mirror=False):
+    # Check inputs
+    _check_inputs(A, 3)
+    # Get values in case it is an xarray
+    if isinstance(A, xr.DataArray): A = A.values
 
     #  Number of channels
     nC = A.shape[0]
 
-    if not check_symmetric:
-        A = A + np.transpose(A, (1,0,2)) 
+    if mirror: A = A + np.transpose(A, (1,0,2)) 
     
     if tau < 1:
         tau = 1
@@ -20,14 +22,15 @@ def compute_temporal_correlation(A, tau = 1):
     return np.nansum(Ci) / nC
 
 def cosine_similarity(A, thr = None, mirror=False):
-    # Check the dimension
-    assert len(A.shape)==4, "The adjacency tensor should be 4D."
+    # Check inputs
+    _check_inputs(A, 4)
+    # Get values in case it is an xarray
+    if isinstance(A, xr.DataArray): A = A.values
 
     #  Number of channels
     nC = A.shape[0]
 
-    if mirror:
-        A = A + np.transpose(A, (1,0,2,3)) 
+    if mirror: A = A + np.transpose(A, (1,0,2,3)) 
 
     num = ( A[:,:,:,:-1]*A[:,:,:,1:] ).sum(axis = 1)
     den = np.sqrt( np.sum(A[:,:,:,:-1]**2, axis = 1) ) * np.sqrt( np.sum(A[:,:,:,1:]**2, axis = 1) )
@@ -35,15 +38,15 @@ def cosine_similarity(A, thr = None, mirror=False):
     return num / den
 
 def jaccard_index(A, mirror=False):
-    # Check the dimension
-    assert len(A.shape)==4, "The adjacency tensor should be 4D."
-    #assert thr != None, "For computing the Jaccard index the threshold should be provided."
+    # Check inputs
+    _check_inputs(A, 4)
+    # Get values in case it is an xarray
+    if isinstance(A, xr.DataArray): A = A.values
 
     #  Number of channels
     nC = A.shape[0]
 
-    if mirror:
-        A = A + np.transpose(A, (1,0,2,3)) 
+    if mirror: A = A + np.transpose(A, (1,0,2,3)) 
     
     num = (A[:,:,:,:-1] * A[:,:,:,1:]).sum(axis=1)
     den = (A[:,:,:,:-1] + A[:,:,:,1:])
@@ -54,3 +57,4 @@ def jaccard_index(A, mirror=False):
     J = num/den
     J[J==np.inf]=np.nan
     return J
+
