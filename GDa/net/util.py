@@ -67,7 +67,7 @@ def convert_to_adjacency(tensor,):
     return A
 
 def instantiate_graph(A, is_weighted = False):
-    if is_weighted is False:
+    if is_weighted:
         g = ig.Graph.Weighted_Adjacency(A.tolist(), attr="weight", loops=False, mode=ig.ADJ_UNDIRECTED)
     else:
         g = ig.Graph.Adjacency(A.tolist(), mode=ig.ADJ_UNDIRECTED)
