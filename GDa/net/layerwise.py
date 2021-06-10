@@ -49,29 +49,35 @@ def compute_nodes_degree(A, mirror=False):
 
 def compute_nodes_clustering(A, is_weighted=False, verbose=False):  
     r'''
-    Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the clustering coefficient for each
+    Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the clustering coefficient for each
     node is computed for all the trials concatenated.
     > INPUTS:
     - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
     - is_weighted: Scepecify if the network is weighted or binary.
     - verbose: Wheater to print the progress or not.
     > OUTPUTS:
-    - clustering: A matrix containing the nodes clustering with shape (roi,time).
+    - clustering: A matrix containing the nodes clustering with shape (roi,trials,time).
     '''
     # Check inputs
-    _check_inputs(A, 3)
+    _check_inputs(A, 4)
     # Get values in case it is an xarray
     if isinstance(A, xr.DataArray): 
+        # Concatenate trials and time axis
         try:
-            roi = A.roi_1.values
-            observations = A.observations.values
+            roi    = A.roi_1.values
+            trials = A.trials.values
+            time   = A.time.values
         except:
-            roi = np.arange(0, A.shape[0])
-            observations = np.arange(0, A.shape[2])
+            roi    = np.arange(0, A.shape[0])
+            trials = np.arange(0, A.shape[2])
+            time   = np.arange(0, A.shape[3])
+        A = A.stack(observations=("trials","time"))
         A = A.values
     else:
-        roi = np.arange(0, A.shape[0])
-        observations = np.arange(0, A.shape[2])
+        roi    = np.arange(0, A.shape[0])
+        trials = np.arange(0, A.shape[2])
+        time   = np.arange(0, A.shape[3])
+        A = A.reshape( (len(roi),len(roi),len(trials)*len(time) )
 
     #  Number of channels
     nC = A.shape[0]
@@ -89,33 +95,45 @@ def compute_nodes_clustering(A, is_weighted=False, verbose=False):
         else:
             clustering[:,t] = g.transitivity_local_undirected()
 
-    return np.nan_to_num( clustering )
+    # Unstack trials and time
+    clustering = clustering.reshape( (len(roi),len(trials),len(time)) )
+    # Convert to xarray
+    clustering = xr.DataArray(np.nan_to_num(clustering), dims=("roi","trials","time"),
+                              coords={"roi": roi, "time": time, "trials": trials} )
+
+    return clustering
 
 def compute_nodes_coreness(A, is_weighted=False, verbose=False):
     r'''
-    Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the coreness for each
+    Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the coreness for each
     node is computed for all the trials concatenated.
     > INPUTS:
     - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
     - is_weighted: Scepecify if the network is weighted or binary.
     - verbose: Wheater to print the progress or not.
     > OUTPUTS:
-    - coreness: A matrix containing the nodes coreness with shape (roi,time).
+    - coreness: A matrix containing the nodes coreness with shape (roi,trials,time).
     '''
     # Check inputs
-    _check_inputs(A, 3)
+    _check_inputs(A, 4)
     # Get values in case it is an xarray
     if isinstance(A, xr.DataArray): 
+        # Concatenate trials and time axis
         try:
-            roi = A.roi_1.values
-            observations = A.observations.values
+            roi    = A.roi_1.values
+            trials = A.trials.values
+            time   = A.time.values
         except:
-            roi = np.arange(0, A.shape[0])
-            observations = np.arange(0, A.shape[2])
+            roi    = np.arange(0, A.shape[0])
+            trials = np.arange(0, A.shape[2])
+            time   = np.arange(0, A.shape[3])
+        A = A.stack(observations=("trials","time"))
         A = A.values
     else:
-        roi = np.arange(0, A.shape[0])
-        observations = np.arange(0, A.shape[2])
+        roi    = np.arange(0, A.shape[0])
+        trials = np.arange(0, A.shape[2])
+        time   = np.arange(0, A.shape[3])
+        A = A.reshape( (len(roi),len(roi),len(trials)*len(time) )
 
     #  Number of channels
     nC = A.shape[0]
@@ -128,6 +146,12 @@ def compute_nodes_coreness(A, is_weighted=False, verbose=False):
     for t in (tqdm(itr) if verbose else itr):
         g               = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
         coreness[:,t] = g.coreness()
+
+    # Unstack trials and time
+    coreness = coreness.reshape( (len(roi),len(trials),len(time)) )
+    # Convert to xarray
+    coreness = xr.DataArray(coreness, dims=("roi","trials","time"),
+                              coords={"roi": roi, "time": time, "trials": trials} )
 
     return coreness
 
@@ -143,19 +167,25 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False):
     - betweenness: A matrix containing the nodes betweenness with shape (roi,time).
     '''
     # Check inputs
-    _check_inputs(A, 3)
+    _check_inputs(A, 4)
     # Get values in case it is an xarray
     if isinstance(A, xr.DataArray): 
+        # Concatenate trials and time axis
         try:
-            roi = A.roi_1.values
-            observations = A.observations.values
+            roi    = A.roi_1.values
+            trials = A.trials.values
+            time   = A.time.values
         except:
-            roi = np.arange(0, A.shape[0])
-            observations = np.arange(0, A.shape[2])
+            roi    = np.arange(0, A.shape[0])
+            trials = np.arange(0, A.shape[2])
+            time   = np.arange(0, A.shape[3])
+        A = A.stack(observations=("trials","time"))
         A = A.values
     else:
-        roi = np.arange(0, A.shape[0])
-        observations = np.arange(0, A.shape[2])
+        roi    = np.arange(0, A.shape[0])
+        trials = np.arange(0, A.shape[2])
+        time   = np.arange(0, A.shape[3])
+        A = A.reshape( (len(roi),len(roi),len(trials)*len(time) )
 
     #  Number of channels
     nC = A.shape[0]
@@ -171,6 +201,12 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False):
             betweenness[:,t] = g.betweenness(weights="weight")
         else:
             betweenness[:,t] = g.betweenness()
+
+    # Unstack trials and time
+    betweenness = betweenness.reshape( (len(roi),len(trials),len(time)) )
+    # Convert to xarray
+    betweenness = xr.DataArray(betweenness, dims=("roi","trials","time"),
+                              coords={"roi": roi, "time": time, "trials": trials} )
 
     return betweenness
 
