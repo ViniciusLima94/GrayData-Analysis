@@ -16,17 +16,34 @@ def compute_nodes_degree(A, mirror=False):
     - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
     - mirror: If True will mirror the adjacency matrix (should be used if only the upper/lower triangle is given.
     > OUTPUTS:
-    - node_degree: A matrix containing the nodes degree with shape (roi,roi,trials,time).
+    - node_degree: A matrix containing the nodes degree with shape (roi,trials,time).
     '''
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): A = A.values
+    if isinstance(A, xr.DataArray): 
+        A    = A.values
+        try:
+            roi    = A.roi_1.values
+            trials = A.trials.values
+            time   = A.time.values
+        except:
+            roi    = np.arange(0, A.shape[0])
+            trials = np.arange(0, A.shape[2])
+            time   = np.arange(0, A.shape[3])
+    else:
+        roi    = np.arange(0, A.shape[0])
+        trials = np.arange(0, A.shape[2])
+        time   = np.arange(0, A.shape[3])
 
     if mirror:
         A = A + np.transpose( A, (1,0,2,3) )
 
     node_degree = A.sum(axis=1)
+
+    # Convert to xarray
+    node_degree = xr.DataArray(node_degree, dims=("roi","trials","time"),
+                               coords={"roi": roi, "time": time, "trials": trials} )
 
     return node_degree
 
