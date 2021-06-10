@@ -15,6 +15,34 @@ def _check_inputs(array, dims):
     assert isinstance(array, (np.ndarray, xr.DataArray))
     assert len(array.shape)==dims, f"The adjacency tensor should be {dims}D."
 
+def _unwrap_inputs(array, concat_trials=False):
+    r'''
+    Unwrap array and its dimensions for further manipulation.
+    > INPUTS:
+    - array: The data array (roi,roi,trials,time).
+    - concat_trials: Wheter to concatenate or not trials of the values in the array.
+    > OUTPUTS:
+    - array values concatenated or not and the values for each of its dimensions.
+    '''
+    if isinstance(array, xr.DataArray): 
+        # Concatenate trials and time axis
+        try:
+            roi    = array.roi_1.values
+            trials = array.trials.values
+            time   = array.time.values
+        except:
+            roi    = np.arange(0, array.shape[0])
+            trials = np.arange(0, array.shape[2])
+            time   = np.arange(0, array.shape[3])
+        if concat_trials: array = array.stack(observations=("trials","time"))
+        array = array.values
+    else:
+        roi    = np.arange(0, array.shape[0])
+        trials = np.arange(0, array.shape[2])
+        time   = np.arange(0, array.shape[3])
+        if concat_trials: array = array.reshape( (len(roi),len(roi),len(trials)*len(time)) )
+    return array, roi, trials, time
+
 def convert_to_adjacency(tensor,):
     # Number of pairs
     n_pairs    = tensor.shape[0]

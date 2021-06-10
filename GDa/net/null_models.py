@@ -3,7 +3,7 @@ import numpy  as np
 import xarray as xr
 import igraph as ig
 from   tqdm   import tqdm
-from   .util  import instantiate_graph, _check_inputs
+from   .util  import instantiate_graph, _check_inputs, _unwrap_inputs
 
 def shuffle_frames(A, seed=0):
 
@@ -36,30 +36,13 @@ def randomize_edges(A, n_rewires = 100, seed=0, verbose=False):
     > OUTPUTS:
     - A_null: The randomized multiplex adjacency matrix with shape (roi,roi,trials,time).
     '''
-    # Set random seed
+    # Set random seed (for python's default random and numpy)
     random.seed(seed); np.random.seed(seed)
 
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): 
-        # Concatenate trials and time axis
-        try:
-            roi    = A.roi_1.values
-            trials = A.trials.values
-            time   = A.time.values
-        except:
-            roi    = np.arange(0, A.shape[0])
-            trials = np.arange(0, A.shape[2])
-            time   = np.arange(0, A.shape[3])
-        A = A.stack(observations=("trials","time"))
-        A = A.values
-    else:
-        roi    = np.arange(0, A.shape[0])
-        trials = np.arange(0, A.shape[2])
-        time   = np.arange(0, A.shape[3])
-        A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
-
+    A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
     #  Number of channels
     nC = A.shape[0]
     #  Number of observations
