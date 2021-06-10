@@ -6,7 +6,7 @@ from   frites.utils          import parallel_func
 from   joblib                import Parallel, delayed
 from   .null_models          import *
 from   tqdm                  import tqdm
-from   .util                 import instantiate_graph, _check_inputs
+from   .util  import instantiate_graph, _check_inputs, _unwrap_inputs
 
 def compute_nodes_degree(A, mirror=False):
     r'''
@@ -21,20 +21,22 @@ def compute_nodes_degree(A, mirror=False):
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): 
-        try:
-            roi    = A.roi_1.values
-            trials = A.trials.values
-            time   = A.time.values
-        except:
-            roi    = np.arange(0, A.shape[0])
-            trials = np.arange(0, A.shape[2])
-            time   = np.arange(0, A.shape[3])
-        A    = A.values
-    else:
-        roi    = np.arange(0, A.shape[0])
-        trials = np.arange(0, A.shape[2])
-        time   = np.arange(0, A.shape[3])
+    A, roi, trials, time = _unwrap_inputs(A,concat_trials=False)
+    # Get values in case it is an xarray
+    #  if isinstance(A, xr.DataArray): 
+    #      try:
+    #          roi    = A.roi_1.values
+    #          trials = A.trials.values
+    #          time   = A.time.values
+    #      except:
+    #          roi    = np.arange(0, A.shape[0])
+    #          trials = np.arange(0, A.shape[2])
+    #          time   = np.arange(0, A.shape[3])
+    #      A    = A.values
+    #  else:
+    #      roi    = np.arange(0, A.shape[0])
+    #      trials = np.arange(0, A.shape[2])
+    #      time   = np.arange(0, A.shape[3])
 
     if mirror:
         A = A + np.transpose( A, (1,0,2,3) )
@@ -61,23 +63,25 @@ def compute_nodes_clustering(A, is_weighted=False, verbose=False):
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): 
-        # Concatenate trials and time axis
-        try:
-            roi    = A.roi_1.values
-            trials = A.trials.values
-            time   = A.time.values
-        except:
-            roi    = np.arange(0, A.shape[0])
-            trials = np.arange(0, A.shape[2])
-            time   = np.arange(0, A.shape[3])
-        A = A.stack(observations=("trials","time"))
-        A = A.values
-    else:
-        roi    = np.arange(0, A.shape[0])
-        trials = np.arange(0, A.shape[2])
-        time   = np.arange(0, A.shape[3])
-        A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
+    A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
+    # Get values in case it is an xarray
+    #  if isinstance(A, xr.DataArray): 
+    #      # Concatenate trials and time axis
+    #      try:
+    #          roi    = A.roi_1.values
+    #          trials = A.trials.values
+    #          time   = A.time.values
+    #      except:
+    #          roi    = np.arange(0, A.shape[0])
+    #          trials = np.arange(0, A.shape[2])
+    #          time   = np.arange(0, A.shape[3])
+    #      A = A.stack(observations=("trials","time"))
+    #      A = A.values
+    #  else:
+    #      roi    = np.arange(0, A.shape[0])
+    #      trials = np.arange(0, A.shape[2])
+    #      time   = np.arange(0, A.shape[3])
+    #      A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
 
     #  Number of channels
     nC = A.shape[0]
@@ -117,23 +121,25 @@ def compute_nodes_coreness(A, is_weighted=False, verbose=False):
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): 
-        # Concatenate trials and time axis
-        try:
-            roi    = A.roi_1.values
-            trials = A.trials.values
-            time   = A.time.values
-        except:
-            roi    = np.arange(0, A.shape[0])
-            trials = np.arange(0, A.shape[2])
-            time   = np.arange(0, A.shape[3])
-        A = A.stack(observations=("trials","time"))
-        A = A.values
-    else:
-        roi    = np.arange(0, A.shape[0])
-        trials = np.arange(0, A.shape[2])
-        time   = np.arange(0, A.shape[3])
-        A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
+    A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
+    # Get values in case it is an xarray
+    #  if isinstance(A, xr.DataArray): 
+    #      # Concatenate trials and time axis
+    #      try:
+    #          roi    = A.roi_1.values
+    #          trials = A.trials.values
+    #          time   = A.time.values
+    #      except:
+    #          roi    = np.arange(0, A.shape[0])
+    #          trials = np.arange(0, A.shape[2])
+    #          time   = np.arange(0, A.shape[3])
+    #      A = A.stack(observations=("trials","time"))
+    #      A = A.values
+    #  else:
+    #      roi    = np.arange(0, A.shape[0])
+    #      trials = np.arange(0, A.shape[2])
+    #      time   = np.arange(0, A.shape[3])
+    #      A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
 
     #  Number of channels
     nC = A.shape[0]
@@ -169,23 +175,25 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False):
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): 
-        # Concatenate trials and time axis
-        try:
-            roi    = A.roi_1.values
-            trials = A.trials.values
-            time   = A.time.values
-        except:
-            roi    = np.arange(0, A.shape[0])
-            trials = np.arange(0, A.shape[2])
-            time   = np.arange(0, A.shape[3])
-        A = A.stack(observations=("trials","time"))
-        A = A.values
-    else:
-        roi    = np.arange(0, A.shape[0])
-        trials = np.arange(0, A.shape[2])
-        time   = np.arange(0, A.shape[3])
-        A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
+    A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
+    # Get values in case it is an xarray
+    #  if isinstance(A, xr.DataArray): 
+    #      # Concatenate trials and time axis
+    #      try:
+    #          roi    = A.roi_1.values
+    #          trials = A.trials.values
+    #          time   = A.time.values
+    #      except:
+    #          roi    = np.arange(0, A.shape[0])
+    #          trials = np.arange(0, A.shape[2])
+    #          time   = np.arange(0, A.shape[3])
+    #      A = A.stack(observations=("trials","time"))
+    #      A = A.values
+    #  else:
+    #      roi    = np.arange(0, A.shape[0])
+    #      trials = np.arange(0, A.shape[2])
+    #      time   = np.arange(0, A.shape[3])
+    #      A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
 
     #  Number of channels
     nC = A.shape[0]
