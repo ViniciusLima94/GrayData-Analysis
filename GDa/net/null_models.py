@@ -25,13 +25,40 @@ def shuffle_frames(A, seed=0):
     return A_null
 
 def randomize_edges(A, n_rewires = 100, seed=0, verbose=False):
+    r'''
+    Randomize an adjacency matrix while maintaining its nodes' degrees
+    and undirectionality.
+    > INPUTS:
+    - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    - n_rewires: Number of rewires to be performed in each adjacency matrix.
+    - seed: Seed for random edge selection.
+    - verbose: Wheater to print the progress or not.
+    > OUTPUTS:
+    - A_null: The randomized multiplex adjacency matrix with shape (roi,roi,trials,time).
+    '''
+    # Set random seed
+    random.seed(seed); np.random.seed(seed)
 
-    # Checking inputs
-    _check_inputs(A, 3)
+    # Check inputs
+    _check_inputs(A, 4)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): A = A.values
-
-    random.seed(seed)
+    if isinstance(A, xr.DataArray): 
+        # Concatenate trials and time axis
+        try:
+            roi    = A.roi_1.values
+            trials = A.trials.values
+            time   = A.time.values
+        except:
+            roi    = np.arange(0, A.shape[0])
+            trials = np.arange(0, A.shape[2])
+            time   = np.arange(0, A.shape[3])
+        A = A.stack(observations=("trials","time"))
+        A = A.values
+    else:
+        roi    = np.arange(0, A.shape[0])
+        trials = np.arange(0, A.shape[2])
+        time   = np.arange(0, A.shape[3])
+        A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
 
     #  Number of channels
     nC = A.shape[0]
@@ -46,4 +73,13 @@ def randomize_edges(A, n_rewires = 100, seed=0, verbose=False):
         G   = g.copy()
         G.rewire(n=n_rewires)
         A_null[:,:,t] = np.array(list(G.get_adjacency()))
+
+    # Unstack trials and time
+    A_null = A_null.reshape( (len(roi),len(roi),len(trials),len(time)) )
+    # Convert to xarray
+    A_null = xr.DataArray(A_null, dims=("roi_1","roi_2","trials","time"),
+                          coords={"roi_1": roi,
+                                  "roi_2": roi,
+                                  "time": time, 
+                                  "trials": trials} )
     return A_null
