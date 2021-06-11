@@ -228,19 +228,9 @@ def compute_allegiance_matrix(A, is_weighted=False, verbose=False):
     - T: The allegiance matrix between all nodes with shape (roi, roi)
     '''
     # Check inputs
-    _check_inputs(A, 3)
+    _check_inputs(A, 4)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): 
-        try:
-            roi = A.roi_1.values
-            observations = A.observations.values
-        except:
-            roi = np.arange(0, A.shape[0])
-            observations = np.arange(0, A.shape[2])
-        A = A.values
-    else:
-        roi = np.arange(0, A.shape[0])
-        observations = np.arange(0, A.shape[2])
+    A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
 
     #  Number of channels
     nC = A.shape[0]
@@ -248,7 +238,7 @@ def compute_allegiance_matrix(A, is_weighted=False, verbose=False):
     nt = A.shape[-1]
 
     #  Find the partitions
-    p = compute_network_partition(A, is_weighted=is_weighted)
+    p = compute_network_partition(A, is_weighted=is_weighted, verbose=verbose)
 
     T = np.zeros([nC, nC])
 
