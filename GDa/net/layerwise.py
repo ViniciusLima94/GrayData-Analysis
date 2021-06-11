@@ -295,7 +295,8 @@ def windowed_allegiance_matrix(A, times=None, is_weighted=False, verbose=False, 
     T = xr.concat(T, dim="time")
     # Ordering dimensions
     T = T.transpose("roi_1","roi_2","time")
-    T.time.values = t_win
+    # Assign time axis
+    T.assign_coords({"time":t_win})
     return T
 
 def null_model_statistics(A, f_name, n_stat, n_rewires=1000, n_jobs=1, seed=0, **kwargs):
