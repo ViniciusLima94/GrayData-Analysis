@@ -22,21 +22,6 @@ def compute_nodes_degree(A, mirror=False):
     _check_inputs(A, 4)
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A,concat_trials=False)
-    # Get values in case it is an xarray
-    #  if isinstance(A, xr.DataArray): 
-    #      try:
-    #          roi    = A.roi_1.values
-    #          trials = A.trials.values
-    #          time   = A.time.values
-    #      except:
-    #          roi    = np.arange(0, A.shape[0])
-    #          trials = np.arange(0, A.shape[2])
-    #          time   = np.arange(0, A.shape[3])
-    #      A    = A.values
-    #  else:
-    #      roi    = np.arange(0, A.shape[0])
-    #      trials = np.arange(0, A.shape[2])
-    #      time   = np.arange(0, A.shape[3])
 
     if mirror:
         A = A + np.transpose( A, (1,0,2,3) )
@@ -64,24 +49,6 @@ def compute_nodes_clustering(A, is_weighted=False, verbose=False):
     _check_inputs(A, 4)
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
-    # Get values in case it is an xarray
-    #  if isinstance(A, xr.DataArray): 
-    #      # Concatenate trials and time axis
-    #      try:
-    #          roi    = A.roi_1.values
-    #          trials = A.trials.values
-    #          time   = A.time.values
-    #      except:
-    #          roi    = np.arange(0, A.shape[0])
-    #          trials = np.arange(0, A.shape[2])
-    #          time   = np.arange(0, A.shape[3])
-    #      A = A.stack(observations=("trials","time"))
-    #      A = A.values
-    #  else:
-    #      roi    = np.arange(0, A.shape[0])
-    #      trials = np.arange(0, A.shape[2])
-    #      time   = np.arange(0, A.shape[3])
-    #      A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
 
     #  Number of channels
     nC = A.shape[0]
@@ -122,24 +89,6 @@ def compute_nodes_coreness(A, is_weighted=False, verbose=False):
     _check_inputs(A, 4)
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
-    # Get values in case it is an xarray
-    #  if isinstance(A, xr.DataArray): 
-    #      # Concatenate trials and time axis
-    #      try:
-    #          roi    = A.roi_1.values
-    #          trials = A.trials.values
-    #          time   = A.time.values
-    #      except:
-    #          roi    = np.arange(0, A.shape[0])
-    #          trials = np.arange(0, A.shape[2])
-    #          time   = np.arange(0, A.shape[3])
-    #      A = A.stack(observations=("trials","time"))
-    #      A = A.values
-    #  else:
-    #      roi    = np.arange(0, A.shape[0])
-    #      trials = np.arange(0, A.shape[2])
-    #      time   = np.arange(0, A.shape[3])
-    #      A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
 
     #  Number of channels
     nC = A.shape[0]
@@ -176,24 +125,6 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False):
     _check_inputs(A, 4)
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
-    # Get values in case it is an xarray
-    #  if isinstance(A, xr.DataArray): 
-    #      # Concatenate trials and time axis
-    #      try:
-    #          roi    = A.roi_1.values
-    #          trials = A.trials.values
-    #          time   = A.time.values
-    #      except:
-    #          roi    = np.arange(0, A.shape[0])
-    #          trials = np.arange(0, A.shape[2])
-    #          time   = np.arange(0, A.shape[3])
-    #      A = A.stack(observations=("trials","time"))
-    #      A = A.values
-    #  else:
-    #      roi    = np.arange(0, A.shape[0])
-    #      trials = np.arange(0, A.shape[2])
-    #      time   = np.arange(0, A.shape[3])
-    #      A = A.reshape( (len(roi),len(roi),len(trials)*len(time)) )
 
     #  Number of channels
     nC = A.shape[0]
@@ -230,19 +161,9 @@ def compute_network_partition(A, is_weighted=False, verbose=False):
     - partition: A list with the all the partition found for each layer of the matrix (for each observation).
     '''
     # Check inputs
-    _check_inputs(A, 3)
+    _check_inputs(A, 4)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): 
-        try:
-            roi = A.roi_1.values
-            observations = A.observations.values
-        except:
-            roi = np.arange(0, A.shape[0])
-            observations = np.arange(0, A.shape[2])
-        A = A.values
-    else:
-        roi = np.arange(0, A.shape[0])
-        observations = np.arange(0, A.shape[2])
+    A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
 
     #  Number of channels
     nC = A.shape[0]
@@ -272,19 +193,9 @@ def compute_network_modularity(A, is_weighted=False):
     - modularity: Modularity for each time frame of the temporal network.
     '''
     # Check inputs
-    _check_inputs(A, 3)
+    _check_inputs(A, 4)
     # Get values in case it is an xarray
-    if isinstance(A, xr.DataArray): 
-        try:
-            roi = A.roi_1.values
-            observations = A.observations.values
-        except:
-            roi = np.arange(0, A.shape[0])
-            observations = np.arange(0, A.shape[2])
-        A = A.values
-    else:
-        roi = np.arange(0, A.shape[0])
-        observations = np.arange(0, A.shape[2])
+    A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
 
     #  Number of observations
     nt = A.shape[-1]
