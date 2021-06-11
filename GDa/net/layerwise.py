@@ -229,16 +229,16 @@ def compute_allegiance_matrix(A, is_weighted=False, verbose=False):
     '''
     # Check inputs
     _check_inputs(A, 4)
+
+    #  Find the partitions
+    p = compute_network_partition(A, is_weighted=is_weighted, verbose=verbose)
+
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
-
     #  Number of channels
     nC = A.shape[0]
     #  Number of observations
     nt = A.shape[-1]
-
-    #  Find the partitions
-    p = compute_network_partition(A, is_weighted=is_weighted, verbose=verbose)
 
     T = np.zeros([nC, nC])
 
