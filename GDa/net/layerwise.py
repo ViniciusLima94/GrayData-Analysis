@@ -231,6 +231,7 @@ def compute_allegiance_matrix(A, is_weighted=False, verbose=False):
     _check_inputs(A, 4)
 
     #  Find the partitions
+    if verbose: print("Finding network partitions.")
     p = compute_network_partition(A, is_weighted=is_weighted, verbose=verbose)
 
     # Get values in case it is an xarray
@@ -242,6 +243,8 @@ def compute_allegiance_matrix(A, is_weighted=False, verbose=False):
 
     T = np.zeros([nC, nC])
 
+    if verbose: print("Computing allegiance matrix.")
+    p = compute_network_partition(A, is_weighted=is_weighted, verbose=verbose)
     itr = range( len(p) )
     for i in (tqdm(itr) if verbose else itr):
         n_comm = len(p[i])
