@@ -61,8 +61,8 @@ def randomize_edges(A, n_rewires = 100, seed=0, verbose=False):
     A_null = A_null.reshape( (len(roi),len(roi),len(trials),len(time)) )
     # Convert to xarray
     A_null = xr.DataArray(A_null, dims=("roi_1","roi_2","trials","time"),
-                          coords={"roi_1": roi,
-                                  "roi_2": roi,
-                                  "time": time, 
-                                  "trials": trials} )
+                                  coords={"roi_1": roi,
+                                          "roi_2": roi,
+                                          "time": time, 
+                                          "trials": trials} )
     return A_null
