@@ -208,6 +208,12 @@ def compute_network_modularity(A, is_weighted=False, verbose=False):
         g               = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
         modularity[t] = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition).modularity
 
+    # Unstack trials and time 
+    modularity = modularity.reshape( (len(trials),len(time)) )
+    # Convert to xarray
+    modularity = xr.DataArray(modularity, dims=("trials","time"),
+                              coords={"time": time, "trials": trials} )
+
     return modularity
 
 def compute_allegiance_matrix(A, is_weighted=False, verbose=False):
