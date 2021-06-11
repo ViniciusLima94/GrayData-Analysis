@@ -181,7 +181,7 @@ def compute_network_partition(A, is_weighted=False, verbose=False):
 
     return partition
 
-def compute_network_modularity(A, is_weighted=False):
+def compute_network_modularity(A, is_weighted=False, verbose=False):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the modularity of the  
     network for each layer/time is computed for all the trials concatenated.
