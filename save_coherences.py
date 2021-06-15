@@ -47,7 +47,7 @@ if  __name__ == '__main__':
     )
 
     # compute the coherence
-    coh = conn_coherence_wav(ses.data.values.astype(np.float32), **kw)
+    coh = conn_coherence_wav(ses.data.values.astype(np.float32), **kw).astype(np.float32)
 
     if os.path.isfile(path_st):
         os.system(f'rm {path_st}')
