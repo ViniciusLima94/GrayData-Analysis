@@ -197,7 +197,7 @@ class temporal_network():
         if not hasattr(self, 's_mask'):
             self.create_stage_masks(flatten=True)
         # If the variable exists but the dimensios are not flattened create again
-        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape) is 2:
+        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
             self.create_stage_masks(flatten=True)
 
         if pad:
@@ -221,7 +221,7 @@ class temporal_network():
         if not hasattr(self, 's_mask'):
             self.create_stage_masks(flatten=False)
         # If the variable exists but the dimensios are not flattened create again
-        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape) is 1:
+        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==1:
             self.create_stage_masks(flatten=False)
         if total:
             return np.int( self.s_mask[stage].sum() )
@@ -288,11 +288,11 @@ class temporal_network():
         self.super_tensor.values = (self.super_tensor.stack(observations=('trials','time')) > self.coh_thr).unstack().values
 
     def reshape_trials(self, ):
-        assert len(self.super_tensor.dims) is 3
+        assert len(self.super_tensor.dims)==3
         self.super_tensor.unstack()
 
     def reshape_observations(self, ):
-        assert len(self.super_tensor.dims) is 4
+        assert len(self.super_tensor.dims)==4
         self.super_tensor.stack(observations=('trials','time'))
 
 ################################################ AUX FUNCTIONS ################################################
