@@ -269,9 +269,9 @@ def compute_allegiance_matrix(A, concat=False, is_weighted=False, verbose=False)
 
     T = np.zeros([nC, nC])
 
-    itr = range( p.sizes['time'] )
+    itr = range( nt )
     for i in (tqdm(itr) if verbose else itr):
-        p_lst  = list(p.isel(time=i).values[0])
+        p_lst  = list(p.isel(observations=i).values[0])
         n_comm = len(p_lst)
         for j in range(n_comm):
             grid = np.meshgrid(p_lst[j],p_lst[j])
