@@ -149,16 +149,18 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False):
 
     return betweenness
 
-def compute_network_partition(A, is_weighted=False, verbose=False):
+def compute_network_partition(A, flatten=True, is_weighted=False, verbose=False):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the network partition for each
     node is computed for all the trials concatenated.
     > INPUTS:
     - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    - flatten: If False will return the partitions with shape (trials,time)
     - is_weighted: Scepecify if the network is weighted or binary.
     - verbose: Wheater to print the progress or not.
     > OUTPUTS:
-    - partition: A list with the all the partition found for each layer of the matrix (for each observation).
+    - partition: A list with the all the partition found for each layer of the 
+    matrix (for each observation or trials,time if flatten is False).
     '''
     # Check inputs
     _check_inputs(A, 4)
@@ -178,6 +180,10 @@ def compute_network_partition(A, is_weighted=False, verbose=False):
         g               = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
         # Uses leidenalg
         partition += [leidenalg.find_partition(g, leidenalg.ModularityVertexPartition)]
+
+    # Reshape back to trials and time
+    if not flatten:
+        partition = np.reshape(partition, (len(trials),len(time)))
 
     return partition
 
@@ -216,20 +222,18 @@ def compute_network_modularity(A, is_weighted=False, verbose=False):
 
     return modularity
 
-def compute_allegiance_matrix(A, is_weighted=False, verbose=False):
+def compute_allegiance_matrix(A, concat=False, is_weighted=False, verbose=False):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the allegiance matrix for  
     the whole period provided will be computed.
     > INPUTS:
     - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    - concat: Wheter trials are concatenated or not.
     - is_weighted: Scepecify if the network is weighted or binary.
     - verbose: Wheater to print the progress or not.
     > OUTPUTS:
     - T: The allegiance matrix between all nodes with shape (roi, roi)
     '''
-    # Check inputs
-    _check_inputs(A, 4)
-
     #  Find the partitions
     if verbose: print("Finding network partitions.\n")
     p = compute_network_partition(A, is_weighted=is_weighted, verbose=verbose)
