@@ -200,27 +200,36 @@ def compute_network_modularity(A, is_weighted=False, verbose=False):
     - modularity: Modularity for each time frame of the temporal network.
     '''
     # Check inputs
-    _check_inputs(A, 4)
+    #_check_inputs(A, 4)
     # Get values in case it is an xarray
-    A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
+    #A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
 
     #  Number of observations
-    nt = A.shape[-1]
+    #nt = A.shape[-1]
+    # Finding parititions
+    if verbose: print("Finding network partitions.\n")
+    partition = compute_network_partition(A, is_weighted=is_weighted, verbose=verbose)
+    # Getting dimension arrays
+    trials, time = partition.trials.values, partition.time.values
+    nt           = len(trials)*len(time)
+    # Stack paritions 
+    partition    = partition.stack(observations=("trials","time"))
 
     #  Variable to store modularity
     modularity  = np.zeros(nt)
 
+    if verbose: print("Computing modularity.\n")
     itr = range(nt)
     for t in (tqdm(itr) if verbose else itr):
-        g               = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
-        modularity[t] = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition).modularity
+        #  g               = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
+        #  modularity[t] = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition).modularity
+        modularity[t] = partition.values[t].modularity
 
     # Unstack trials and time 
     modularity = modularity.reshape( (len(trials),len(time)) )
     # Convert to xarray
     modularity = xr.DataArray(modularity, dims=("trials","time"),
                               coords={"time": time, "trials": trials} )
-
     return modularity
 
 def compute_allegiance_matrix(A, concat=False, is_weighted=False, verbose=False):
