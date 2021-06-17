@@ -149,13 +149,12 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False):
 
     return betweenness
 
-def compute_network_partition(A, flatten=True, is_weighted=False, verbose=False):
+def compute_network_partition(A, is_weighted=False, verbose=False):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the network partition for each
     node is computed for all the trials concatenated.
     > INPUTS:
     - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
-    - flatten: If False will return the partitions with shape (trials,time)
     - is_weighted: Scepecify if the network is weighted or binary.
     - verbose: Wheater to print the progress or not.
     > OUTPUTS:
@@ -182,8 +181,10 @@ def compute_network_partition(A, flatten=True, is_weighted=False, verbose=False)
         partition += [leidenalg.find_partition(g, leidenalg.ModularityVertexPartition)]
 
     # Reshape back to trials and time
-    if not flatten:
-        partition = np.reshape(partition, (len(trials),len(time)))
+    partition = np.reshape(partition, (len(trials),len(time)))
+    # Conversion to xarray
+    partition = xr.DataArray(partition, dims=("trials","time"),
+                             coords={"trials":trials,"time":time})
 
     return partition
 
