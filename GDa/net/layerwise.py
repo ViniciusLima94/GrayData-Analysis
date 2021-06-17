@@ -247,26 +247,48 @@ def compute_allegiance_matrix(A, concat=False, is_weighted=False, verbose=False)
     #  Find the partitions
     if verbose: print("Finding network partitions.\n")
     p = compute_network_partition(A, is_weighted=is_weighted, verbose=verbose)
+    # Getting dimension arrays
+    trials, time = p.trials.values, p.time.values
+    nt           = len(trials)*len(time)
+    # Stack paritions 
+    p            = p.stack(observations=("trials","time"))
+    # Number of ROI
+    nC           = A.shape[0]
+
+    if isinstance(A, xr.DataArray):
+        roi = A.roi_1.values
+    else:
+        roi = np.arange(nC, dtype=int)
 
     # Get values in case it is an xarray
-    A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
+    #  A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
     #  Number of channels
-    nC = A.shape[0]
+    #  nC = A.shape[0]
     #  Number of observations
-    nt = A.shape[-1]
+    #  nt = A.shape[-1]
 
     T = np.zeros([nC, nC])
 
-    if verbose: print("Computing allegiance matrix.\n")
-    itr = range( len(p) )
+    itr = range( p.sizes['time'] )
     for i in (tqdm(itr) if verbose else itr):
-        n_comm = len(p[i])
+        p_lst  = list(p.isel(time=i).values[0])
+        n_comm = len(p_lst)
         for j in range(n_comm):
-            grid = np.meshgrid(list(p[i][j]), list(p[i][j]))
-            grid = np.reshape(grid, (2, len(list(p[i][j]))**2)).T
-            T[grid[:,0], grid[:,1]] += 1
-    T = T / nt 
-    np.fill_diagonal(T, 0)
+            grid = np.meshgrid(p_lst[j],p_lst[j])
+            grid = np.reshape(grid, (2, len(p_lst[j])**2)).T
+            T[grid[:,0],grid[:,1]] += 1
+    np.fill_diagonal(T , 0)
+
+    #  if verbose: print("Computing allegiance matrix.\n")
+    #  itr = range( len(p) )
+    #  for i in (tqdm(itr) if verbose else itr):
+    #      n_comm = len(p.values[i])
+    #      for j in range(n_comm):
+    #          grid = np.meshgrid(list(p[i][j]), list(p[i][j]))
+    #          grid = np.reshape(grid, (2, len(list(p[i][j]))**2)).T
+    #          T[grid[:,0], grid[:,1]] += 1
+    #  T = T / nt 
+    #  np.fill_diagonal(T, 0)
 
     # Converting to xarray
     T = xr.DataArray(T, dims=("roi_1","roi_2"),
