@@ -43,6 +43,18 @@ def _unwrap_inputs(array, concat_trials=False):
         if concat_trials: array = array.reshape( (len(roi),len(roi),len(trials)*len(time)) )
     return array, roi, trials, time
 
+def _reshape_list(array, shapes, dtype):
+    assert isinstance(shapes, tuple)
+    assert isinstance(array,  list)
+    
+    idx       = 0
+    container = np.zeros(shapes, dtype=dtype)
+    for i in range(shapes[0]):
+        for j in range(shapes[1]):
+            container[i,j]=array[idx]
+            idx += 1
+    return container
+
 def convert_to_adjacency(tensor,):
     # Number of pairs
     n_pairs    = tensor.shape[0]
