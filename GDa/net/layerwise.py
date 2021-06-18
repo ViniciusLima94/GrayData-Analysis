@@ -286,7 +286,7 @@ def compute_allegiance_matrix(A, kw_leiden={}, concat=False, is_weighted=False, 
                      coords={"roi_1":roi, "roi_2": roi})
     return T
 
-def windowed_allegiance_matrix(A, times=None, is_weighted=False, verbose=False, win_args=None, n_jobs=1):
+def windowed_allegiance_matrix(A, times=None, is_weighted=False, verbose=False, kw_leiden=None, win_args=None, n_jobs=1):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the windowed allegiance matrix.
     For each window the observations are concatenated for all trials and then the allegiance matrix is estimated.
@@ -298,32 +298,42 @@ def windowed_allegiance_matrix(A, times=None, is_weighted=False, verbose=False, 
     - win_args: Dict. with arguments to be passed to define_windows (for more details see frites.conn.conn_sliding_windows)
     - n_jobs: Number of jobs to use when parallelizing over windows.
     > OUTPUTS:
-    - T: The allegiance matrix between all nodes with shape (len(window), roi, roi)
+    - T: The allegiance matrix between all nodes with shape (roi, roi, trials, time)
     '''
     from frites.conn.conn_sliding_windows import define_windows
 
     assert isinstance(win_args, dict)
-    assert isinstance(times, (list, np.ndarray, xr.DataArray))
+    assert isinstance(A, xr.DataArray)
+    assert ('time' in A.dims) and ('trials' in A.dims) and ('roi_1' in A.dims) and ('roi_2' in A.dims)
 
+    # Number of regions
+    nC         = A.shape[0]
+    # ROIs
+    roi        = A.roi_1.values
+    # Define windows
     win, t_win = define_windows(times, **win_args)
-    def _for_win(w):
-        T=compute_allegiance_matrix(A.isel(time=slice(w[0],w[1])),
-                                    is_weighted=is_weighted, verbose=verbose)
+    # For a given trial computes windowed allegiance
+    def _for_win(trial, win):
+        T = xr.DataArray(np.zeros((nC,nC,len(win))), 
+                         dims=("roi_1","roi_2","time"),
+                         coords={"roi_1":roi, "roi_2": roi, "time":t_win})
+        for i_w, w in enumerate(win):
+            T[...,i_w]=compute_allegiance_matrix(A.isel(trials=[trial],time=slice(w[0],w[1])),
+                                                 kw_leiden, is_weighted=is_weighted, verbose=verbose)
         return T
 
     # define the function to compute in parallel
     parallel, p_fun = parallel_func(
         _for_win, n_jobs=n_jobs, verbose=verbose,
-        total=len(win))
+        total=A.shape[2])
     # compute the single trial coherence
-    T = parallel(p_fun(w) for w in win)
-
+    T = parallel(p_fun(trial,win) for trial in range(A.shape[2]))
     # Concatenating
-    T = xr.concat(T, dim="time")
+    T = xr.concat(T, dim="trials")
     # Ordering dimensions
-    T = T.transpose("roi_1","roi_2","time")
+    T = T.transpose("roi_1","roi_2","trials","time")
     # Assign time axis
-    T = T.assign_coords({"time":t_win})
+    T = T.assign_coords({"trials":A.trials.values})
     return T
 
 def null_model_statistics(A, f_name, n_stat, n_rewires=1000, n_jobs=1, seed=0, **kwargs):
