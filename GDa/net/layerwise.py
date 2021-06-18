@@ -170,6 +170,7 @@ def compute_network_partition(A, is_weighted=False, verbose=False):
     nC = A.shape[0]
     #  Number of observations
     nt = A.shape[-1]
+    print(f'nt={nt}')
     
     #  Save the partitions
     partition = []
@@ -271,12 +272,13 @@ def compute_allegiance_matrix(A, concat=False, is_weighted=False, verbose=False)
 
     itr = range( nt )
     for i in (tqdm(itr) if verbose else itr):
-        p_lst  = list(p.isel(observations=i).values[0])
+        p_lst  = list(p.values[i])
         n_comm = len(p_lst)
         for j in range(n_comm):
             grid = np.meshgrid(p_lst[j],p_lst[j])
             grid = np.reshape(grid, (2, len(p_lst[j])**2)).T
             T[grid[:,0],grid[:,1]] += 1
+    T = T / nt
     np.fill_diagonal(T , 0)
 
     #  if verbose: print("Computing allegiance matrix.\n")
