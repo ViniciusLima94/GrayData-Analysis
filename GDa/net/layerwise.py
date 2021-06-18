@@ -6,7 +6,7 @@ from   frites.utils          import parallel_func
 from   joblib                import Parallel, delayed
 from   .null_models          import *
 from   tqdm                  import tqdm
-from   .util  import instantiate_graph, _check_inputs, _unwrap_inputs
+from   .util                 import instantiate_graph, _check_inputs, _unwrap_inputs, _reshape_list
 
 def compute_nodes_degree(A, mirror=False):
     r'''
@@ -149,12 +149,13 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False):
 
     return betweenness
 
-def compute_network_partition(A, is_weighted=False, verbose=False):
+def compute_network_partition(A,  kw_leiden={}, is_weighted=False, verbose=False):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the network partition for each
     node is computed for all the trials concatenated.
     > INPUTS:
     - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    - kw_leiden: Parameters to be passed to leindelalg (for frther info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
     - is_weighted: Scepecify if the network is weighted or binary.
     - verbose: Wheater to print the progress or not.
     > OUTPUTS:
@@ -170,31 +171,35 @@ def compute_network_partition(A, is_weighted=False, verbose=False):
     nC = A.shape[0]
     #  Number of observations
     nt = A.shape[-1]
-    print(f'nt={nt}')
     
     #  Save the partitions
-    partition = []
+    #  partition = []
+    partition = np.empty(nt, dtype=object)
 
     itr = range(nt)
     for t in (tqdm(itr) if verbose else itr):
-        g               = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
+        g          = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
         # Uses leidenalg
-        partition += [leidenalg.find_partition(g, leidenalg.ModularityVertexPartition)]
+        #  partition += [leidenalg.find_partition(g, leidenalg.ModularityVertexPartition)]
+        partition[t] = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition, **kw_leiden)
 
     # Reshape back to trials and time
     partition = np.reshape(partition, (len(trials),len(time)))
+    # Reshaping like this because for some reason the above was given error sometimes.
+    #  partition = _reshape_list(partition, (len(trials),len(time)), leidenalg.VertexPartition.ModularityVertexPartition)
     # Conversion to xarray
     partition = xr.DataArray(partition, dims=("trials","time"),
                              coords={"trials":trials,"time":time})
 
     return partition
 
-def compute_network_modularity(A, is_weighted=False, verbose=False):
+def compute_network_modularity(A, kw_leiden={}, is_weighted=False, verbose=False):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the modularity of the  
     network for each layer/time is computed for all the trials concatenated.
     > INPUTS:
     - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    - kw_leiden: Parameters to be passed to leindelalg (for frther info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
     - is_weighted: Scepecify if the network is weighted or binary.
     - verbose: Wheater to print the progress or not.
     > OUTPUTS:
@@ -209,7 +214,7 @@ def compute_network_modularity(A, is_weighted=False, verbose=False):
     #nt = A.shape[-1]
     # Finding parititions
     if verbose: print("Finding network partitions.\n")
-    partition = compute_network_partition(A, is_weighted=is_weighted, verbose=verbose)
+    partition = compute_network_partition(A, kw_leiden, is_weighted=is_weighted, verbose=verbose)
     # Getting dimension arrays
     trials, time = partition.trials.values, partition.time.values
     nt           = len(trials)*len(time)
@@ -233,12 +238,13 @@ def compute_network_modularity(A, is_weighted=False, verbose=False):
                               coords={"time": time, "trials": trials} )
     return modularity
 
-def compute_allegiance_matrix(A, concat=False, is_weighted=False, verbose=False):
+def compute_allegiance_matrix(A, kw_leiden={}, concat=False, is_weighted=False, verbose=False):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the allegiance matrix for  
     the whole period provided will be computed.
     > INPUTS:
     - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    - kw_leiden: Parameters to be passed to leindelalg (for frther info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
     - concat: Wheter trials are concatenated or not.
     - is_weighted: Scepecify if the network is weighted or binary.
     - verbose: Wheater to print the progress or not.
@@ -247,9 +253,10 @@ def compute_allegiance_matrix(A, concat=False, is_weighted=False, verbose=False)
     '''
     #  Find the partitions
     if verbose: print("Finding network partitions.\n")
-    p = compute_network_partition(A, is_weighted=is_weighted, verbose=verbose)
+    p = compute_network_partition(A, kw_leiden, is_weighted=is_weighted, verbose=verbose)
     # Getting dimension arrays
     trials, time = p.trials.values, p.time.values
+    # Total number of observations
     nt           = len(trials)*len(time)
     # Stack paritions 
     p            = p.stack(observations=("trials","time"))
@@ -260,13 +267,6 @@ def compute_allegiance_matrix(A, concat=False, is_weighted=False, verbose=False)
         roi = A.roi_1.values
     else:
         roi = np.arange(nC, dtype=int)
-
-    # Get values in case it is an xarray
-    #  A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
-    #  Number of channels
-    #  nC = A.shape[0]
-    #  Number of observations
-    #  nt = A.shape[-1]
 
     T = np.zeros([nC, nC])
 
@@ -280,17 +280,6 @@ def compute_allegiance_matrix(A, concat=False, is_weighted=False, verbose=False)
             T[grid[:,0],grid[:,1]] += 1
     T = T / nt
     np.fill_diagonal(T , 0)
-
-    #  if verbose: print("Computing allegiance matrix.\n")
-    #  itr = range( len(p) )
-    #  for i in (tqdm(itr) if verbose else itr):
-    #      n_comm = len(p.values[i])
-    #      for j in range(n_comm):
-    #          grid = np.meshgrid(list(p[i][j]), list(p[i][j]))
-    #          grid = np.reshape(grid, (2, len(list(p[i][j]))**2)).T
-    #          T[grid[:,0], grid[:,1]] += 1
-    #  T = T / nt 
-    #  np.fill_diagonal(T, 0)
 
     # Converting to xarray
     T = xr.DataArray(T, dims=("roi_1","roi_2"),
