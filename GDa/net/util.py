@@ -1,6 +1,7 @@
 import igraph as ig 
 import numpy  as np
 import xarray as xr
+import scipy
 from   scipy  import stats
 from   tqdm   import tqdm
 

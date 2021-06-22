@@ -15,7 +15,7 @@ class temporal_network():
 
     def __init__(self, data_raw_path='GrayLab/', tensor_raw_path='super_tensors', monkey='lucy', session=1, 
                  date='150128', trial_type=None, behavioral_response=None, wt=None, 
-                 drop_trials_after = True, relative=False, q=None, verbose=False):
+                 drop_trials_after=True, relative=False, keep_weights=False, q=None, verbose=False):
         r'''
         Temporal network class, this object will have information about the session analysed and store the coherence
         networks (a.k.a. supertensor).
@@ -32,8 +32,10 @@ class temporal_network():
             computing the thresholds which mean that the thresholds will be commom for all types of trials
             specified in trial_types.
         - relative: if threshold is true wheter to do it in ralative (one thr per link per band) or 
-            an common thr for links per band
-        - q: Quartile value to use for thresholding
+            an common thr for links per band.
+        - keep_weights: If True, will keep the top weights after thresholding.
+        - q: Quartile value to use for thresholding.
+        - verbose: Wheter to print information or not.
         '''
 
         # Check for incorrect parameter values
@@ -69,7 +71,7 @@ class temporal_network():
                 #  print(f'drop_trials_after={drop_trials_after}')
                 self.__filter_trials(trial_type, behavioral_response)
             # Threshold
-            self.__compute_coherence_thresholds(q, relative, verbose)
+            self.__compute_coherence_thresholds(q, relative, keep_weights, verbose)
             # Drop trials after threshold
             if (trial_type is not None or behavioral_response is not None) and (drop_trials_after is True):
                 #  print(f'drop_trials_after={drop_trials_after}')
@@ -281,11 +283,17 @@ class temporal_network():
             d_eu[i] = np.sqrt(dx**2 + dy**2)
         return d_eu
 
-    def __compute_coherence_thresholds(self, q, relative, verbose):
+    def __compute_coherence_thresholds(self, q, relative, keep_weights, verbose):
         if verbose: print('Computing coherence thresholds') 
         self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','time')).values, 
                                                     q=q, relative=relative, verbose=verbose)
-        self.super_tensor.values = (self.super_tensor.stack(observations=('trials','time')) > self.coh_thr).unstack().values
+        # Mask
+        mask = self.super_tensor.stack(observations=('trials','time')) > self.coh_thr
+        if not keep_weights:
+            self.super_tensor.values = mask.unstack().values
+        else:
+            tmp = self.super_tensor.stack(observations=('trials','time'))*mask
+            self.super_tensor.values = tmp.unstack().values
 
     def reshape_trials(self, ):
         assert len(self.super_tensor.dims)==3
