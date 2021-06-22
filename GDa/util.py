@@ -1,4 +1,5 @@
 import numpy as np 
+import scipy
 
 def create_stages_time_grid(t_cue_on, t_cue_off, t_match_on, fsample, tarray, ntrials,flatten=False):
     r'''
