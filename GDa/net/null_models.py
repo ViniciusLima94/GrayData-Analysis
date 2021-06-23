@@ -5,6 +5,8 @@ import igraph as ig
 from   tqdm   import tqdm
 from   .util  import instantiate_graph, _check_inputs, _unwrap_inputs
 
+_DEFAULT_TYPE = np.float32
+
 def shuffle_frames(A, seed=0):
 
     # Checking inputs
@@ -22,7 +24,7 @@ def shuffle_frames(A, seed=0):
     A_null = ( A + np.transpose( A,  (1,0,2) ) ).copy()
     A_null = A_null[:,:,idx]
 
-    return A_null
+    return A_null.astype(_DEFAULT_TYPE)
 
 def randomize_edges(A, n_rewires = 100, seed=0, verbose=False):
     r'''
@@ -60,7 +62,7 @@ def randomize_edges(A, n_rewires = 100, seed=0, verbose=False):
     # Unstack trials and time
     A_null = A_null.reshape( (len(roi),len(roi),len(trials),len(time)) )
     # Convert to xarray
-    A_null = xr.DataArray(A_null, dims=("roi_1","roi_2","trials","time"),
+    A_null = xr.DataArray(A_null.astype(_DEFAULT_TYPE), dims=("roi_1","roi_2","trials","time"),
                                   coords={"roi_1": roi,
                                           "roi_2": roi,
                                           "time": time, 

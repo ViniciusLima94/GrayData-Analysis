@@ -6,10 +6,14 @@ import GDa.session
 from   GDa.misc.reshape      import reshape_trials, reshape_observations
 from   GDa.misc.create_grids import create_stages_time_grid
 from   GDa.net.util          import compute_coherence_thresholds, convert_to_adjacency
+from   GDa.net.null_models   import randomize_edges
 
 from   scipy                 import stats
+from   frites.utils          import parallel_func
 import os
 import h5py
+
+_DEFAULT_TYPE = np.float32
 
 class temporal_network():
 
@@ -117,7 +121,7 @@ class temporal_network():
         self.super_tensor = self.super_tensor.swapaxes(1,2)
 
         # Convert to xarray
-        self.super_tensor = xr.DataArray(self.super_tensor, dims=("links","bands","trials","time"),
+        self.super_tensor = xr.DataArray(self.super_tensor.astype(_DEFAULT_TYPE), dims=("links","bands","trials","time"),
                                          coords={"trials": self.trial_info.trial_index.values, 
                                                  "time":   self.tarray} )
 
@@ -133,6 +137,32 @@ class temporal_network():
                         "time":   self.super_tensor.time.values,
                         "roi_1":  self.super_tensor.attrs['channels_labels'],
                         "roi_2":  self.super_tensor.attrs['channels_labels']})
+
+    def create_null_ensemble(self, n_stat, n_rewires,seed, n_jobs=1, verbose=False):
+        # Check if the adjacency matrix was already created
+        if not hasattr(self, 'A'):
+            self.convert_to_adjacency()
+
+        # Compute null-model for one single estimative 
+        def _single_estimative(band, seed):
+            return randomize_edges(self.A.isel(bands=band), n_rewires, seed, verbose)
+
+        # define the function to compute in parallel
+        parallel, p_fun = parallel_func(
+            _single_estimative, n_jobs=n_jobs, verbose=verbose,
+            total=n_stat)
+        
+        self.A_null = []
+        itr = range(len(self.bands))
+        for band in (tqdm(itr) if verbose else itr):
+            # compute the single trial coherence
+            A_tmp   = parallel(p_fun(band,i*(seed+100)) for i in range(n_stat))
+            A_null += [xr.concat(A_tmp,dim="surrogates")]
+            del A_tmp
+        
+        # Concatenate bands
+        self.A_null = xr.concat(self.A_null,dim="bands")
+        self.A_null = self.A_null.transpose("surrogates","roi_1","roi_2","bands","trials","time")
 
     def create_stage_masks(self, flatten=False):
         filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=self.trial_type, behavioral_response=self.behavioral_response)
