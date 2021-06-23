@@ -1,9 +1,9 @@
 import numpy            as     np
 import xarray           as     xr
 import igraph           as     ig
+import brainconn        as     bc
 import leidenalg
 from   frites.utils          import parallel_func
-from   joblib                import Parallel, delayed
 from   .null_models          import *
 from   tqdm                  import tqdm
 from   .util                 import instantiate_graph, _check_inputs, _unwrap_inputs, _reshape_list
@@ -36,7 +36,7 @@ def compute_nodes_degree(A, mirror=False):
 
     return node_degree
 
-def compute_nodes_clustering(A, is_weighted=False, verbose=False):  
+def compute_nodes_clustering(A, is_weighted=False, verbose=False, backend='igraph'):  
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the clustering coefficient for each
     node is computed for all the trials concatenated.
@@ -47,6 +47,7 @@ def compute_nodes_clustering(A, is_weighted=False, verbose=False):
     > OUTPUTS:
     - clustering: A matrix containing the nodes clustering with shape (roi,trials,time).
     '''
+    assert backend in ['igraph','brainconn']
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
@@ -64,9 +65,15 @@ def compute_nodes_clustering(A, is_weighted=False, verbose=False):
         #  Instantiate graph
         g               = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
         if is_weighted is True:
-            clustering[:,t] = g.transitivity_local_undirected(weights="weight")
+            if backend is 'igraph':
+                clustering[:,t] = g.transitivity_local_undirected(weights="weight")
+            elif backend is 'brainconn':
+                clustering[:,t] = bc.clustering.clustering_coef_wu(A[...,t])  
         else:
-            clustering[:,t] = g.transitivity_local_undirected()
+            if backend is 'igraph':
+                clustering[:,t] = g.transitivity_local_undirected()
+            elif backend is 'brainconn':
+                clustering[:,t] = bc.clustering.clustering_coef_bu(A[...,t])  
 
     # Unstack trials and time
     clustering = clustering.reshape( (len(roi),len(trials),len(time)) )
