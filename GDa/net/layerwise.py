@@ -8,6 +8,8 @@ from   .null_models          import *
 from   tqdm                  import tqdm
 from   .util                 import instantiate_graph, _check_inputs, _unwrap_inputs, _reshape_list
 
+_DEFAULT_TYPE = np.float32
+
 def compute_nodes_degree(A, mirror=False):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the strength (weighted) degree (binary) of each
@@ -29,7 +31,7 @@ def compute_nodes_degree(A, mirror=False):
     node_degree = A.sum(axis=1)
 
     # Convert to xarray
-    node_degree = xr.DataArray(node_degree, dims=("roi","trials","time"),
+    node_degree = xr.DataArray(node_degree.astype(_DEFAULT_TYPE), dims=("roi","trials","time"),
                                coords={"roi": roi, "time": time, "trials": trials} )
 
     return node_degree
@@ -69,7 +71,7 @@ def compute_nodes_clustering(A, is_weighted=False, verbose=False):
     # Unstack trials and time
     clustering = clustering.reshape( (len(roi),len(trials),len(time)) )
     # Convert to xarray
-    clustering = xr.DataArray(np.nan_to_num(clustering), dims=("roi","trials","time"),
+    clustering = xr.DataArray(np.nan_to_num(clustering).astype(_DEFAULT_TYPE), dims=("roi","trials","time"),
                               coords={"roi": roi, "time": time, "trials": trials} )
 
     return clustering
@@ -105,7 +107,7 @@ def compute_nodes_coreness(A, is_weighted=False, verbose=False):
     # Unstack trials and time
     coreness = coreness.reshape( (len(roi),len(trials),len(time)) )
     # Convert to xarray
-    coreness = xr.DataArray(coreness, dims=("roi","trials","time"),
+    coreness = xr.DataArray(coreness.astype(_DEFAULT_TYPE), dims=("roi","trials","time"),
                               coords={"roi": roi, "time": time, "trials": trials} )
 
     return coreness
@@ -144,7 +146,7 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False):
     # Unstack trials and time
     betweenness = betweenness.reshape( (len(roi),len(trials),len(time)) )
     # Convert to xarray
-    betweenness = xr.DataArray(betweenness, dims=("roi","trials","time"),
+    betweenness = xr.DataArray(betweenness.astype(_DEFAULT_TYPE), dims=("roi","trials","time"),
                               coords={"roi": roi, "time": time, "trials": trials} )
 
     return betweenness
@@ -234,7 +236,7 @@ def compute_network_modularity(A, kw_leiden={}, is_weighted=False, verbose=False
     # Unstack trials and time 
     modularity = modularity.reshape( (len(trials),len(time)) )
     # Convert to xarray
-    modularity = xr.DataArray(modularity, dims=("trials","time"),
+    modularity = xr.DataArray(modularity.astype(_DEFAULT_TYPE), dims=("trials","time"),
                               coords={"time": time, "trials": trials} )
     return modularity
 
@@ -282,7 +284,7 @@ def compute_allegiance_matrix(A, kw_leiden={}, concat=False, is_weighted=False, 
     np.fill_diagonal(T , 0)
 
     # Converting to xarray
-    T = xr.DataArray(T, dims=("roi_1","roi_2"),
+    T = xr.DataArray(T.astype(_DEFAULT_TYPE), dims=("roi_1","roi_2"),
                      coords={"roi_1":roi, "roi_2": roi})
     return T
 
@@ -329,14 +331,14 @@ def windowed_allegiance_matrix(A, times=None, is_weighted=False, verbose=False, 
     # compute the single trial coherence
     T = parallel(p_fun(trial,win) for trial in range(A.shape[2]))
     # Concatenating
-    T = xr.concat(T, dim="trials")
+    T = xr.concat(T.astype(_DEFAULT_TYPE), dim="trials")
     # Ordering dimensions
     T = T.transpose("roi_1","roi_2","trials","time")
     # Assign time axis
     T = T.assign_coords({"trials":A.trials.values})
     return T
 
-def null_model_statistics(A, f_name, n_stat, n_rewires=1000, n_jobs=1,  **kwargs):
+def null_model_statistics(A, f_name, n_stat, n_rewires=1000, seed=0, n_jobs=1,  **kwargs):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), compute the null-statistic
     of a given measurement for different repetitions/seeds.
@@ -344,13 +346,14 @@ def null_model_statistics(A, f_name, n_stat, n_rewires=1000, n_jobs=1,  **kwargs
     - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
     - f_name: The name of the function of wich the null-statistic should be computed.
     - n_stat: The number of different random seeds to use to compute the null-statistic.
+    - seed: Initial seed to set other seeds.
     - n_rewires: The number of rewires to be applied to the binary adjacency matrix,
     - n_jobs: Number of jobs to use when parallelizing over windows.
     > OUTPUTS:
     - T: The allegiance matrix between all nodes with shape (roi, roi, trials, time)
     '''
 
-    assert f_name in ['compute_nodes_degree','compute_nodes_clustering','compute_nodes_coreness','compute_nodes_betweenness','compute_network_modularity']
+    assert f_name.__name__ in ['compute_nodes_degree','compute_nodes_clustering','compute_nodes_coreness','compute_nodes_betweenness','compute_network_modularity']
 
     # Compute the null statistics for a given seed
     def _single_estimative(A, f_name, n_rewires, seed, **kwargs):
@@ -360,10 +363,13 @@ def null_model_statistics(A, f_name, n_stat, n_rewires=1000, n_jobs=1,  **kwargs
 
     # define the function to compute in parallel
     parallel, p_fun = parallel_func(
-        _single_estimative, n_jobs=n_jobs, verbose=verbose,
+        _single_estimative, n_jobs=n_jobs, verbose=False,
         total=n_stat)
     # compute the single trial coherence
     measures = parallel(p_fun(A,f_name,n_rewires,i*(seed+100),**kwargs) for i in range(n_stat))
+
+    # Converting to xarray
+    measures = xr.concat(measures, dim='seeds')
     
     return measures
     
