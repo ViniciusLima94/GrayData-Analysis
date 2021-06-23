@@ -9,11 +9,13 @@ from   GDa.net.util          import compute_coherence_thresholds, convert_to_adj
 from   GDa.net.null_models   import randomize_edges
 
 from   scipy                 import stats
+from   tqdm                  import tqdm
 from   frites.utils          import parallel_func
 import os
 import h5py
 
 _DEFAULT_TYPE = np.float32
+_COORDS_PATH  = 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat'
 
 class temporal_network():
 
@@ -157,7 +159,7 @@ class temporal_network():
         for band in (tqdm(itr) if verbose else itr):
             # compute the single trial coherence
             A_tmp   = parallel(p_fun(band,i*(seed+100)) for i in range(n_stat))
-            A_null += [xr.concat(A_tmp,dim="surrogates")]
+            self.A_null += [xr.concat(A_tmp,dim="surrogates")]
             del A_tmp
         
         # Concatenate bands
@@ -295,7 +297,7 @@ class temporal_network():
         Get the channels coordinates.
         '''
         from pathlib import Path
-        _path = os.path.join(Path.home(), 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat')
+        _path = os.path.join(Path.home(), _COORDS_PATH)
         xy    = scipy.io.loadmat(_path)['xy']
         return xy
 
