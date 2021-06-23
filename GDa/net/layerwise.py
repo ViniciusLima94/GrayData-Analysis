@@ -336,14 +336,36 @@ def windowed_allegiance_matrix(A, times=None, is_weighted=False, verbose=False, 
     T = T.assign_coords({"trials":A.trials.values})
     return T
 
-def null_model_statistics(A, f_name, n_stat, n_rewires=1000, n_jobs=1, seed=0, **kwargs):
-    assert len(A.shape)==3, "The adjacency tensor should be 3D."
-    #assert thr != None, "A threshold value should be provided."
+def null_model_statistics(A, f_name, n_stat, n_rewires=1000, n_jobs=1,  **kwargs):
+    r'''
+    Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), compute the null-statistic
+    of a given measurement for different repetitions/seeds.
+    > INPUTS:
+    - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    - f_name: The name of the function of wich the null-statistic should be computed.
+    - n_stat: The number of different random seeds to use to compute the null-statistic.
+    - n_rewires: The number of rewires to be applied to the binary adjacency matrix,
+    - n_jobs: Number of jobs to use when parallelizing over windows.
+    > OUTPUTS:
+    - T: The allegiance matrix between all nodes with shape (roi, roi, trials, time)
+    '''
 
-    def single_estimative(A, f_name, n_rewires, seed, **kwargs):
+    assert f_name in ['compute_nodes_degree','compute_nodes_clustering','compute_nodes_coreness','compute_nodes_betweenness','compute_network_modularity']
+
+    # Compute the null statistics for a given seed
+    def _single_estimative(A, f_name, n_rewires, seed, **kwargs):
         #  Create randomized model
         A_null = randomize_edges(A,n_rewires=n_rewires,seed=seed)
-        return f_name(A_null, is_weighted=False, **kwargs)
+        return f_name(A_null, **kwargs)
+
+    # define the function to compute in parallel
+    parallel, p_fun = parallel_func(
+        _single_estimative, n_jobs=n_jobs, verbose=verbose,
+        total=n_stat)
+    # compute the single trial coherence
+    measures = parallel(p_fun(A,f_name,n_rewires,i*(seed+100),**kwargs) for i in range(n_stat))
     
-    measures = Parallel(n_jobs=n_jobs, backend='loky')(delayed(single_estimative)(A, f_name, n_rewires, seed = i*(seed+100), **kwargs) for i in range(n_stat) )
-    return np.array( measures )
+    return measures
+    
+    #  measures = Parallel(n_jobs=n_jobs, backend='loky')(delayed(single_estimative)(A, f_name, n_rewires, seed = i*(seed+100), **kwargs) for i in range(n_stat) )
+    #  return np.array( measures )
