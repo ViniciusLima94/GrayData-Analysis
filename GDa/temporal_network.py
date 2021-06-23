@@ -265,7 +265,7 @@ class temporal_network():
         Get the channels coordinates.
         '''
         from pathlib import Path
-        _path = os.path.join(Path.home(), 'projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat')
+        _path = os.path.join(Path.home(), 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat')
         xy    = scipy.io.loadmat(_path)['xy']
         return xy
 
