@@ -163,7 +163,7 @@ def compute_nodes_coreness(A, is_weighted=False, verbose=False, n_jobs=1):
 
     return coreness
 
-def compute_nodes_betweenness(A, is_weighted=False, verbose=False, n_jobs=1):
+def compute_nodes_betweenness(A, is_weighted=False, verbose=False, backend='igraph', n_jobs=1):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the betweenness for each
     node is computed for all the trials concatenated.
