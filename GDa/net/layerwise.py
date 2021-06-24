@@ -107,7 +107,7 @@ def compute_nodes_clustering(A, is_weighted=False, verbose=False, backend='igrap
     clustering = clustering.reshape( (len(roi),len(trials),len(time)) )
     # Convert to xarray
     clustering = xr.DataArray(np.nan_to_num(clustering).astype(_DEFAULT_TYPE), dims=("roi","trials","time"),
-                              coords={"roi": roi, "time": time, "trials": trials} )
+                              coords={"roi":roi, "time":time, "trials":trials} )
 
     return clustering
 
@@ -185,14 +185,20 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False, n_jobs=1):
     #  Number of observations
     nt = A.shape[-1]
 
-    #  betweenness = np.zeros([nC, nt])
     # Compute for a single observation
     def _for_frame(t):
-        g               = instantiate_graph(A[...,t], is_weighted=is_weighted)
         if is_weighted:
-            betweenness = g.betweenness(weights="weight")
+            if backend == 'igraph':
+                g           = instantiate_graph(A[...,t], is_weighted=is_weighted)
+                betweenness = g.betweenness(weights="weight")
+            elif backend == 'brainconn':
+                betweenness = bc.centrality.betweenness_wei(A[...,t])
         else:
-            betweenness = g.betweenness()
+            if backend == 'igraph':
+                g           = instantiate_graph(A[...,t], is_weighted=is_weighted)
+                betweenness = g.betweenness()
+            elif backend == 'brainconn':
+                betweenness = bc.centrality.betweenness_bin(A[...,t])
         return betweenness
 
     # define the function to compute in parallel
@@ -226,7 +232,7 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, is_weighted=False
     node is computed for all the trials concatenated.
     > INPUTS:
     - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
-    - kw_leiden: Parameters to be passed to leindelalg (for frther info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
+    - kw_leiden: Parameters to be passed to leindelalg (for further info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
     - is_weighted: Scepecify if the network is weighted or binary.
     - verbose: Wheater to print the progress or not.
     > OUTPUTS:
@@ -268,7 +274,7 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, is_weighted=False
 
         def _for_frame(t):
             partition, _  = bc.modularity.modularity_louvain_und(A[...,t], **kw_louvain)
-            return partition
+            return partition-1
 
         # define the function to compute in parallel
         parallel, p_fun = parallel_func(
@@ -309,7 +315,8 @@ def compute_network_modularity(A, kw_louvain={}, kw_leiden={}, is_weighted=False
     if backend == 'igraph':
         assert n_jobs==1, "n_jobs only allowed for backend brainconn"
         # Finding parititions
-        partition = compute_network_partition(A, kw_leiden, is_weighted=is_weighted, verbose=verbose)
+        if verbose: print("Finding network partitions.\n")
+        partition = compute_network_partition(A, kw_leiden, is_weighted=is_weighted, verbose=verbose,backend='igraph')
         # Getting dimension arrays
         trials, time = partition.trials.values, partition.time.values
         nt           = len(trials)*len(time)
@@ -335,7 +342,10 @@ def compute_network_modularity(A, kw_louvain={}, kw_leiden={}, is_weighted=False
         nt = A.shape[-1]
 
         def _for_frame(t):
-            _, modularity = bc.modularity.modularity_louvain_und(A[...,t], **kw_louvain)
+            try:
+                _, modularity = bc.modularity.modularity_louvain_und(A[...,t], **kw_louvain)
+            except:
+                modularity = np.nan
             return modularity
 
         # define the function to compute in parallel
@@ -354,64 +364,109 @@ def compute_network_modularity(A, kw_louvain={}, kw_leiden={}, is_weighted=False
                               coords={"time": time, "trials": trials} )
     return modularity
 
-def compute_allegiance_matrix(A, kw_leiden={}, concat=False, is_weighted=False, verbose=False):
+def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, is_weighted=False, verbose=False, backend='igraph', n_jobs=1):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the allegiance matrix for  
     the whole period provided will be computed.
     > INPUTS:
     - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    - kw_louvain: Parameters to be passed to louvain alg for brainconn package (for further info see: brainconn.readthedocs.io/en/latest/generated/brainconn.modularity.community_louvain.html#brainconn.modularity.community_louvain)
     - kw_leiden: Parameters to be passed to leindelalg (for frther info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
     - concat: Wheter trials are concatenated or not.
     - is_weighted: Scepecify if the network is weighted or binary.
     - verbose: Wheater to print the progress or not.
+    - backend: Wheter to use igraph or brainconn package.
+    - n_jobs: Number of jobs to use when parallelizing in observations.
     > OUTPUTS:
     - T: The allegiance matrix between all nodes with shape (roi, roi)
     '''
-    #  Find the partitions
-    if verbose: print("Finding network partitions.\n")
-    p = compute_network_partition(A, kw_leiden, is_weighted=is_weighted, verbose=verbose)
-    # Getting dimension arrays
-    trials, time = p.trials.values, p.time.values
-    # Total number of observations
-    nt           = len(trials)*len(time)
-    # Stack paritions 
-    p            = p.stack(observations=("trials","time"))
+    assert backend in ['igraph','brainconn']
+
     # Number of ROI
     nC           = A.shape[0]
-
+    # Getting roi names
     if isinstance(A, xr.DataArray):
         roi = A.roi_1.values
     else:
         roi = np.arange(nC, dtype=int)
 
-    T = np.zeros([nC, nC])
+    # Using igraph
+    if backend == 'igraph':
+        assert n_jobs==1, "For backend igraph n_jobs is not allowed"
+        #  Find the partitions
+        if verbose: print("Finding network partitions.\n")
+        p = compute_network_partition(A, kw_leiden, is_weighted=is_weighted, verbose=verbose,backend='igraph')
+        # Getting dimension arrays
+        trials, time = p.trials.values, p.time.values
+        # Total number of observations
+        nt           = len(trials)*len(time)
+        # Stack paritions 
+        p            = p.stack(observations=("trials","time"))
 
-    itr = range( nt )
-    for i in (tqdm(itr) if verbose else itr):
-        p_lst  = list(p.values[i])
-        n_comm = len(p_lst)
-        for j in range(n_comm):
-            grid = np.meshgrid(p_lst[j],p_lst[j])
-            grid = np.reshape(grid, (2, len(p_lst[j])**2)).T
-            T[grid[:,0],grid[:,1]] += 1
-    T = T / nt
-    np.fill_diagonal(T , 0)
+        T = np.zeros([nC, nC])
 
+        itr = range( nt )
+        for i in (tqdm(itr) if verbose else itr):
+            p_lst  = list(p.values[i])
+            n_comm = len(p_lst)
+            for j in range(n_comm):
+                grid = np.meshgrid(p_lst[j],p_lst[j])
+                grid = np.reshape(grid, (2, len(p_lst[j])**2)).T
+                T[grid[:,0],grid[:,1]] += 1
+        T = T / nt
+    # Using brainconn
+    elif backend == 'brainconn':
+        #  Find the partitions
+        if verbose: print("Finding network partitions.\n")
+        p = compute_network_partition(A, kw_louvain, is_weighted=is_weighted, verbose=verbose,backend='brainconn',n_jobs=n_jobs)
+        # Getting dimension arrays
+        trials, time = p.trials.values, p.time.values
+        # Total number of observations
+        nt           = len(trials)*len(time)
+        # Stack paritions 
+        p            = p.stack(observations=("trials","time"))
+
+        def _for_frame(t):
+            # Allegiance for a frame
+            T  = np.zeros((nC,nC))
+            # Affiliation vector
+            av = p.isel(observations=t).values
+            # For now convert affiliation vector to igraph format
+            n_comm = av.max()+1
+            for j in range(n_comm):
+                p_lst = np.arange(nC,dtype=int)[av==j]
+                grid  = np.meshgrid(p_lst,p_lst)
+                grid  = np.reshape(grid, (2, len(p_lst)**2)).T
+                T[grid[:,0],grid[:,1]] = 1
+            return T
+
+        # define the function to compute in parallel
+        parallel, p_fun = parallel_func(
+            _for_frame, n_jobs=n_jobs, verbose=verbose,
+            total=nt)
+        # Compute the single trial coherence
+        T = parallel(p_fun(t) for t in range(nt))
+        T = np.mean(T,0)
+
+    np.fill_diagonal(T,1)
     # Converting to xarray
     T = xr.DataArray(T.astype(_DEFAULT_TYPE), dims=("roi_1","roi_2"),
                      coords={"roi_1":roi, "roi_2": roi})
     return T
 
-def windowed_allegiance_matrix(A, times=None, is_weighted=False, verbose=False, kw_leiden=None, win_args=None, n_jobs=1):
+def windowed_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, times=None, is_weighted=False, verbose=False, win_args=None, backend='igraph', n_jobs=1):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the windowed allegiance matrix.
     For each window the observations are concatenated for all trials and then the allegiance matrix is estimated.
     > INPUTS:
     - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    - kw_louvain: Parameters to be passed to louvain alg for brainconn package (for frther info see: brainconn.readthedocs.io/en/latest/generated/brainconn.modularity.community_louvain.html#brainconn.modularity.community_louvain)
+    - kw_leiden: Parameters to be passed to leindelalg (for frther info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
     - times: Time array to construct the windows.
     - is_weighted: Scepecify if the network is weighted or binary.
     - verbose: Wheater to print the progress or not.
     - win_args: Dict. with arguments to be passed to define_windows (for more details see frites.conn.conn_sliding_windows)
+    - backend: Wheter to use igraph or brainconn package.
     - n_jobs: Number of jobs to use when parallelizing over windows.
     > OUTPUTS:
     - T: The allegiance matrix between all nodes with shape (roi, roi, trials, time)
@@ -433,10 +488,12 @@ def windowed_allegiance_matrix(A, times=None, is_weighted=False, verbose=False, 
         T = xr.DataArray(np.zeros((nC,nC,len(win))), 
                          dims=("roi_1","roi_2","time"),
                          coords={"roi_1":roi, "roi_2": roi, "time":t_win})
+        #A, kw_louvain={}, kw_leiden={}, concat=False, is_weighted=False, verbose=False, backend='igraph', n_jobs=1)
         for i_w, w in enumerate(win):
             T[...,i_w]=compute_allegiance_matrix(A.isel(trials=[trial],time=slice(w[0],w[1])),
-                                                 kw_leiden, is_weighted=is_weighted, verbose=verbose)
-        return T
+                                                 kw_louvain, kw_leiden, is_weighted=is_weighted, verbose=verbose,
+                                                 backend=backend, n_jobs=1)
+        return T.astype(_DEFAULT_TYPE)
 
     # define the function to compute in parallel
     parallel, p_fun = parallel_func(
@@ -445,7 +502,7 @@ def windowed_allegiance_matrix(A, times=None, is_weighted=False, verbose=False, 
     # compute the single trial coherence
     T = parallel(p_fun(trial,win) for trial in range(A.shape[2]))
     # Concatenating
-    T = xr.concat(T.astype(_DEFAULT_TYPE), dim="trials")
+    T = xr.concat(T, dim="trials")
     # Ordering dimensions
     T = T.transpose("roi_1","roi_2","trials","time")
     # Assign time axis
