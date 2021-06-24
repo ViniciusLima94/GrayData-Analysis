@@ -220,7 +220,7 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False, n_jobs=1):
 
     return betweenness
 
-def compute_network_partition(A,  kw_leiden={}, is_weighted=False, verbose=False):
+def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, is_weighted=False, verbose=False, backend='igraph', n_jobs=1):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the network partition for each
     node is computed for all the trials concatenated.
@@ -233,6 +233,9 @@ def compute_network_partition(A,  kw_leiden={}, is_weighted=False, verbose=False
     - partition: A list with the all the partition found for each layer of the 
     matrix (for each observation or trials,time if flatten is False).
     '''
+
+    assert backend in ['igraph','brainconn']
+
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
@@ -242,22 +245,45 @@ def compute_network_partition(A,  kw_leiden={}, is_weighted=False, verbose=False
     nC = A.shape[0]
     #  Number of observations
     nt = A.shape[-1]
-    
-    #  Save the partitions
-    #  partition = []
-    partition = np.empty(nt, dtype=object)
 
-    itr = range(nt)
-    for t in (tqdm(itr) if verbose else itr):
-        g          = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
-        # Uses leidenalg
-        partition[t] = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition, **kw_leiden)
+    # Using igraph
+    if backend == 'igraph':
+        #  Save the partitions
+        partition = np.empty(nt, dtype=object)
 
-    # Reshape back to trials and time
-    partition = np.reshape(partition, (len(trials),len(time)))
-    # Conversion to xarray
-    partition = xr.DataArray(partition, dims=("trials","time"),
-                             coords={"trials":trials,"time":time})
+        itr = range(nt)
+        for t in (tqdm(itr) if verbose else itr):
+            g          = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
+            # Uses leidenalg
+            partition[t] = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition, **kw_leiden)
+
+        # Reshape back to trials and time
+        partition = np.reshape(partition, (len(trials),len(time)))
+        # Conversion to xarray
+        partition = xr.DataArray(partition, dims=("trials","time"),
+                                 coords={"trials":trials,"time":time})
+
+    # Using brainconn
+    elif backend == 'brainconn':
+
+        def _for_frame(t):
+            partition, _  = bc.modularity.modularity_louvain_und(A[...,t], **kw_louvain)
+            return partition
+
+        # define the function to compute in parallel
+        parallel, p_fun = parallel_func(
+            _for_frame, n_jobs=n_jobs, verbose=verbose,
+            total=nt)
+
+        # Compute the single trial coherence
+        partition = parallel(p_fun(t) for t in range(nt))
+        partition = np.asarray(partition).T
+
+        # Reshape back to trials and time
+        partition = np.reshape(partition, (nC,len(trials),len(time)))
+        # Conversion to xarray
+        partition = xr.DataArray(partition, dims=("roi","trials","time"),
+                                 coords={"roi":roi,"trials":trials,"time":time})
 
     return partition
 
