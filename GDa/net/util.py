@@ -7,7 +7,7 @@ from   scipy  import stats
 from   tqdm   import tqdm
 
 @nb.njit
-def _is_weighted(matrix): 
+def _is_binary(matrix): 
     r'''
     Check if a matrix is binary or weighted.
     > INPUT:
