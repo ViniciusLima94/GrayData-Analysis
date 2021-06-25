@@ -1,10 +1,12 @@
-# Package for  pairwise coherence computation of the Gray's data
+# Package with the codes to analyse the Gray LFP dataset
 
-For details on how to use it see the notebooks one to three:
+For details on how to use it see the notebooks.
 
-1. Reading Gray Data, and computing pairwise coherence with GDa package.ipynb
-2. Exploring the data.ipynb
-3. Further exploring spectral, and spectral analysis class.ipynb
+### DEPENDENCIES
 
-Here is a flowchart of the package:
-
+- Numpy
+- Scipy
+- Frites
+- xFrites
+- Numba
+- Xarray

@@ -6,7 +6,7 @@ import leidenalg
 from   frites.utils          import parallel_func
 from   .null_models          import *
 from   tqdm                  import tqdm
-from   .util                 import instantiate_graph, _check_inputs, _unwrap_inputs, _reshape_list
+from   .util                 import instantiate_graph, _check_inputs, _unwrap_inputs, _reshape_list, _is_weighted
 
 _DEFAULT_TYPE = np.float32
 
@@ -36,7 +36,7 @@ def compute_nodes_degree(A, mirror=False):
 
     return node_degree
 
-def compute_nodes_clustering(A, is_weighted=False, verbose=False, backend='igraph', n_jobs=1):  
+def compute_nodes_clustering(A, verbose=False, backend='igraph', n_jobs=1):  
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the clustering coefficient for each
     node is computed for all the trials concatenated.
@@ -54,7 +54,8 @@ def compute_nodes_clustering(A, is_weighted=False, verbose=False, backend='igrap
     _check_inputs(A, 4)
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
-
+    # Check if the matrix is weighted or binary
+    is_weighted = _is_weighted(A.values)
     #  Number of channels
     nC = A.shape[0]
     #  Number of observations
@@ -96,7 +97,7 @@ def compute_nodes_clustering(A, is_weighted=False, verbose=False, backend='igrap
 
     return clustering
 
-def compute_nodes_coreness(A, is_weighted=False, verbose=False, n_jobs=1):
+def compute_nodes_coreness(A, verbose=False, n_jobs=1):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the coreness for each
     node is computed for all the trials concatenated.
@@ -112,7 +113,8 @@ def compute_nodes_coreness(A, is_weighted=False, verbose=False, n_jobs=1):
     _check_inputs(A, 4)
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
-
+    # Check if the matrix is weighted or binary
+    is_weighted = _is_weighted(A.values)
     #  Number of channels
     nC = A.shape[0]
     #  Number of observations
@@ -143,7 +145,7 @@ def compute_nodes_coreness(A, is_weighted=False, verbose=False, n_jobs=1):
 
     return coreness
 
-def compute_nodes_betweenness(A, is_weighted=False, verbose=False, backend='igraph', n_jobs=1):
+def compute_nodes_betweenness(A, verbose=False, backend='igraph', n_jobs=1):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the betweenness for each
     node is computed for all the trials concatenated.
@@ -159,7 +161,8 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False, backend='igra
     _check_inputs(A, 4)
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
-
+    # Check if the matrix is weighted or binary
+    is_weighted = _is_weighted(A.values)
     #  Number of channels
     nC = A.shape[0]
     #  Number of observations
@@ -198,7 +201,7 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False, backend='igra
 
     return betweenness
 
-def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, is_weighted=False, verbose=False, backend='igraph', n_jobs=1):
+def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, backend='igraph', n_jobs=1):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the network partition for each
     node is computed for all the trials concatenated.
@@ -218,7 +221,8 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, is_weighted=False
     _check_inputs(A, 4)
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
-
+    # Check if the matrix is weighted or binary
+    is_weighted = _is_weighted(A.values)
     #  Number of channels
     nC = A.shape[0]
     #  Number of observations
@@ -265,7 +269,7 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, is_weighted=False
 
     return partition
 
-def compute_network_modularity(A, kw_louvain={}, kw_leiden={}, is_weighted=False, verbose=False, backend='igraph', n_jobs=1):
+def compute_network_modularity(A, kw_louvain={}, kw_leiden={}, verbose=False, backend='igraph', n_jobs=1):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the modularity of the  
     network for each layer/time is computed for all the trials concatenated.
@@ -288,7 +292,7 @@ def compute_network_modularity(A, kw_louvain={}, kw_leiden={}, is_weighted=False
         assert n_jobs==1, "n_jobs only allowed for backend brainconn"
         # Finding parititions
         if verbose: print("Finding network partitions.\n")
-        partition = compute_network_partition(A, kw_leiden, is_weighted=is_weighted, verbose=verbose,backend='igraph')
+        partition = compute_network_partition(A, kw_leiden, verbose=verbose,backend='igraph')
         # Getting dimension arrays
         trials, time = partition.trials.values, partition.time.values
         nt           = len(trials)*len(time)
@@ -307,7 +311,6 @@ def compute_network_modularity(A, kw_louvain={}, kw_leiden={}, is_weighted=False
         _check_inputs(A, 4)
         # Get values in case it is an xarray
         A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
-
         #  Number of channels
         nC = A.shape[0]
         #  Number of observations
@@ -336,7 +339,7 @@ def compute_network_modularity(A, kw_louvain={}, kw_leiden={}, is_weighted=False
                               coords={"time": time, "trials": trials} )
     return modularity
 
-def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, is_weighted=False, verbose=False, backend='igraph', n_jobs=1):
+def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verbose=False, backend='igraph', n_jobs=1):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the allegiance matrix for  
     the whole period provided will be computed.
@@ -352,6 +355,7 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, is_w
     > OUTPUTS:
     - T: The allegiance matrix between all nodes with shape (roi, roi)
     '''
+
     assert backend in ['igraph','brainconn']
 
     # Number of ROI
@@ -367,7 +371,7 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, is_w
         assert n_jobs==1, "For backend igraph n_jobs is not allowed"
         #  Find the partitions
         if verbose: print("Finding network partitions.\n")
-        p = compute_network_partition(A, kw_leiden, is_weighted=is_weighted, verbose=verbose,backend='igraph')
+        p = compute_network_partition(A, kw_leiden, verbose=verbose,backend='igraph')
         # Getting dimension arrays
         trials, time = p.trials.values, p.time.values
         # Total number of observations
@@ -390,7 +394,7 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, is_w
     elif backend == 'brainconn':
         #  Find the partitions
         if verbose: print("Finding network partitions.\n")
-        p = compute_network_partition(A, kw_louvain, is_weighted=is_weighted, verbose=verbose,backend='brainconn',n_jobs=n_jobs)
+        p = compute_network_partition(A, kw_louvain, verbose=verbose,backend='brainconn',n_jobs=n_jobs)
         # Getting dimension arrays
         trials, time = p.trials.values, p.time.values
         # Total number of observations
@@ -426,7 +430,7 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, is_w
                      coords={"roi_1":roi, "roi_2": roi})
     return T
 
-def windowed_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, times=None, is_weighted=False, verbose=False, win_args=None, backend='igraph', n_jobs=1):
+def windowed_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, times=None,  verbose=False, win_args=None, backend='igraph', n_jobs=1):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the windowed allegiance matrix.
     For each window the observations are concatenated for all trials and then the allegiance matrix is estimated.
@@ -460,10 +464,9 @@ def windowed_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, times=None, is_we
         T = xr.DataArray(np.zeros((nC,nC,len(win))), 
                          dims=("roi_1","roi_2","time"),
                          coords={"roi_1":roi, "roi_2": roi, "time":t_win})
-        #A, kw_louvain={}, kw_leiden={}, concat=False, is_weighted=False, verbose=False, backend='igraph', n_jobs=1)
         for i_w, w in enumerate(win):
             T[...,i_w]=compute_allegiance_matrix(A.isel(trials=[trial],time=slice(w[0],w[1])),
-                                                 kw_louvain, kw_leiden, is_weighted=is_weighted, verbose=verbose,
+                                                 kw_louvain, kw_leiden, verbose=verbose,
                                                  backend=backend, n_jobs=1)
         return T.astype(_DEFAULT_TYPE)
 

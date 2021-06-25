@@ -1,9 +1,24 @@
 import igraph as ig 
 import numpy  as np
+import numba  as nb
 import xarray as xr
 import scipy
 from   scipy  import stats
 from   tqdm   import tqdm
+
+@nb.njit
+def _is_weighted(matrix): 
+    r'''
+    Check if a matrix is binary or weighted.
+    > INPUT:
+    - matrix: The adjacency matrix or tensor.
+    '''
+    is_binary = True
+    for v in np.nditer(matrix):
+        if v.item() != 0 and v.item() != 1:
+            is_binary = False
+            break
+    return is_binary
 
 def _check_inputs(array, dims):
     r'''
