@@ -88,21 +88,6 @@ def compute_nodes_clustering(A, is_weighted=False, verbose=False, backend='igrap
     # Convert to numpy array
     clustering = np.asarray(clustering).T
 
-    #  itr = range(nt)
-    #  for t in (tqdm(itr) if verbose else itr):
-    #      #  Instantiate graph
-    #      g               = instantiate_graph(A[...,t], is_weighted=is_weighted)
-    #      if is_weighted:
-    #          if backend == 'igraph':
-    #              clustering[:,t] = g.transitivity_local_undirected(weights="weight")
-    #          elif backend == 'brainconn':
-    #              clustering[:,t] = bc.clustering.clustering_coef_wu(A[...,t])  
-    #      else:
-    #          if backend == 'igraph':
-    #              clustering[:,t] = g.transitivity_local_undirected()
-    #          elif backend == 'brainconn':
-    #              clustering[:,t] = bc.clustering.clustering_coef_bu(A[...,t])  
-
     # Unstack trials and time
     clustering = clustering.reshape( (len(roi),len(trials),len(time)) )
     # Convert to xarray
@@ -149,11 +134,6 @@ def compute_nodes_coreness(A, is_weighted=False, verbose=False, n_jobs=1):
     coreness = parallel(p_fun(t) for t in range(nt))
     # Convert to numpy array
     coreness = np.asarray(coreness).T
-
-    #  itr = range(nt)
-    #  for t in (tqdm(itr) if verbose else itr):
-    #      g               = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
-    #      coreness[:,t] = g.coreness()
 
     # Unstack trials and time
     coreness = coreness.reshape( (len(roi),len(trials),len(time)) )
@@ -209,14 +189,6 @@ def compute_nodes_betweenness(A, is_weighted=False, verbose=False, backend='igra
     betweenness = parallel(p_fun(t) for t in range(nt))
     # Convert to numpy array
     betweenness = np.asarray(betweenness).T
-
-    #  itr = range(nt)
-    #  for t in (tqdm(itr) if verbose else itr):
-    #      g               = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
-    #      if is_weighted:
-    #          betweenness[:,t] = g.betweenness(weights="weight")
-    #      else:
-    #          betweenness[:,t] = g.betweenness()
 
     # Unstack trials and time
     betweenness = betweenness.reshape( (len(roi),len(trials),len(time)) )
@@ -543,6 +515,3 @@ def null_model_statistics(A, f_name, n_stat, n_rewires=1000, seed=0, n_jobs=1,  
     measures = xr.concat(measures, dim='seeds')
     
     return measures
-    
-    #  measures = Parallel(n_jobs=n_jobs, backend='loky')(delayed(single_estimative)(A, f_name, n_rewires, seed = i*(seed+100), **kwargs) for i in range(n_stat) )
-    #  return np.array( measures )
