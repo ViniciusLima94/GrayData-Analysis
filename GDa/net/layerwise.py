@@ -6,7 +6,7 @@ import leidenalg
 from   frites.utils          import parallel_func
 from   .null_models          import *
 from   tqdm                  import tqdm
-from   .util                 import instantiate_graph, _check_inputs, _unwrap_inputs, _reshape_list, _is_weighted
+from   .util                 import instantiate_graph, _check_inputs, _unwrap_inputs, _reshape_list, _is_binary
 
 _DEFAULT_TYPE = np.float32
 
@@ -55,7 +55,7 @@ def compute_nodes_clustering(A, verbose=False, backend='igraph', n_jobs=1):
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
     # Check if the matrix is weighted or binary
-    is_weighted = _is_weighted(A.values)
+    is_weighted = not _is_binary(A)
     #  Number of channels
     nC = A.shape[0]
     #  Number of observations
@@ -114,7 +114,7 @@ def compute_nodes_coreness(A, verbose=False, n_jobs=1):
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
     # Check if the matrix is weighted or binary
-    is_weighted = _is_weighted(A.values)
+    is_weighted = not _is_binary(A)
     #  Number of channels
     nC = A.shape[0]
     #  Number of observations
@@ -162,7 +162,7 @@ def compute_nodes_betweenness(A, verbose=False, backend='igraph', n_jobs=1):
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
     # Check if the matrix is weighted or binary
-    is_weighted = _is_weighted(A.values)
+    is_weighted = not _is_binary(A)
     #  Number of channels
     nC = A.shape[0]
     #  Number of observations
@@ -222,7 +222,7 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, ba
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
     # Check if the matrix is weighted or binary
-    is_weighted = _is_weighted(A.values)
+    is_weighted = not _is_binary(A)
     #  Number of channels
     nC = A.shape[0]
     #  Number of observations
@@ -237,7 +237,11 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, ba
         for t in (tqdm(itr) if verbose else itr):
             g          = instantiate_graph(A[:,:,t], is_weighted=is_weighted)
             # Uses leidenalg
-            partition[t] = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition, **kw_leiden)
+            if is_weighted: 
+                weights="weight"
+            else: 
+                weights=None
+            partition[t] = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition, weights=weights, **kw_leiden)
 
         # Reshape back to trials and time
         partition = np.reshape(partition, (len(trials),len(time)))
@@ -368,10 +372,7 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verb
 
     # Using igraph
     if backend == 'igraph':
-        assert n_jobs==1, "For backend igraph n_jobs is not allowed"
-        #  Find the partitions
-        if verbose: print("Finding network partitions.\n")
-        p = compute_network_partition(A, kw_leiden, verbose=verbose,backend='igraph')
+        assert n_jobs==1, "For backend igraph n_jobs is not allowed" #  Find the partitions if verbose: print("Finding network partitions.\n") p = compute_network_partition(A, kw_leiden, verbose=verbose,backend='igraph')
         # Getting dimension arrays
         trials, time = p.trials.values, p.time.values
         # Total number of observations
