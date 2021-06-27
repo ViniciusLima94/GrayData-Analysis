@@ -1,6 +1,7 @@
 import numpy  as np
 import xarray as xr
 from   frites.utils   import parallel_func
+from   numba          import jit
 from   .util          import custom_mean, custom_std
 
 def find_start_end(array):

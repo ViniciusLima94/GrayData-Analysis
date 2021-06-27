@@ -15,7 +15,8 @@ import os
 import h5py
 
 _DEFAULT_TYPE = np.float32
-_COORDS_PATH  = 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat'
+#_COORDS_PATH  = 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat'
+_COORDS_PATH = 'GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat'
 
 class temporal_network():
 
