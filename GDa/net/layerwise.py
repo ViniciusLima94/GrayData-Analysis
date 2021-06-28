@@ -230,6 +230,7 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, ba
 
     # Using igraph
     if backend == 'igraph':
+        print(f'{backend=}, {is_weighted=}')
         #  Save the partitions
         partition = np.empty(nt, dtype=object)
 
