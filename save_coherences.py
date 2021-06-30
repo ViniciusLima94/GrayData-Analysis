@@ -30,7 +30,7 @@ if  __name__ == '__main__':
     if not os.path.exists(path_st):
         os.makedirs(path_st)
     # Add name of the file
-    path_st = os.path.join(path_st, 'super_tensor.h5')
+    path_st = os.path.join(path_st, 'super_tensor.nc')
 
     #  Instantiating session
     ses   = session(raw_path = dirs['rawdata'], monkey = dirs['monkey'][nmonkey], date = dirs['date'][nmonkey][idx],
@@ -47,20 +47,32 @@ if  __name__ == '__main__':
     )
 
     # compute the coherence
-    coh = conn_coherence_wav(ses.data.values.astype(np.float32), **kw).astype(np.float32)
+    coh = conn_coherence_wav(ses.data.values.astype(np.float32), **kw)
+    # reordering dimensions
+    coh = coh.transpose("roi", "trials", "freqs", "times")
+    # replace trial axis for the actual values
+    coh = coh.assign_coords({"trials":ses.data.trials.values}) 
+    # deleting attributes assigned by the method
+    coh.attrs = {}
+    # copying data attributes
+    for key in ses.data.attrs.keys():
+        coh.attrs[key] = ses.data.attrs[key]
 
     if os.path.isfile(path_st):
         os.system(f'rm {path_st}')
 
-    hf = h5py.File(path_st, 'w')
+    # Saving the data
+    coh.to_netcdf(path_st)
 
-    hf.create_dataset('coherence', data=coh.transpose("roi", "trials", "freqs", "times"))
-    hf.create_dataset('freqs',     data=freqs)
-    hf.create_dataset('roi',       data=np.array( coh.roi.values, dtype='S' ) )
-    hf.create_dataset('tarray',    data=coh.times.values)
-    hf.create_dataset('bands',     data=foi)
-    [hf.create_dataset('info/'+k,  data=ses.data.attrs[k]) for k in ses.data.attrs.keys()]
-    hf.close()
+    #  hf = h5py.File(path_st, 'w')
+
+    #  hf.create_dataset('coherence', data=coh.transpose("roi", "trials", "freqs", "times"))
+    #  hf.create_dataset('freqs',     data=freqs)
+    #  hf.create_dataset('roi',       data=np.array( coh.roi.values, dtype='S' ) )
+    #  hf.create_dataset('tarray',    data=coh.times.values)
+    #  hf.create_dataset('bands',     data=foi)
+    #  [hf.create_dataset('info/'+k,  data=ses.data.attrs[k]) for k in ses.data.attrs.keys()]
+    #  hf.close()
 
     end = time.time()
     print(f'Elapsed time to compute coherences: {str((end - start)/60.0)} min.' )
