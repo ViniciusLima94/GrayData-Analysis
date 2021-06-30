@@ -51,7 +51,7 @@ if mode in ["morlet", "mt_1"]:
     n_cycles     = freqs/2
     mt_bandwidth = None
     decim_at='tfd'
-elif mode is "mt_2":
+elif mode == "mt_2":
     freqs = foi.mean(axis=1)
     W     = np.ceil( foi[:,1]-foi[:,0] )   # Bandwidth
     foi   = None

@@ -50,7 +50,7 @@ def _unwrap_inputs(array, concat_trials=False):
             roi    = np.arange(0, array.shape[0])
             trials = np.arange(0, array.shape[2])
             time   = np.arange(0, array.shape[3])
-        if concat_trials: array = array.stack(observations=("trials","time"))
+        if concat_trials: array = array.stack(observations=("trials","times"))
         array = array.values
     else:
         roi    = np.arange(0, array.shape[0])
@@ -119,14 +119,14 @@ def compute_coherence_thresholds(tensor, q=0.8, relative=False, verbose=False):
             for t in (tqdm(itr) if verbose else itr):
                 for i in range( n_bands ):
                     coh_thr[:,i,t] = np.squeeze( stats.mstats.mquantiles(tensor[:,i,t,:], prob=q, axis=-1) )
-            coh_thr = xr.DataArray(coh_thr, dims=("links","bands","trials"))
+            coh_thr = xr.DataArray(coh_thr, dims=("roi","freqs","trials"))
         else:
             coh_thr = np.zeros( [n_bands, n_trials] )
             itr = range(n_trials) # Iterator
             for t in (tqdm(itr) if verbose else itr):
                 for i in range( n_bands ):
                     coh_thr[i,t] = stats.mstats.mquantiles(tensor[:,i,t,:].flatten(), prob=q)
-            coh_thr = xr.DataArray(coh_thr, dims=("bands","trials"))
+            coh_thr = xr.DataArray(coh_thr, dims=("freqs","trials"))
     if len(tensor.shape)==3: 
         n_nodes, n_bands, n_obs = tensor.shape[0], tensor.shape[1], tensor.shape[2]
         if relative:
@@ -134,13 +134,13 @@ def compute_coherence_thresholds(tensor, q=0.8, relative=False, verbose=False):
             itr = range(n_bands) # Iterator
             for i in (tqdm(itr) if verbose else itr):
                 coh_thr[:,i] = np.squeeze( stats.mstats.mquantiles(tensor[:,i,:], prob=q, axis=-1) )
-            coh_thr = xr.DataArray(coh_thr, dims=("links","bands"))
+            coh_thr = xr.DataArray(coh_thr, dims=("roi","freqs"))
         else:
-            coh_thr = np.zeros( [n_bands] )
+            coh_thr = np.zeros( n_bands )
             itr = range(n_bands) # Iterator
             for i in (tqdm(itr) if verbose else itr):
                 coh_thr[i] = stats.mstats.mquantiles(tensor[:,i,:].flatten(), prob=q)
-            coh_thr = xr.DataArray(coh_thr, dims=("bands"))
+            coh_thr = xr.DataArray(coh_thr, dims=("freqs"))
 
     return coh_thr
 
