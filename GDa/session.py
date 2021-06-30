@@ -12,6 +12,7 @@ from  .io            import set_paths, read_mat
 from  mne            import EpochsArray, create_info
 from  frites.dataset import DatasetEphy
 from  xarray         import DataArray
+from  tqdm           import tqdm 
 
 class session_info():
     
@@ -97,7 +98,7 @@ class session(session_info):
         # Reset index and create new column with the index of select trials
         self.trial_info = self.trial_info.rename_axis('trial_index').reset_index()
 
-    def read_from_mat(self, ):
+    def read_from_mat(self, verbose=False):
         # Get file names
         files = sorted(glob.glob( os.path.join(self.__paths.dir, self.date+'*') ))
 
@@ -133,7 +134,8 @@ class session(session_info):
         self.time = np.arange(self.evt_dt[0], self.evt_dt[1], 1/self.recording_info['lfp_sampling_rate'])
        
         # For each selected trial
-        for i in range(len(self.trial_info)):
+        itr = range(len(self.trial_info))
+        for i in (tqdm(itr) if verbose else itr):
             f        = self.__load_mat.read_HDF5(files[self.trial_info.trial_index.values[i]])
             lfp_data = np.transpose( f['lfp_data'] )
             # Beggining and ending time index for this t0
@@ -155,7 +157,7 @@ class session(session_info):
         pairs    = np.array([j,i]).T
         # Area names for selected channels 
         area     = self.recording_info['area'][indch]
-        area     = np.array(area, dtype='S')
+        area     = np.array(area, dtype='<U13')
 
         # Convert the data to an xarray
         self.data = xr.DataArray(self.data, dims = ("trials","roi","time"), 
@@ -163,9 +165,9 @@ class session(session_info):
                                          "roi":    area,
                                          "time":   self.time} )
         # Saving metadata
-        self.data.attrs = {'nC': n_channels, 'nP':nP, 'pairs': pairs,
+        self.data.attrs = {'nC': n_channels, 'nP':nP, 
                            'fsample': float(self.recording_info['lfp_sampling_rate']),
-                           'channels_labels': labels, 'stim':stimulus,
+                           'channels_labels': labels.astype(np.int64), 'stim':stimulus,
                            'indch': indch, 't_cue_on': t_con,
                            't_cue_off': t_coff, 't_match_on': t_mon}
 
