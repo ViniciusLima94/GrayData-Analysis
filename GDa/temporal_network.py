@@ -160,32 +160,32 @@ class temporal_network():
         from frites.conn import conn_reshape_undirected
         
         # Get number of bands
-        n_bands = len(self.freqs)
+        #  n_bands = len(self.freqs)
         
-        def _for_band(band):
-            A = []
-            for i in range( self.A.sizes['trials'] ):
-                A += [conn_reshape_undirected(self.super_tensor.isel(bands=band,trials=i), fill_diagonal=1)]
-            A = xr.concat(A, dim="trials")
-            return A
+        #  def _for_band(f):
+        #      A = []
+        #      for i in range( self.super_tensor.sizes['trials'] ):
+        #          A += [conn_reshape_undirected(self.super_tensor.isel(freqs=f,trials=i), fill_diagonal=1, verbose=verbose)]
+        #      A = xr.concat(A, dim="trials")
+        #      return A
 
-        # define the function to compute in parallel
-        parallel, p_fun = parallel_func(
-            _single_estimative, n_jobs=n_jobs, verbose=verbose,
-            total=n_bands)
+        #  # define the function to compute in parallel
+        #  parallel, p_fun = parallel_func(
+        #      _for_band, n_jobs=n_jobs, verbose=verbose,
+        #      total=n_bands)
 
-        # Converting to adjacency matrix for each band
-        self.A = parallel(p_fun(band) for i in range(n_bands))
-        self.A = xr.concat(self.A, dim="bands")
-        # Reordering dimensions
-        self.A = self.A.transpose(("sources","targets","bands","trials","times"))
+        #  # Converting to adjacency matrix for each band
+        #  self.A = parallel(p_fun(f) for f in range(n_bands))
+        #  self.A = xr.concat(self.A, dim="freqs")
+        #  # Reordering dimensions
+        #  self.A = self.A.transpose(("sources","targets","freqs","trials","times"))
         
-        #  self.A = xr.DataArray( convert_to_adjacency(self.super_tensor.values), 
-        #          dims=("roi_1","roi_2","bands","trials","time"),
-        #          coords={"trials": self.super_tensor.trials.values, 
-        #                  "time":   self.super_tensor.time.values,
-        #                  "roi_1":  self.super_tensor.attrs['channels_labels'],
-        #                  "roi_2":  self.super_tensor.attrs['channels_labels']})
+        self.A = xr.DataArray( convert_to_adjacency(self.super_tensor.values), 
+                dims=("sources","targets","freqs","trials","time"),
+                coords={"trials": self.super_tensor.trials.values, 
+                        "time":   self.super_tensor.time.values,
+                        "sources":  self.super_tensor.attrs['channels_labels'],
+                        "targets":  self.super_tensor.attrs['channels_labels']})
 
     def create_null_ensemble(self, n_stat, n_rewires,seed, n_jobs=1, verbose=False):
         # Check if the adjacency matrix was already created
@@ -370,7 +370,7 @@ class temporal_network():
         tmp  = self.super_tensor.stack(observations=('trials','times'))
         # Create the mask by applying threshold
         mask        = xr.DataArray(np.empty(tmp.shape), dims=tmp.dims, coords=tmp.coords)
-        mask.values = tmp > self.coh_thr.values[...,None]
+        mask.values = tmp.values > self.coh_thr.values[...,None]
         #  mask = self.super_tensor.stack(observations=('trials','times')) > self.coh_thr
         # Thrshold setting every element above the threshold as 1 otherwise 0
         if not keep_weights:

@@ -151,10 +151,10 @@ class session(session_info):
         # Labels of the selected channels
         labels   = self.recording_info['channel_numbers'][indch]
         # Number of possible pairs (undirected network)
-        nP       = int( scipy.special.comb(n_channels, 2) )
+        #  nP       = int( scipy.special.comb(n_channels, 2) )
         # Every pair combination
-        i, j     = np.tril_indices(n_channels, k = -1)
-        pairs    = np.array([j,i]).T
+        #  i, j     = np.tril_indices(n_channels, k = -1)
+        #  pairs    = np.array([j,i]).T
         # Area names for selected channels 
         area     = self.recording_info['area'][indch]
         area     = np.array(area, dtype='<U13')
@@ -165,7 +165,7 @@ class session(session_info):
                                          "roi":    area,
                                          "time":   self.time} )
         # Saving metadata
-        self.data.attrs = {'nC': n_channels, 'nP':nP, 
+        self.data.attrs = {'nC': n_channels, #'nP':nP, 
                            'fsample': float(self.recording_info['lfp_sampling_rate']),
                            'channels_labels': labels.astype(np.int64), 'stim':stimulus,
                            'indch': indch, 't_cue_on': t_con,
