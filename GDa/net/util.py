@@ -90,7 +90,7 @@ def convert_to_adjacency(tensor,):
 
     for p in range(n_pairs):
         i, j          = int(pairs[p,0]), int(pairs[p,1])
-        A[i,j,:,:,:]  = A[j,i,:,:,:] = tensor[p,:,:,:]
+        A[i,j,...]  = A[j,i,...] = tensor[p,...]
 
     return A
 

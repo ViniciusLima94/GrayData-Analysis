@@ -40,8 +40,12 @@ if  __name__ == '__main__':
 
     start = time.time()
 
+    # Get the channel pairs
+    x_s, x_t  = np.triu_indices(ses.data.sizes['roi'], k=1)
+    pairs     = np.array([x_s,x_t]).T
+
     kw = dict(
-        freqs=freqs, times=ses.data.time, roi=ses.data.roi, foi=foi, n_jobs=-1,
+        freqs=freqs, times=ses.data.time, roi=ses.data.roi, foi=foi, n_jobs=-1, pairs=pairs,
         sfreq=ses.data.attrs['fsample'], mode=mode, decim_at=decim_at, n_cycles=n_cycles, decim=delta,
         sm_times=sm_times, sm_freqs=sm_freqs, block_size=2
     )
@@ -49,7 +53,7 @@ if  __name__ == '__main__':
     # compute the coherence
     coh = conn_coherence_wav(ses.data.values.astype(np.float32), **kw)
     # reordering dimensions
-    coh = coh.transpose("roi", "trials", "freqs", "times")
+    coh = coh.transpose("roi","freqs","trials","times")
     # replace trial axis for the actual values
     coh = coh.assign_coords({"trials":ses.data.trials.values}) 
     # deleting attributes assigned by the method
@@ -57,6 +61,9 @@ if  __name__ == '__main__':
     # copying data attributes
     for key in ses.data.attrs.keys():
         coh.attrs[key] = ses.data.attrs[key]
+    coh.attrs['sources'] = x_s
+    coh.attrs['targets'] = x_t
+    coh.attrs['areas']   = ses.data.roi.values
 
     if os.path.isfile(path_st):
         os.system(f'rm {path_st}')
