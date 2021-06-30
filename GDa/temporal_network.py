@@ -94,52 +94,98 @@ class temporal_network():
                                             self.monkey, 
                                             self.date, 
                                             self.session,
-                                            'super_tensor.h5')
+                                            'super_tensor.nc')
+        #  try:
+        #      hf = h5py.File(h5_super_tensor_path, 'r')
+        #  except (OSError):
+        #      raise OSError('File "super_tensor.h5" not found for monkey')
+
+        #  # Reade h5 file containing coherence data
+        #  self.super_tensor = hf['coherence'][:]
+        #  self.tarray       = hf['tarray'][:]
+        #  self.freqs        = hf['freqs'][:]
+        #  self.bands        = hf['bands'][:]
+        #  self.roi          = hf['roi'][:]
+
+        #  # Reading metadata
+        #  self.session_info = {}
+        #  self.session_info['nT'] = self.super_tensor.shape[1]
+        #  for k in hf['info'].keys():
+        #      if k == 'nC':
+        #          self.session_info[k] = int( np.squeeze( np.array(hf['info/'+k]) ) )
+        #      else:
+        #          self.session_info[k] = np.squeeze( np.array(hf['info/'+k]) )
+
+        #  if isinstance(wt, tuple):
+        #      self.tarray       = self.tarray[wt[0]:-wt[1]]
+        #      self.super_tensor = self.super_tensor[...,wt[0]:-wt[1]]
+
+        #  # Concatenate trials in the super tensor
+        #  self.super_tensor = self.super_tensor.swapaxes(1,2)
+
+        #  # Convert to xarray
+        #  self.super_tensor = xr.DataArray(self.super_tensor.astype(_DEFAULT_TYPE), dims=("links","bands","trials","time"),
+        #                                   coords={"trials": self.trial_info.trial_index.values, 
+        #                                           "time":   self.tarray} )
+
+        #  # Metadata (the same as session_info)
+        #  self.super_tensor.attrs         = self.session_info
+        # Getting euclidian distance between each pair of nodes
+
+        # Try to read the file in the path specified
         try:
-            hf = h5py.File(h5_super_tensor_path, 'r')
-        except (OSError):
+            self.super_tensor = xr.load_dataarray(h5_super_tensor_path)
+        except:
             raise OSError('File "super_tensor.h5" not found for monkey')
 
-        # Reade h5 file containing coherence data
-        self.super_tensor = hf['coherence'][:]
-        self.tarray       = hf['tarray'][:]
-        self.freqs        = hf['freqs'][:]
-        self.bands        = hf['bands'][:]
-        self.roi          = hf['roi'][:]
+        # Copy axes values to class attributes
+        self.time  = self.super_tensor.times.values 
+        self.freqs = self.super_tensor.freqs.values 
 
-        # Reading metadata
+        # Copying metadata as class attributes
         self.session_info = {}
-        self.session_info['nT'] = self.super_tensor.shape[1]
-        for k in hf['info'].keys():
-            if k == 'nC':
-                self.session_info[k] = int( np.squeeze( np.array(hf['info/'+k]) ) )
-            else:
-                self.session_info[k] = np.squeeze( np.array(hf['info/'+k]) )
+        self.session_info['nT'] = self.super_tensor.sizes["trials"]
+        for key in self.super_tensor.attrs.keys():
+            self.session_info[key] = self.super_tensor.attrs[key]
 
+        # Crop beginning/ending of super-tensor due to edge effects
         if isinstance(wt, tuple):
-            self.tarray       = self.tarray[wt[0]:-wt[1]]
+            self.time         = self.time[wt[0]:-wt[1]]
             self.super_tensor = self.super_tensor[...,wt[0]:-wt[1]]
 
-        # Concatenate trials in the super tensor
-        self.super_tensor = self.super_tensor.swapaxes(1,2)
+        # Get euclidean distances
+        #  self.super_tensor.attrs['d_eu'] = self.__get_euclidean_distances()
 
-        # Convert to xarray
-        self.super_tensor = xr.DataArray(self.super_tensor.astype(_DEFAULT_TYPE), dims=("links","bands","trials","time"),
-                                         coords={"trials": self.trial_info.trial_index.values, 
-                                                 "time":   self.tarray} )
+    def convert_to_adjacency(self, n_jobs=1, verbose=False):
+        from frites.conn import conn_reshape_undirected
+        
+        # Get number of bands
+        n_bands = len(self.freqs)
+        
+        def _for_band(band):
+            A = []
+            for i in range( self.A.sizes['trials'] ):
+                A += [conn_reshape_undirected(self.super_tensor.isel(bands=band,trials=i), fill_diagonal=1)]
+            A = xr.concat(A, dim="trials")
+            return A
 
-        # Metadata (the same as session_info)
-        self.super_tensor.attrs         = self.session_info
-        # Getting euclidian distance between each pair of nodes
-        self.super_tensor.attrs['d_eu'] = self.__get_euclidean_distances()
+        # define the function to compute in parallel
+        parallel, p_fun = parallel_func(
+            _single_estimative, n_jobs=n_jobs, verbose=verbose,
+            total=n_bands)
 
-    def convert_to_adjacency(self, ):
-        self.A = xr.DataArray( convert_to_adjacency(self.super_tensor.values), 
-                dims=("roi_1","roi_2","bands","trials","time"),
-                coords={"trials": self.super_tensor.trials.values, 
-                        "time":   self.super_tensor.time.values,
-                        "roi_1":  self.super_tensor.attrs['channels_labels'],
-                        "roi_2":  self.super_tensor.attrs['channels_labels']})
+        # Converting to adjacency matrix for each band
+        self.A = parallel(p_fun(band) for i in range(n_bands))
+        self.A = xr.concat(self.A, dim="bands")
+        # Reordering dimensions
+        self.A = self.A.transpose(("sources","targets","bands","trials","times"))
+        
+        #  self.A = xr.DataArray( convert_to_adjacency(self.super_tensor.values), 
+        #          dims=("roi_1","roi_2","bands","trials","time"),
+        #          coords={"trials": self.super_tensor.trials.values, 
+        #                  "time":   self.super_tensor.time.values,
+        #                  "roi_1":  self.super_tensor.attrs['channels_labels'],
+        #                  "roi_2":  self.super_tensor.attrs['channels_labels']})
 
     def create_null_ensemble(self, n_stat, n_rewires,seed, n_jobs=1, verbose=False):
         # Check if the adjacency matrix was already created
@@ -156,7 +202,7 @@ class temporal_network():
             total=n_stat)
         
         self.A_null = []
-        itr = range(len(self.bands))
+        itr = range(len(self.freqs))
         for band in (tqdm(itr) if verbose else itr):
             # compute the single trial coherence
             A_tmp   = parallel(p_fun(band,i*(seed+100)) for i in range(n_stat))
@@ -165,7 +211,7 @@ class temporal_network():
         
         # Concatenate bands
         self.A_null = xr.concat(self.A_null,dim="bands")
-        self.A_null = self.A_null.transpose("surrogates","roi_1","roi_2","bands","trials","time")
+        self.A_null = self.A_null.transpose("surrogates","sources","targets","freqs","trials","times")
 
     def create_stage_masks(self, flatten=False):
         filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=self.trial_type, behavioral_response=self.behavioral_response)
@@ -174,15 +220,15 @@ class temporal_network():
                       self.super_tensor.attrs['t_cue_off'],
                       self.super_tensor.attrs['t_match_on'], 
                       self.super_tensor.attrs['fsample'],
-                      self.tarray, self.super_tensor.sizes['trials'], flatten=flatten
+                      self.time, self.super_tensor.sizes['trials'], flatten=flatten
                       )
         if flatten: 
             dims=("observations")
         else:
-            dims=("trials","time")
+            dims=("trials","times")
 
-        for k in self.s_mask.keys():
-            self.s_mask[k] = xr.DataArray(self.s_mask[k], dims=dims)
+        for key in self.s_mask.keys():
+            self.s_mask[key] = xr.DataArray(self.s_mask[key], dims=dims)
 
     def __filter_trials(self, trial_type, behavioral_response):
         filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=trial_type, behavioral_response=behavioral_response)
@@ -236,9 +282,9 @@ class temporal_network():
             self.create_stage_masks(flatten=True)
 
         if pad:
-            return self.super_tensor.stack(observations=("trials","time")) * self.s_mask[stage]
+            return self.super_tensor.stack(observations=("trials","times")) * self.s_mask[stage]
         else:
-            return self.super_tensor.stack(observations=("trials","time")).isel(observations=self.s_mask[stage])
+            return self.super_tensor.stack(observations=("trials","times")).isel(observations=self.s_mask[stage])
 
     def get_number_of_samples(self, stage=None, total=False):
         r'''
@@ -261,7 +307,7 @@ class temporal_network():
         if total:
             return np.int( self.s_mask[stage].sum() )
         else:
-            return self.s_mask[stage].sum(dim='time')
+            return self.s_mask[stage].sum(dim='times')
 
     def get_averaged_st(self, win_delay=None):
         r'''
@@ -318,14 +364,21 @@ class temporal_network():
 
     def __compute_coherence_thresholds(self, q, relative, keep_weights, verbose):
         if verbose: print('Computing coherence thresholds') 
-        self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','time')).values, 
+        self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','times')).values, 
                                                     q=q, relative=relative, verbose=verbose)
-        # Mask
-        mask = self.super_tensor.stack(observations=('trials','time')) > self.coh_thr
+        # Temporarily store the stacked super-tensor
+        tmp  = self.super_tensor.stack(observations=('trials','times'))
+        # Create the mask by applying threshold
+        mask        = xr.DataArray(np.empty(tmp.shape), dims=tmp.dims, coords=tmp.coords)
+        mask.values = tmp > self.coh_thr.values[...,None]
+        #  mask = self.super_tensor.stack(observations=('trials','times')) > self.coh_thr
+        # Thrshold setting every element above the threshold as 1 otherwise 0
         if not keep_weights:
             self.super_tensor.values = mask.unstack().values
+        # Threshold by leaving the weights for above the threshold and otherwise 0
         else:
-            tmp = self.super_tensor.stack(observations=('trials','time'))*mask
+            #  tmp = self.super_tensor.stack(observations=('trials','times'))*mask
+            tmp *= mask
             self.super_tensor.values = tmp.unstack().values
 
     def reshape_trials(self, ):
@@ -334,7 +387,7 @@ class temporal_network():
 
     def reshape_observations(self, ):
         assert len(self.super_tensor.dims)==4
-        self.super_tensor.stack(observations=('trials','time'))
+        self.super_tensor.stack(observations=('trials','times'))
 
 ################################################ AUX FUNCTIONS ################################################
 def _check_values(values, in_list):
