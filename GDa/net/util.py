@@ -71,28 +71,54 @@ def _reshape_list(array, shapes, dtype):
             idx += 1
     return container
 
-def convert_to_adjacency(tensor,):
+def convert_to_adjacency(tensor,sources,targets):
+    r'''
+    Convert the tensor with the edge time-series to a matrix representations.
+    > INPUTS:
+    - tensor: The tensor with the edge time series (roi,freqs,trials,times).
+    - sources: list of source nodes.
+    - targets: list of target nodes.
+    > OUTPUTS:
+    - The adjacency matrix (roi,roi,freqs,trials,times).
+    '''
+
+    assert tensor.ndim==4
+    assert tensor.shape[0]==len(sources)==len(targets)
+
     # Number of pairs
-    n_pairs    = tensor.shape[0]
+    n_pairs,n_bands,n_trials,n_times = tensor.shape[:]
     # Number of channels
     n_channels = int(np.roots([1,-1,-2*n_pairs])[0])
-    # Number of bands
-    n_bands    = tensor.shape[1]
-    # Number of trials
-    n_trials   = tensor.shape[2]
-    # Number of time points
-    n_times    = tensor.shape[3]
-    # Channels combinations 
-    pairs      = np.transpose( np.tril_indices(n_channels, k = -1) )
 
     # Adjacency tensor
     A = np.zeros([n_channels, n_channels, n_bands, n_trials, n_times])
 
     for p in range(n_pairs):
-        i, j          = int(pairs[p,0]), int(pairs[p,1])
+        i, j        = sources[p], targets[p]
         A[i,j,...]  = A[j,i,...] = tensor[p,...]
-
     return A
+#  def convert_to_adjacency(tensor,):
+#      # Number of pairs
+#      n_pairs    = tensor.shape[0]
+#      # Number of channels
+#      n_channels = int(np.roots([1,-1,-2*n_pairs])[0])
+#      # Number of bands
+#      n_bands    = tensor.shape[1]
+#      # Number of trials
+#      n_trials   = tensor.shape[2]
+#      # Number of time points
+#      n_times    = tensor.shape[3]
+#      # Channels combinations 
+#      pairs      = np.transpose( np.tril_indices(n_channels, k = -1) )
+
+#      # Adjacency tensor
+#      A = np.zeros([n_channels, n_channels, n_bands, n_trials, n_times])
+
+#      for p in range(n_pairs):
+#          i, j          = int(pairs[p,0]), int(pairs[p,1])
+#          A[i,j,...]  = A[j,i,...] = tensor[p,...]
+
+#      return A
 
 def instantiate_graph(A, is_weighted = False):
     if is_weighted:

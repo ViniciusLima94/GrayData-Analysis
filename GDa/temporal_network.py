@@ -136,7 +136,7 @@ class temporal_network():
         try:
             self.super_tensor = xr.load_dataarray(h5_super_tensor_path)
         except:
-            raise OSError('File "super_tensor.h5" not found for monkey')
+            raise OSError('File "super_tensor.nc" not found for monkey')
 
         # Copy axes values to class attributes
         self.time  = self.super_tensor.times.values 
@@ -156,34 +156,11 @@ class temporal_network():
         # Get euclidean distances
         #  self.super_tensor.attrs['d_eu'] = self.__get_euclidean_distances()
 
-    def convert_to_adjacency(self, n_jobs=1, verbose=False):
-        from frites.conn import conn_reshape_undirected
-        
-        # Get number of bands
-        #  n_bands = len(self.freqs)
-        
-        #  def _for_band(f):
-        #      A = []
-        #      for i in range( self.super_tensor.sizes['trials'] ):
-        #          A += [conn_reshape_undirected(self.super_tensor.isel(freqs=f,trials=i), fill_diagonal=1, verbose=verbose)]
-        #      A = xr.concat(A, dim="trials")
-        #      return A
-
-        #  # define the function to compute in parallel
-        #  parallel, p_fun = parallel_func(
-        #      _for_band, n_jobs=n_jobs, verbose=verbose,
-        #      total=n_bands)
-
-        #  # Converting to adjacency matrix for each band
-        #  self.A = parallel(p_fun(f) for f in range(n_bands))
-        #  self.A = xr.concat(self.A, dim="freqs")
-        #  # Reordering dimensions
-        #  self.A = self.A.transpose(("sources","targets","freqs","trials","times"))
-        
-        self.A = xr.DataArray( convert_to_adjacency(self.super_tensor.values), 
-                dims=("sources","targets","freqs","trials","time"),
-                coords={"trials": self.super_tensor.trials.values, 
-                        "time":   self.super_tensor.time.values,
+    def convert_to_adjacency(self,):
+        self.A = xr.DataArray( convert_to_adjacency(self.super_tensor.values, self.super_tensor.attrs['sources'],self.super_tensor.attrs['targets']), 
+                dims=("sources","targets","freqs","trials","times"),
+                coords={"trials":   self.super_tensor.trials.values, 
+                        "times":    self.super_tensor.times.values,
                         "sources":  self.super_tensor.attrs['channels_labels'],
                         "targets":  self.super_tensor.attrs['channels_labels']})
 

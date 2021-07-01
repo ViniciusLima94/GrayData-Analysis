@@ -45,7 +45,7 @@ if  __name__ == '__main__':
     pairs     = np.array([x_s,x_t]).T
 
     kw = dict(
-        freqs=freqs, times=ses.data.time, roi=ses.data.roi, foi=foi, n_jobs=-1, pairs=pairs,
+        freqs=freqs, times=ses.data.time, roi=ses.data.roi, foi=foi, n_jobs=20, pairs=pairs,
         sfreq=ses.data.attrs['fsample'], mode=mode, decim_at=decim_at, n_cycles=n_cycles, decim=delta,
         sm_times=sm_times, sm_freqs=sm_freqs, block_size=2
     )
@@ -63,7 +63,7 @@ if  __name__ == '__main__':
         coh.attrs[key] = ses.data.attrs[key]
     coh.attrs['sources'] = x_s
     coh.attrs['targets'] = x_t
-    coh.attrs['areas']   = ses.data.roi.values
+    #  coh.attrs['areas']   = ses.data.roi.values.astype('str')
 
     if os.path.isfile(path_st):
         os.system(f'rm {path_st}')
