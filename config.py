@@ -35,7 +35,7 @@ sm_times = 300
 sm_freqs = 1
 
 # Defining parameters
-delta = 15       # Downsampling factor
+delta = 10       # Downsampling factor
 mode  = 'morlet' # ("morlet", "mt_1", "mt_2")
 foi   = np.array([
         [0.1, 6.],

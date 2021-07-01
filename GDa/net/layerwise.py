@@ -31,8 +31,8 @@ def compute_nodes_degree(A, mirror=False):
     node_degree = A.sum(axis=1)
 
     # Convert to xarray
-    node_degree = xr.DataArray(node_degree.astype(_DEFAULT_TYPE), dims=("roi","trials","time"),
-                               coords={"roi": roi, "time": time, "trials": trials} )
+    node_degree = xr.DataArray(node_degree.astype(_DEFAULT_TYPE), dims=("roi","trials","times"),
+                               coords={"roi": roi, "times": time, "trials": trials} )
 
     return node_degree
 
@@ -92,8 +92,8 @@ def compute_nodes_clustering(A, verbose=False, backend='igraph', n_jobs=1):
     # Unstack trials and time
     clustering = clustering.reshape( (len(roi),len(trials),len(time)) )
     # Convert to xarray
-    clustering = xr.DataArray(np.nan_to_num(clustering).astype(_DEFAULT_TYPE), dims=("roi","trials","time"),
-                              coords={"roi":roi, "time":time, "trials":trials} )
+    clustering = xr.DataArray(np.nan_to_num(clustering).astype(_DEFAULT_TYPE), dims=("roi","trials","times"),
+                              coords={"roi":roi, "times":time, "trials":trials} )
 
     return clustering
 
@@ -140,8 +140,8 @@ def compute_nodes_coreness(A, verbose=False, n_jobs=1):
     # Unstack trials and time
     coreness = coreness.reshape( (len(roi),len(trials),len(time)) )
     # Convert to xarray
-    coreness = xr.DataArray(coreness.astype(_DEFAULT_TYPE), dims=("roi","trials","time"),
-                              coords={"roi": roi, "time": time, "trials": trials} )
+    coreness = xr.DataArray(coreness.astype(_DEFAULT_TYPE), dims=("roi","trials","times"),
+                              coords={"roi": roi, "times": time, "trials": trials} )
 
     return coreness
 
@@ -196,8 +196,8 @@ def compute_nodes_betweenness(A, verbose=False, backend='igraph', n_jobs=1):
     # Unstack trials and time
     betweenness = betweenness.reshape( (len(roi),len(trials),len(time)) )
     # Convert to xarray
-    betweenness = xr.DataArray(betweenness.astype(_DEFAULT_TYPE), dims=("roi","trials","time"),
-                              coords={"roi": roi, "time": time, "trials": trials} )
+    betweenness = xr.DataArray(betweenness.astype(_DEFAULT_TYPE), dims=("roi","trials","times"),
+                              coords={"roi": roi, "times": time, "trials": trials} )
 
     return betweenness
 
@@ -247,8 +247,8 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, ba
         # Reshape back to trials and time
         partition = np.reshape(partition, (len(trials),len(time)))
         # Conversion to xarray
-        partition = xr.DataArray(partition, dims=("trials","time"),
-                                 coords={"trials":trials,"time":time})
+        partition = xr.DataArray(partition, dims=("trials","times"),
+                                 coords={"trials":trials,"times":time})
 
     # Using brainconn
     elif backend == 'brainconn':
@@ -269,8 +269,8 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, ba
         # Reshape back to trials and time
         partition = np.reshape(partition, (nC,len(trials),len(time)))
         # Conversion to xarray
-        partition = xr.DataArray(partition, dims=("roi","trials","time"),
-                                 coords={"roi":roi,"trials":trials,"time":time})
+        partition = xr.DataArray(partition, dims=("roi","trials","times"),
+                                 coords={"roi":roi,"trials":trials,"times":time})
 
     return partition
 
@@ -302,7 +302,7 @@ def compute_network_modularity(A, kw_louvain={}, kw_leiden={}, verbose=False, ba
         trials, time = partition.trials.values, partition.time.values
         nt           = len(trials)*len(time)
         # Stack paritions 
-        partition    = partition.stack(observations=("trials","time"))
+        partition    = partition.stack(observations=("trials","times"))
 
         #  Variable to store modularity
         modularity  = np.zeros(nt)
@@ -340,8 +340,8 @@ def compute_network_modularity(A, kw_louvain={}, kw_leiden={}, verbose=False, ba
     # Unstack trials and time 
     modularity = modularity.reshape( (len(trials),len(time)) )
     # Convert to xarray
-    modularity = xr.DataArray(modularity.astype(_DEFAULT_TYPE), dims=("trials","time"),
-                              coords={"time": time, "trials": trials} )
+    modularity = xr.DataArray(modularity.astype(_DEFAULT_TYPE), dims=("trials","times"),
+                              coords={"times": time, "trials": trials} )
     return modularity
 
 def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verbose=False, backend='igraph', n_jobs=1):
@@ -379,7 +379,7 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verb
         # Total number of observations
         nt           = len(trials)*len(time)
         # Stack paritions 
-        p            = p.stack(observations=("trials","time"))
+        p            = p.stack(observations=("trials","times"))
 
         T = np.zeros([nC, nC])
 
@@ -402,7 +402,7 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verb
         # Total number of observations
         nt           = len(trials)*len(time)
         # Stack paritions 
-        p            = p.stack(observations=("trials","time"))
+        p            = p.stack(observations=("trials","times"))
 
         def _for_frame(t):
             # Allegiance for a frame
@@ -428,8 +428,8 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verb
 
     np.fill_diagonal(T,1)
     # Converting to xarray
-    T = xr.DataArray(T.astype(_DEFAULT_TYPE), dims=("roi_1","roi_2"),
-                     coords={"roi_1":roi, "roi_2": roi})
+    T = xr.DataArray(T.astype(_DEFAULT_TYPE), dims=("sources","targets"),
+                     coords={"sources":roi, "targets": roi})
     return T
 
 def windowed_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, times=None,  verbose=False, win_args=None, backend='igraph', n_jobs=1):
@@ -453,7 +453,7 @@ def windowed_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, times=None,  verb
 
     assert isinstance(win_args, dict)
     assert isinstance(A, xr.DataArray)
-    assert ('time' in A.dims) and ('trials' in A.dims) and ('roi_1' in A.dims) and ('roi_2' in A.dims)
+    assert ('times' in A.dims) and ('trials' in A.dims) and ('sources' in A.dims) and ('targets' in A.dims)
 
     # Number of regions
     nC         = A.shape[0]
@@ -464,8 +464,8 @@ def windowed_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, times=None,  verb
     # For a given trial computes windowed allegiance
     def _for_win(trial, win):
         T = xr.DataArray(np.zeros((nC,nC,len(win))), 
-                         dims=("roi_1","roi_2","time"),
-                         coords={"roi_1":roi, "roi_2": roi, "time":t_win})
+                         dims=("sources","targets","times"),
+                         coords={"sources":roi, "targets": roi, "times":t_win})
         for i_w, w in enumerate(win):
             T[...,i_w]=compute_allegiance_matrix(A.isel(trials=[trial],time=slice(w[0],w[1])),
                                                  kw_louvain, kw_leiden, verbose=verbose,
@@ -481,7 +481,7 @@ def windowed_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, times=None,  verb
     # Concatenating
     T = xr.concat(T, dim="trials")
     # Ordering dimensions
-    T = T.transpose("roi_1","roi_2","trials","time")
+    T = T.transpose("sources","targets","trials","times")
     # Assign time axis
     T = T.assign_coords({"trials":A.trials.values})
     return T
