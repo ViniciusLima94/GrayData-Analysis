@@ -6,7 +6,9 @@ import leidenalg
 from   frites.utils          import parallel_func
 from   .null_models          import *
 from   tqdm                  import tqdm
-from   .util                 import instantiate_graph, _check_inputs, _unwrap_inputs, _reshape_list, _is_binary
+from   .util                 import instantiate_graph, _check_inputs, _unwrap_inputs, \
+                                    _reshape_list, _is_binary, _convert_to_affiliation_vector,\
+                                    _modularity_from_partition
 
 _DEFAULT_TYPE = np.float32
 
@@ -230,7 +232,6 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, ba
 
     # Using igraph
     if backend == 'igraph':
-        print(f'{backend=}, {is_weighted=}')
         #  Save the partitions
         partition = np.empty(nt, dtype=object)
 
@@ -244,11 +245,19 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, ba
                 weights=None
             partition[t] = leidenalg.find_partition(g, leidenalg.ModularityVertexPartition, weights=weights, **kw_leiden)
 
+        # Convert to affiliation vector
+        partition = _convert_to_affiliation_vector(nC, partition).astype(int)
         # Reshape back to trials and time
-        partition = np.reshape(partition, (len(trials),len(time)))
+        partition = np.reshape(partition, (nC,len(trials),len(time)))
         # Conversion to xarray
-        partition = xr.DataArray(partition, dims=("trials","times"),
-                                 coords={"trials":trials,"times":time})
+        partition = xr.DataArray(partition, dims=("roi","trials","times"),
+                                 coords={"roi":roi,"trials":trials,"times":time})
+
+        # Reshape back to trials and time
+        #  partition = np.reshape(partition, (len(trials),len(time)))
+        # Conversion to xarray
+        #  partition = xr.DataArray(partition, dims=("trials","times"),
+        #                           coords={"trials":trials,"times":time})
 
     # Using brainconn
     elif backend == 'brainconn':
@@ -299,17 +308,27 @@ def compute_network_modularity(A, kw_louvain={}, kw_leiden={}, verbose=False, ba
         if verbose: print("Finding network partitions.\n")
         partition = compute_network_partition(A, kw_leiden, verbose=verbose,backend='igraph')
         # Getting dimension arrays
-        trials, time = partition.trials.values, partition.time.values
+        trials, time = partition.trials.values, partition.times.values
         nt           = len(trials)*len(time)
         # Stack paritions 
         partition    = partition.stack(observations=("trials","times"))
 
         #  Variable to store modularity
         modularity  = np.zeros(nt)
+        # Check if gamma was specified
+        #  if 'gamma' in kw_louvain:
+        #      gamma = kw_louvain['gamma']
+        #  else:
+        #      gamma = 1
+
+        # Stack adjacency 
+        A = A.stack(observations=("trials","times")).values
+        #  print(f'{type(A)=}')
 
         itr = range(nt)
         for t in (tqdm(itr) if verbose else itr):
-            modularity[t] = partition.values[t].modularity
+            modularity[t] = _modularity_from_partition(A[...,t], partition[...,t].values)
+            #  modularity[t] = partition.values[t].modularity
     # Using brainconn
     elif backend == 'brainconn':
         # Check inputs
@@ -367,66 +386,121 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verb
     nC           = A.shape[0]
     # Getting roi names
     if isinstance(A, xr.DataArray):
-        roi = A.roi_1.values
+        roi = A.sources.values
     else:
         roi = np.arange(nC, dtype=int)
 
     # Using igraph
     if backend == 'igraph':
-        assert n_jobs==1, "For backend igraph n_jobs is not allowed" #  Find the partitions if verbose: print("Finding network partitions.\n") p = compute_network_partition(A, kw_leiden, verbose=verbose,backend='igraph')
+        assert n_jobs==1, "For backend igraph n_jobs is not allowed" #  
+        #  Find the partitions 
+        if verbose: print("Finding network partitions.\n") 
+        p = compute_network_partition(A, kw_leiden, verbose=verbose,backend='igraph')
         # Getting dimension arrays
-        trials, time = p.trials.values, p.time.values
+        #  trials, time = p.trials.values, p.times.values
         # Total number of observations
-        nt           = len(trials)*len(time)
+        #  nt           = len(trials)*len(time)
         # Stack paritions 
-        p            = p.stack(observations=("trials","times"))
+        #  p            = p.stack(observations=("trials","times"))
 
-        T = np.zeros([nC, nC])
+        #  def _for_frame(t):
+        #      # Allegiance for a frame
+        #      T  = np.zeros((nC,nC))
+        #      # Affiliation vector
+        #      av = p.isel(observations=t).values
+        #      # For now convert affiliation vector to igraph format
+        #      n_comm = av.max()+1
+        #      for j in range(n_comm):
+        #          p_lst = np.arange(nC,dtype=int)[av==j]
+        #          grid  = np.meshgrid(p_lst,p_lst)
+        #          grid  = np.reshape(grid, (2, len(p_lst)**2)).T
+        #          T[grid[:,0],grid[:,1]] = 1
+        #      return T
 
-        itr = range( nt )
-        for i in (tqdm(itr) if verbose else itr):
-            p_lst  = list(p.values[i])
-            n_comm = len(p_lst)
-            for j in range(n_comm):
-                grid = np.meshgrid(p_lst[j],p_lst[j])
-                grid = np.reshape(grid, (2, len(p_lst[j])**2)).T
-                T[grid[:,0],grid[:,1]] += 1
-        T = T / nt
+        #  # define the function to compute in parallel
+        #  parallel, p_fun = parallel_func(
+        #      _for_frame, n_jobs=n_jobs, verbose=verbose,
+        #      total=nt)
+        #  # Compute the single trial coherence
+        #  T = parallel(p_fun(t) for t in range(nt))
+        #  T = np.mean(T,0)
+
+        #  T = np.zeros((nC, nC,nt))
+
+        #  itr = range( nt )
+        #  for i in (tqdm(itr) if verbose else itr):
+        #      p_lst  = list(p.values[i])
+        #      n_comm = len(p_lst)
+        #      for j in range(n_comm):
+        #          grid = np.meshgrid(p_lst[j],p_lst[j])
+        #          grid = np.reshape(grid, (2, len(p_lst[j])**2)).T
+        #          T[grid[:,0],grid[:,1],i] += 1
+        #  #  T = T / nt
+        #  T = np.nanmean(T,-1)
     # Using brainconn
     elif backend == 'brainconn':
         #  Find the partitions
         if verbose: print("Finding network partitions.\n")
         p = compute_network_partition(A, kw_louvain, verbose=verbose,backend='brainconn',n_jobs=n_jobs)
         # Getting dimension arrays
-        trials, time = p.trials.values, p.time.values
+        #  trials, time = p.trials.values, p.times.values
         # Total number of observations
-        nt           = len(trials)*len(time)
+        #  nt           = len(trials)*len(time)
         # Stack paritions 
-        p            = p.stack(observations=("trials","times"))
+        #  p            = p.stack(observations=("trials","times"))
 
-        def _for_frame(t):
-            # Allegiance for a frame
-            T  = np.zeros((nC,nC))
-            # Affiliation vector
-            av = p.isel(observations=t).values
-            # For now convert affiliation vector to igraph format
-            n_comm = av.max()+1
-            for j in range(n_comm):
-                p_lst = np.arange(nC,dtype=int)[av==j]
-                grid  = np.meshgrid(p_lst,p_lst)
-                grid  = np.reshape(grid, (2, len(p_lst)**2)).T
-                T[grid[:,0],grid[:,1]] = 1
-            return T
+        #  def _for_frame(t):
+        #      # Allegiance for a frame
+        #      T  = np.zeros((nC,nC))
+        #      # Affiliation vector
+        #      av = p.isel(observations=t).values
+        #      # For now convert affiliation vector to igraph format
+        #      n_comm = av.max()+1
+        #      for j in range(n_comm):
+        #          p_lst = np.arange(nC,dtype=int)[av==j]
+        #          grid  = np.meshgrid(p_lst,p_lst)
+        #          grid  = np.reshape(grid, (2, len(p_lst)**2)).T
+        #          T[grid[:,0],grid[:,1]] = 1
+        #      return T
 
-        # define the function to compute in parallel
-        parallel, p_fun = parallel_func(
-            _for_frame, n_jobs=n_jobs, verbose=verbose,
-            total=nt)
-        # Compute the single trial coherence
-        T = parallel(p_fun(t) for t in range(nt))
-        T = np.mean(T,0)
+        #  # define the function to compute in parallel
+        #  parallel, p_fun = parallel_func(
+        #      _for_frame, n_jobs=n_jobs, verbose=verbose,
+        #      total=nt)
+        #  # Compute the single trial coherence
+        #  T = parallel(p_fun(t) for t in range(nt))
+        #  T = np.mean(T,0)
 
-    np.fill_diagonal(T,1)
+    # Getting dimension arrays
+    trials, time = p.trials.values, p.times.values
+    # Total number of observations
+    nt           = len(trials)*len(time)
+    # Stack paritions 
+    p            = p.stack(observations=("trials","times"))
+
+    def _for_frame(t):
+        # Allegiance for a frame
+        T  = np.zeros((nC,nC))
+        # Affiliation vector
+        av = p.isel(observations=t).values
+        # For now convert affiliation vector to igraph format
+        n_comm = av.max()+1
+        for j in range(n_comm):
+            p_lst = np.arange(nC,dtype=int)[av==j]
+            grid  = np.meshgrid(p_lst,p_lst)
+            grid  = np.reshape(grid, (2, len(p_lst)**2)).T
+            T[grid[:,0],grid[:,1]] = 1
+        np.fill_diagonal(T,1)
+        return T
+
+    # define the function to compute in parallel
+    parallel, p_fun = parallel_func(
+        _for_frame, n_jobs=n_jobs, verbose=verbose,
+        total=nt)
+    # Compute the single trial coherence
+    T = parallel(p_fun(t) for t in range(nt))
+    T = np.mean(T,0)
+
     # Converting to xarray
     T = xr.DataArray(T.astype(_DEFAULT_TYPE), dims=("sources","targets"),
                      coords={"sources":roi, "targets": roi})
@@ -458,7 +532,7 @@ def windowed_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, times=None,  verb
     # Number of regions
     nC         = A.shape[0]
     # ROIs
-    roi        = A.roi_1.values
+    roi        = A.sources.values
     # Define windows
     win, t_win = define_windows(times, **win_args)
     # For a given trial computes windowed allegiance
@@ -467,7 +541,7 @@ def windowed_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, times=None,  verb
                          dims=("sources","targets","times"),
                          coords={"sources":roi, "targets": roi, "times":t_win})
         for i_w, w in enumerate(win):
-            T[...,i_w]=compute_allegiance_matrix(A.isel(trials=[trial],time=slice(w[0],w[1])),
+            T[...,i_w]=compute_allegiance_matrix(A.isel(trials=[trial],times=slice(w[0],w[1])),
                                                  kw_louvain, kw_leiden, verbose=verbose,
                                                  backend=backend, n_jobs=1)
         return T.astype(_DEFAULT_TYPE)
