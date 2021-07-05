@@ -20,6 +20,50 @@ def _is_binary(matrix):
             break
     return is_binary
 
+def _convert_to_affiliation_vector(n_nodes, partitions):
+    r'''
+    Convert partitions in leidenalg format to array.
+    > INPUTS:
+    - n_nodes:    The number of nodes.
+    - partitions: Parition objects of type "leidenalg.VertexPartition.ModularityVertexPartition"
+    > OUTPUTS:
+    - av: Affiliation vector.
+    '''
+    # Extact list of partitions
+    #  partitions = partitions.values[0]
+    # Number of time points
+    n_times    = len(partitions)
+    # Affiliation vector
+    av         = np.zeros((n_nodes,n_times))
+    for t in range(n_times):
+        for comm_i, comm in enumerate( partitions[t] ):
+            av[comm,t] = comm_i
+    return av
+
+@nb.jit(nopython=True)
+def _modularity_from_partition(A, av):
+    r'''
+    Given an affiliation vector compute the modularity of the graph given by A (adapted from brainconn).
+    > INPUTS:
+    - A: Adjacency matrix.
+    - av: Affiliation vector of size (n_nodes) containing the label of the community of each node.
+    - gamma: Value of gamma to use.
+    > OUTPUTS:
+    - The modularity index of the network.
+    '''
+    # Number of nodes
+    n_nodes = A.shape[0]
+    # Degrees
+    d       = A.sum(0)
+    # Number of edges
+    n_edges = np.sum(d)
+    # Initial modularity matrix
+    B       = A - 1 * np.outer(d, d) / n_edges
+    #  B       = B[av][:, av]
+    # Tile affiliation vector
+    s       = av.repeat(n_nodes).reshape((-1, n_nodes))#np.tile(av, (n_nodes, 1))
+    return np.sum(np.logical_not(s - s.T) * B / n_edges)
+
 def _check_inputs(array, dims):
     r'''
     Check the input type and size.
