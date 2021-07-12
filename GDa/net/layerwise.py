@@ -173,8 +173,10 @@ def compute_nodes_coreness_bc(A, verbose=False, n_jobs=1):
     #  Number of observations
     nt = A.shape[-1]
     #  Variable to store node coreness
-    #  coreness  = np.zeros([nC,nt])
 
+    ##################################################################
+    # Include method for S-core
+    #################################################################
     def _nodes_kcore_bu(A):
         # Number of nodes
         n_nodes = len(A)
