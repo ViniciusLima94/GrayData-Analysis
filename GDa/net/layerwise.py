@@ -148,6 +148,74 @@ def compute_nodes_coreness(A, verbose=False, n_jobs=1):
 
     return coreness
 
+def compute_nodes_coreness_bc(A, verbose=False, n_jobs=1):
+    r'''
+    The same as 'compute_nodes_coreness' but based on brainconnectivity toolbox method can be either for binary
+    or weighted undirected graphs.
+    Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the coreness for each
+    node is computed for all the trials concatenated.
+    > INPUTS:
+    - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    - is_weighted: Scepecify if the network is weighted or binary.
+    - verbose: Wheater to print the progress or not.
+    - n_jobs: Number of jobs to use when parallelizing in observations.
+    > OUTPUTS:
+    - coreness: A matrix containing the nodes coreness with shape (roi,trials,time).
+    '''
+    # Check inputs
+    _check_inputs(A, 4)
+    # Get values in case it is an xarray
+    A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
+    # Check if the matrix is weighted or binary
+    is_weighted = not _is_binary(A)
+    #  Number of channels
+    nC = A.shape[0]
+    #  Number of observations
+    nt = A.shape[-1]
+    #  Variable to store node coreness
+    #  coreness  = np.zeros([nC,nt])
+
+    def _nodes_kcore_bu(A):
+        # Number of nodes
+        n_nodes = len(A)
+        # Initial coreness
+        k       = 0
+        # Store each node's coreness
+        k_core  = np.zeros(n_nodes)
+        # Iterate until get a disconnected graph
+        while True:
+            # Get coreness matrix and level of k-core
+            C, kn = bc.core.kcore_bu(A,k,peel=False)
+            if kn==0:
+                break
+            # Assigns coreness level to nodes
+            idx = C.sum(1)>0
+            k_core[idx]=k
+            k+=1
+        return k_core+1
+
+    # Compute for a single observation
+    def _for_frame(t):
+        coreness = _nodes_kcore_bu(A[...,t])
+        return coreness
+
+    # define the function to compute in parallel
+    parallel, p_fun = parallel_func(
+        _for_frame, n_jobs=n_jobs, verbose=verbose,
+        total=nt)
+    # Compute the single trial coherence
+    coreness = parallel(p_fun(t) for t in range(nt))
+    # Convert to numpy array
+    coreness = np.asarray(coreness).T
+
+    # Unstack trials and time
+    coreness = coreness.reshape( (len(roi),len(trials),len(time)) )
+    # Convert to xarray
+    coreness = xr.DataArray(coreness.astype(_DEFAULT_TYPE), dims=("roi","trials","times"),
+                              coords={"roi": roi, "times": time, "trials": trials} )
+
+    return coreness
+
 def compute_nodes_betweenness(A, verbose=False, backend='igraph', n_jobs=1):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the betweenness for each
