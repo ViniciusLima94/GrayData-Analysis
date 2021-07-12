@@ -247,29 +247,12 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, ba
                 weights="weight"
             else:
                 weights=None
-            # Check if optimizer was specified
-            #  if 'optimizer' in kw_leiden.keys():
-            #      optimizer = kw_leiden['optimizer']
-            #  else:
-            #      optimizer = leidenalg.ModularityVertexPartition
 
             optimizer = leidenalg.ModularityVertexPartition
             # Find partitions
             partition[:,t]= leidenalg.find_partition(g, optimizer, weights=weights, **kw_leiden).membership
             # Compute modularity
             modularity[t] = MODquality(A[...,t],partition[:,t],1)
-
-        # Reshape back to trials and time
-        #  partition = np.reshape(partition, (nC,len(trials),len(time)))
-        # Conversion to xarray
-        #  partition = xr.DataArray(partition, dims=("roi","trials","times"),
-                                 #  coords={"roi":roi,"trials":trials,"times":time})
-
-        # Reshape back to trials and time
-        #  partition = np.reshape(partition, (len(trials),len(time)))
-        # Conversion to xarray
-        #  partition = xr.DataArray(partition, dims=("trials","times"),
-        #                           coords={"trials":trials,"times":time})
 
     # Using brainconn
     elif backend == 'brainconn':
@@ -287,15 +270,7 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, ba
         # Compute the single trial coherence
         #  partition, modularity = parallel(p_fun(t) for t in range(nt))
         out = np.squeeze( parallel(p_fun(t) for t in range(nt)) )
-        #  print(f'{np.shape(out)=}')
-        #  partition, modularity = np.asarray(out[:,0]).T, np.asarray(out[:,1])
         partition, modularity = np.asarray(out[:,:-1]).T, np.asarray(out[:,-1])
-
-        # Reshape back to trials and time
-        #  partition = np.reshape(partition, (nC,len(trials),len(time)))
-        # Conversion to xarray
-        #  partition = xr.DataArray(partition, dims=("roi","trials","times"),
-                                 #  coords={"roi":roi,"trials":trials,"times":time})
 
     # Reshape partition and modularity back to trials and time
     partition = np.reshape(partition, (nC,len(trials),len(time)))
@@ -310,98 +285,6 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, ba
                               coords={"times": time, "trials": trials} )
 
     return partition, modularity
-
-#  def compute_network_modularity(A, kw_louvain={}, kw_leiden={}, verbose=False, backend='igraph', n_jobs=1):
-#      r'''
-#      Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the modularity of the
-#      network for each layer/time is computed for all the trials concatenated.
-#      > INPUTS:
-#      - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
-#      - kw_louvain: Parameters to be passed to louvain alg for brainconn package (for frther info see: brainconn.readthedocs.io/en/latest/generated/brainconn.modularity.community_louvain.html#brainconn.modularity.community_louvain)
-#      - kw_leiden: Parameters to be passed to leindelalg (for frther info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
-#      - is_weighted: Scepecify if the network is weighted or binary.
-#      - verbose: Wheater to print the progress or not.
-#      - backend: Wheter to use igraph or brainconn package.
-#      - n_jobs: Number of jobs to use when parallelizing in observations.
-#      > OUTPUTS:
-#      - modularity: Modularity for each time frame of the temporal network.
-#      '''
-
-#      assert backend in ['igraph','brainconn']
-
-#      # Using igraph
-#      if backend == 'igraph':
-#          assert n_jobs==1, "n_jobs only allowed for backend brainconn"
-#          # Finding parititions
-#          if verbose: print("Finding network partitions.\n")
-#          partition = compute_network_partition(A, kw_leiden, verbose=verbose,backend='igraph')
-#          # Getting dimension arrays
-#          trials, time = partition.trials.values, partition.times.values
-#          nt           = len(trials)*len(time)
-#          # Stack paritions 
-#          partition    = partition.stack(observations=("trials","times"))
-
-#          #  Variable to store modularity
-#          modularity  = np.zeros(nt)
-
-#          # Stack adjacency 
-#          A = A.stack(observations=("trials","times")).values
-
-#          # Check which quality function to use
-#          if 'optimizer' in kw_leiden.keys():
-#              optimizer = kw_leiden['optimizer']
-#              if optimizer  == leidenalg.ModularityVertexPartition:
-#                  f_quality = MODquality
-#                  gamma     = 1
-#                  if 'resolution_parameter' in kw_leiden.keys(): warnings.warn("For Modularity quality function gamma is set to one")
-#              elif optimizer == leidenalg.CPMVertexPartition:
-#                  f_quality = CPMquality
-#                  try:
-#                      gamma = kw_leiden['resolution_parameter']
-#                  except:
-#                      gamma = 1
-#          else:
-#              optimizer = leidenalg.ModularityVertexPartition
-#              f_quality = MODquality
-#              gamma     = 1
-#              if 'resolution_parameter' in kw_leiden.keys(): warnings.warn("For Modularity quality function gamma is set to one")
-
-#          itr = range(nt)
-#          for t in (tqdm(itr) if verbose else itr):
-#              modularity[t] = f_quality(A[...,t], partition[...,t].values,gamma)
-#      # Using brainconn
-#      elif backend == 'brainconn':
-#          # Check inputs
-#          _check_inputs(A, 4)
-#          # Get values in case it is an xarray
-#          A, roi, trials, time = _unwrap_inputs(A,concat_trials=True)
-#          #  Number of channels
-#          nC = A.shape[0]
-#          #  Number of observations
-#          nt = A.shape[-1]
-
-#          def _for_frame(t):
-#              try:
-#                  _, modularity = bc.modularity.modularity_louvain_und(A[...,t], **kw_louvain)
-#              except:
-#                  modularity = np.nan
-#              return modularity
-
-#          # define the function to compute in parallel
-#          parallel, p_fun = parallel_func(
-#              _for_frame, n_jobs=n_jobs, verbose=verbose,
-#              total=nt)
-#          # Compute the single trial coherence
-#          modularity = parallel(p_fun(t) for t in range(nt))
-#          # Convert to numpy array
-#          modularity = np.asarray(modularity).T
-
-#      # Unstack trials and time 
-#      modularity = modularity.reshape( (len(trials),len(time)) )
-#      # Convert to xarray
-#      modularity = xr.DataArray(modularity.astype(_DEFAULT_TYPE), dims=("trials","times"),
-#                                coords={"times": time, "trials": trials} )
-#      return modularity
 
 def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verbose=False, backend='igraph', n_jobs=1):
     r'''
@@ -436,81 +319,11 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verb
         #  Find the partitions 
         if verbose: print("Finding network partitions.\n")
         p = compute_network_partition(A, kw_leiden, verbose=verbose,backend='igraph')
-        # Getting dimension arrays
-        #  trials, time = p.trials.values, p.times.values
-        # Total number of observations
-        #  nt           = len(trials)*len(time)
-        # Stack paritions 
-        #  p            = p.stack(observations=("trials","times"))
-
-        #  def _for_frame(t):
-        #      # Allegiance for a frame
-        #      T  = np.zeros((nC,nC))
-        #      # Affiliation vector
-        #      av = p.isel(observations=t).values
-        #      # For now convert affiliation vector to igraph format
-        #      n_comm = av.max()+1
-        #      for j in range(n_comm):
-        #          p_lst = np.arange(nC,dtype=int)[av==j]
-        #          grid  = np.meshgrid(p_lst,p_lst)
-        #          grid  = np.reshape(grid, (2, len(p_lst)**2)).T
-        #          T[grid[:,0],grid[:,1]] = 1
-        #      return T
-
-        #  # define the function to compute in parallel
-        #  parallel, p_fun = parallel_func(
-        #      _for_frame, n_jobs=n_jobs, verbose=verbose,
-        #      total=nt)
-        #  # Compute the single trial coherence
-        #  T = parallel(p_fun(t) for t in range(nt))
-        #  T = np.mean(T,0)
-
-        #  T = np.zeros((nC, nC,nt))
-
-        #  itr = range( nt )
-        #  for i in (tqdm(itr) if verbose else itr):
-        #      p_lst  = list(p.values[i])
-        #      n_comm = len(p_lst)
-        #      for j in range(n_comm):
-        #          grid = np.meshgrid(p_lst[j],p_lst[j])
-        #          grid = np.reshape(grid, (2, len(p_lst[j])**2)).T
-        #          T[grid[:,0],grid[:,1],i] += 1
-        #  #  T = T / nt
-        #  T = np.nanmean(T,-1)
     # Using brainconn
     elif backend == 'brainconn':
         #  Find the partitions
         if verbose: print("Finding network partitions.\n")
         p = compute_network_partition(A, kw_louvain, verbose=verbose,backend='brainconn',n_jobs=n_jobs)
-        # Getting dimension arrays
-        #  trials, time = p.trials.values, p.times.values
-        # Total number of observations
-        #  nt           = len(trials)*len(time)
-        # Stack paritions 
-        #  p            = p.stack(observations=("trials","times"))
-
-        #  def _for_frame(t):
-        #      # Allegiance for a frame
-        #      T  = np.zeros((nC,nC))
-        #      # Affiliation vector
-        #      av = p.isel(observations=t).values
-        #      # For now convert affiliation vector to igraph format
-        #      n_comm = av.max()+1
-        #      for j in range(n_comm):
-        #          p_lst = np.arange(nC,dtype=int)[av==j]
-        #          grid  = np.meshgrid(p_lst,p_lst)
-        #          grid  = np.reshape(grid, (2, len(p_lst)**2)).T
-        #          T[grid[:,0],grid[:,1]] = 1
-        #      return T
-
-        #  # define the function to compute in parallel
-        #  parallel, p_fun = parallel_func(
-        #      _for_frame, n_jobs=n_jobs, verbose=verbose,
-        #      total=nt)
-        #  # Compute the single trial coherence
-        #  T = parallel(p_fun(t) for t in range(nt))
-        #  T = np.mean(T,0)
-
     # Getting dimension arrays
     trials, time = p.trials.values, p.times.values
     # Total number of observations
