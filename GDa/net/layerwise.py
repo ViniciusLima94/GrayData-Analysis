@@ -38,7 +38,7 @@ def compute_nodes_degree(A, mirror=False):
 
     return node_degree
 
-def compute_nodes_clustering(A, verbose=False, backend='igraph', n_jobs=1):  
+def compute_nodes_clustering(A, verbose=False, backend='igraph', n_jobs=1):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the clustering coefficient for each
     node is computed for all the trials concatenated.
