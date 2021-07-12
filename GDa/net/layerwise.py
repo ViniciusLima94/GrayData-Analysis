@@ -275,7 +275,7 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, ba
     # Reshape partition and modularity back to trials and time
     partition = np.reshape(partition, (nC,len(trials),len(time)))
     # Conversion to xarray
-    partition = xr.DataArray(partition, dims=("roi","trials","times"),
+    partition = xr.DataArray(partition.astype(int), dims=("roi","trials","times"),
                              coords={"roi":roi,"trials":trials,"times":time})
 
     # Unstack trials and time 
@@ -338,7 +338,7 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verb
         # Affiliation vector
         av = p.isel(observations=t).values
         # For now convert affiliation vector to igraph format
-        n_comm = av.max()+1
+        n_comm = int(av.max()+1)
         for j in range(n_comm):
             p_lst = np.arange(nC,dtype=int)[av==j]
             grid  = np.meshgrid(p_lst,p_lst)
