@@ -318,12 +318,13 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verb
         assert n_jobs==1, "For backend igraph n_jobs is not allowed" #  
         #  Find the partitions 
         if verbose: print("Finding network partitions.\n")
-        p = compute_network_partition(A, kw_leiden, verbose=verbose,backend='igraph')
+        p,_ = compute_network_partition(A, kw_leiden, verbose=verbose,backend='igraph')
     # Using brainconn
     elif backend == 'brainconn':
         #  Find the partitions
         if verbose: print("Finding network partitions.\n")
-        p = compute_network_partition(A, kw_louvain, verbose=verbose,backend='brainconn',n_jobs=n_jobs)
+        p,_ = compute_network_partition(A, kw_louvain, verbose=verbose,backend='brainconn',n_jobs=n_jobs)
+
     # Getting dimension arrays
     trials, time = p.trials.values, p.times.values
     # Total number of observations
@@ -352,7 +353,7 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verb
         total=nt)
     # Compute the single trial coherence
     T = parallel(p_fun(t) for t in range(nt))
-    T = np.mean(T,0)
+    T = np.nanmean(T,0)
 
     # Converting to xarray
     T = xr.DataArray(T.astype(_DEFAULT_TYPE), dims=("sources","targets"),
