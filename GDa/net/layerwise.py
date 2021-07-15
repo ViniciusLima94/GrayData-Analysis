@@ -327,8 +327,16 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, ba
     # Using brainconn
     elif backend == 'brainconn':
 
+        # Check if the network have negative weights
+        has_negative_weights = A.min()<0
+
+        if has_negative_weights:
+            mod_func = bc.modularity.modularity_louvain_und_sign
+        else:
+            mod_func = bc.modularity.modularity_louvain_und
+
         def _for_frame(t):
-            partition, modularity  = bc.modularity.modularity_louvain_und(A[...,t], **kw_louvain)
+            partition, modularity  = mod_func(A[...,t], **kw_louvain)
             return np.concatenate((partition-1,[modularity]))
             #  return partition-1, modularity
 

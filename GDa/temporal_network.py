@@ -20,8 +20,8 @@ _COORDS_PATH  = 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketc
 
 class temporal_network():
 
-    def __init__(self, data_raw_path='GrayLab/', tensor_raw_path='super_tensors', monkey='lucy', session=1, 
-                 date='150128', trial_type=None, behavioral_response=None, wt=None, 
+    def __init__(self, data_raw_path='GrayLab/', tensor_raw_path='super_tensors', monkey='lucy', session=1,
+                 date='150128', trial_type=None, behavioral_response=None, wt=None,
                  drop_trials_after=True, relative=False, keep_weights=False, q=None, verbose=False):
         r'''
         Temporal network class, this object will have information about the session analysed and store the coherence
@@ -32,13 +32,13 @@ class temporal_network():
         - session: session number
         - date: date of the recording session
         - align_to: Wheter data is aligned to cue or match
-        - trial_type: the type of trial (DRT/fixation) 
+        - trial_type: the type of trial (DRT/fixation)
         - behavioral_response: Wheter to get sucessful (1) or unsucessful (0) trials
         - wt: Tuple. Trimming window will remove the wt[0] and wt[1] points in the start and end of each trial
-        - drop_trials_after: If True the trials that are not in trial_type are droped only after 
+        - drop_trials_after: If True the trials that are not in trial_type are droped only after
             computing the thresholds which mean that the thresholds will be commom for all types of trials
             specified in trial_types.
-        - relative: if threshold is true wheter to do it in ralative (one thr per link per band) or 
+        - relative: if threshold is true wheter to do it in ralative (one thr per link per band) or
             an common thr for links per band.
         - keep_weights: If True, will keep the top weights after thresholding.
         - q: Quartile value to use for thresholding.
@@ -66,7 +66,7 @@ class temporal_network():
         self.date     = date
         self.session  = f'session0{session}'
         self.trial_type          = trial_type
-        self.behavioral_response = behavioral_response 
+        self.behavioral_response = behavioral_response
 
         # Load super-tensor
         self.__load_h5(wt)
@@ -90,9 +90,9 @@ class temporal_network():
 
     def __load_h5(self, wt):
         # Path to the file
-        h5_super_tensor_path = os.path.join(self.raw_path, 
-                                            self.monkey, 
-                                            self.date, 
+        h5_super_tensor_path = os.path.join(self.raw_path,
+                                            self.monkey,
+                                            self.date,
                                             self.session,
                                             'super_tensor.nc')
         #  try:
@@ -139,8 +139,8 @@ class temporal_network():
             raise OSError('File "super_tensor.nc" not found for monkey')
 
         # Copy axes values to class attributes
-        self.time  = self.super_tensor.times.values 
-        self.freqs = self.super_tensor.freqs.values 
+        self.time  = self.super_tensor.times.values
+        self.freqs = self.super_tensor.freqs.values
 
         # Copying metadata as class attributes
         self.session_info = {}
@@ -154,12 +154,12 @@ class temporal_network():
             self.super_tensor = self.super_tensor[...,wt[0]:-wt[1]]
 
         # Get euclidean distances
-        #  self.super_tensor.attrs['d_eu'] = self.__get_euclidean_distances()
+        self.super_tensor.attrs['d_eu'] = self.__get_euclidean_distances()
 
     def convert_to_adjacency(self,):
         self.A = xr.DataArray( convert_to_adjacency(self.super_tensor.values, self.super_tensor.attrs['sources'],self.super_tensor.attrs['targets']), 
                 dims=("sources","targets","freqs","trials","times"),
-                coords={"trials":   self.super_tensor.trials.values, 
+                coords={"trials":   self.super_tensor.trials.values,
                         "times":    self.super_tensor.times.values,
                         "sources":  self.super_tensor.attrs['channels_labels'],
                         "targets":  self.super_tensor.attrs['channels_labels']})
@@ -177,7 +177,7 @@ class temporal_network():
         parallel, p_fun = parallel_func(
             _single_estimative, n_jobs=n_jobs, verbose=verbose,
             total=n_stat)
-        
+
         self.A_null = []
         itr = range(len(self.freqs))
         for band in (tqdm(itr) if verbose else itr):
@@ -185,7 +185,7 @@ class temporal_network():
             A_tmp   = parallel(p_fun(band,i*(seed+100)) for i in range(n_stat))
             self.A_null += [xr.concat(A_tmp,dim="surrogates")]
             del A_tmp
-        
+
         # Concatenate bands
         self.A_null = xr.concat(self.A_null,dim="bands")
         self.A_null = self.A_null.transpose("surrogates","sources","targets","freqs","trials","times")
@@ -195,11 +195,11 @@ class temporal_network():
         self.s_mask = create_stages_time_grid(
                       self.super_tensor.attrs['t_cue_on'],
                       self.super_tensor.attrs['t_cue_off'],
-                      self.super_tensor.attrs['t_match_on'], 
+                      self.super_tensor.attrs['t_match_on'],
                       self.super_tensor.attrs['fsample'],
                       self.time, self.super_tensor.sizes['trials'], flatten=flatten
                       )
-        if flatten: 
+        if flatten:
             dims=("observations")
         else:
             dims=("trials","times")
@@ -240,9 +240,9 @@ class temporal_network():
 
     def get_data_from(self, stage=None, pad=False):
         r'''
-        Return a copy of the super-tensor only for the data points correspondent for a 
+        Return a copy of the super-tensor only for the data points correspondent for a
         given experiment stage (baseline, cue, delay, match).
-        > INPUT: 
+        > INPUT:
         - stage: Name of the stage from which to get data from.
         - pad: If true will only zero out elements out of the specified task stage.
         > OUTPUTS:
@@ -266,7 +266,7 @@ class temporal_network():
     def get_number_of_samples(self, stage=None, total=False):
         r'''
         Return the number of samples for a given stage for all the trials.
-        > INPUT: 
+        > INPUT:
         - stage: Name of the stage from which to get number of samples from.
         - total: If True will get the total number of observations for all trials
                  otherwise will get the number of observations per trial.
@@ -291,10 +291,10 @@ class temporal_network():
         Get the trial averaged super-tensor, it averages togheter the trials for delays in
         the ranges specified by win_delay.
         > INPUTS:
-        - win_delay: The delay durations that should be averaged together, e.g., 
+        - win_delay: The delay durations that should be averaged together, e.g.,
                if win_delay = [[800, 1000],[1000,1200]] all the trials
-               in which the delays are between 800-1000ms will be averaged together, 
-               likewise for 1000-1200ms, therefore two averaged super-tensors will be 
+               in which the delays are between 800-1000ms will be averaged together,
+               likewise for 1000-1200ms, therefore two averaged super-tensors will be
                returnd. If None the average is done for all trials.
         > OUTPUTS:
         - The trial averaged super-tensor.
@@ -330,18 +330,23 @@ class temporal_network():
         Get the channels euclidean distances based on their coordinates.
         '''
         xy   = self.__get_coords()
-        d_eu = np.zeros(self.session_info['pairs'].shape[0])
-        for i in range( self.session_info['pairs'].shape[0] ):
-            c1 = self.session_info['channels_labels'].astype(int)[self.session_info['pairs'][i,0]]
-            c2 = self.session_info['channels_labels'].astype(int)[self.session_info['pairs'][i,1]]
-            dx = xy[c1-1,0] - xy[c2-1,0]
-            dy = xy[c1-1,1] - xy[c2-1,1]
-            d_eu[i] = np.sqrt(dx**2 + dy**2)
+        d_eu = np.zeros(len(self.super_tensor.attrs['sources']))
+        #  for i in range( self.session_info['pairs'].shape[0] ):
+        #      c1 = self.session_info['channels_labels'].astype(int)[self.session_info['sources'][i]]
+        #      c2 = self.session_info['channels_labels'].astype(int)[self.session_info['targets'][i]]
+        #      dx = xy[c1-1,0] - xy[c2-1,0]
+        #      dy = xy[c1-1,1] - xy[c2-1,1]
+        #      d_eu[i] = np.sqrt(dx**2 + dy**2)
+        c1 = self.session_info['channels_labels'].astype(int)[self.session_info['sources']]
+        c2 = self.session_info['channels_labels'].astype(int)[self.session_info['targets']]
+        dx = xy[c1-1,0] - xy[c2-1,0]
+        dy = xy[c1-1,1] - xy[c2-1,1]
+        d_eu = np.sqrt(dx**2 + dy**2)
         return d_eu
 
     def __compute_coherence_thresholds(self, q, relative, keep_weights, verbose):
-        if verbose: print('Computing coherence thresholds') 
-        self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','times')).values, 
+        if verbose: print('Computing coherence thresholds')
+        self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','times')).values,
                                                     q=q, relative=relative, verbose=verbose)
         # Temporarily store the stacked super-tensor
         tmp  = self.super_tensor.stack(observations=('trials','times'))

@@ -54,17 +54,17 @@ def randomize_edges(A, n_rewires = 100, seed=0, verbose=False):
 
     itr = range(nt)
     for t in (tqdm(itr) if verbose else itr):
-        g   = instantiate_graph(A[:,:,t], is_weighted=False)
+        g   = instantiate_graph(A[...,t], is_weighted=False)
         G   = g.copy()
         G.rewire(n=n_rewires)
-        A_null[:,:,t] = np.array(list(G.get_adjacency()))
+        A_null[...,t] = np.array(list(G.get_adjacency()))
 
     # Unstack trials and time
     A_null = A_null.reshape( (len(roi),len(roi),len(trials),len(time)) )
     # Convert to xarray
-    A_null = xr.DataArray(A_null.astype(_DEFAULT_TYPE), dims=("roi_1","roi_2","trials","time"),
-                                  coords={"roi_1": roi,
-                                          "roi_2": roi,
-                                          "time": time, 
+    A_null = xr.DataArray(A_null.astype(_DEFAULT_TYPE), dims=("sources","targets","trials","times"),
+                                  coords={"sources": roi,
+                                          "targets": roi,
+                                          "times": time,
                                           "trials": trials} )
     return A_null

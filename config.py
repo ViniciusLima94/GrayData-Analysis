@@ -25,7 +25,7 @@ dirs = {
 #          'session':'session01',
 #          'date'   :[['150128', '150211', '150304'], []]
 #          }
- 
+
 #####################################################################################################
 # Spectral analysis
 #####################################################################################################
@@ -35,7 +35,7 @@ sm_times = 300
 sm_freqs = 1
 
 # Defining parameters
-delta = 10       # Downsampling factor
+delta = 15       # Downsampling factor
 mode  = 'morlet' # ("morlet", "mt_1", "mt_2")
 foi   = np.array([
         [0.1, 6.],
