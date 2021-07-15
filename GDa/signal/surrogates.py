@@ -10,7 +10,7 @@ pi = np.pi
 def _is_odd(number):
     return bool(number%2)
 
-def phase_rand_surrogates(x, val=1, verbose=False, n_jobs=1):
+def phase_rand_surrogates(x, val=1, seed=0, verbose=False, n_jobs=1):
     r'''
     PhaseRand_surrogates(x, val) takes time-series array (x) and type of randomization (val)
     as inputs and provides phase-randomized TS as output.
@@ -23,6 +23,9 @@ def phase_rand_surrogates(x, val=1, verbose=False, n_jobs=1):
     > OUTPUTS:
     x_surr: Surrogated signal.
     '''
+    
+    np.random.seed(seed)
+
     assert isinstance(x, (np.ndarray, xr.DataArray))
     assert isinstance(val, int)
 
