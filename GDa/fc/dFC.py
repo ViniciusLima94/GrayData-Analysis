@@ -111,9 +111,3 @@ def dFC(data, times=None, roi=None, sfreq=None, f_low=None, f_high=None, pairs=N
                       name='dfc', coords=(trials, roi_p, times),
                       attrs=cfg)
     return dfc
-
-
-   
-
-
-
