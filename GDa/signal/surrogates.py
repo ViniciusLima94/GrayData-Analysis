@@ -1,6 +1,7 @@
 import numpy  as np
 import xarray as xr
 
+from   tqdm         import tqdm 
 from   frites.utils import parallel_func
 
 
@@ -9,6 +10,40 @@ pi = np.pi
 
 def _is_odd(number):
     return bool(number%2)
+
+def trial_swap_surrogates(x, seed=0, verbose=False):
+    r'''
+    Given the data, randomly swap the trials of the channels.
+    > INPUTS:
+    - x: data array with dimensions ("trials","roi","time").
+    - verbose: If True shows progress information.
+    > OUTPUTS:
+    x_surr: Data with randomized trials.
+    '''
+
+    np.random.seed(seed)
+
+    assert isinstance(x, (np.ndarray, xr.DataArray))
+
+    # Get number of nodes and time points
+    n_trials, n_nodes, n_times = x.shape[0], x.shape[1], x.shape[2]
+
+    # Surrogate data
+    x_surr = np.zeros_like(x)
+    # Array with trial indexes
+    trials = np.arange(n_trials, dtype=int)
+
+    itr = range(n_nodes)
+    for c in tqdm(itr) if verbose else itr:
+        # Swapped indexes
+        np.random.shuffle(trials)
+        # Attribute the signal in random order to surrogate data
+        x_surr[:,c,:] = x[trials,c,:]
+
+    if isinstance(x, xr.DataArray):
+        x_surr = xr.DataArray(x_surr, dims=x.dims, coords=x.coords)
+
+    return x_surr
 
 def phase_rand_surrogates(x, val=1, seed=0, verbose=False, n_jobs=1):
     r'''

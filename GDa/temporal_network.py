@@ -22,7 +22,7 @@ class temporal_network():
 
     def __init__(self, data_raw_path='GrayLab/', tensor_raw_path='super_tensors', monkey='lucy', session=1,
                  date='150128', trial_type=None, behavioral_response=None, wt=None,
-                 drop_trials_after=True, relative=False, keep_weights=False, q=None, verbose=False):
+                 drop_trials_after=True, relative=False, surrogate=False, keep_weights=False, q=None, verbose=False):
         r'''
         Temporal network class, this object will have information about the session analysed and store the coherence
         networks (a.k.a. supertensor).
@@ -40,6 +40,7 @@ class temporal_network():
             specified in trial_types.
         - relative: if threshold is true wheter to do it in ralative (one thr per link per band) or
             an common thr for links per band.
+        - surrogate: If True, loads file with surrogate instead.
         - keep_weights: If True, will keep the top weights after thresholding.
         - q: Quartile value to use for thresholding.
         - verbose: Wheter to print information or not.
@@ -69,7 +70,7 @@ class temporal_network():
         self.behavioral_response = behavioral_response
 
         # Load super-tensor
-        self.__load_h5(wt)
+        self.__load_h5(wt,surrogate)
 
         # Threshold the super tensor
         if isinstance(q, (int,float)):
@@ -88,13 +89,20 @@ class temporal_network():
             if trial_type is not None or behavioral_response is not None:
                 self.__filter_trials(trial_type, behavioral_response)
 
-    def __load_h5(self, wt):
+    def __load_h5(self, wt, surrogate):
         # Path to the file
-        h5_super_tensor_path = os.path.join(self.raw_path,
-                                            self.monkey,
-                                            self.date,
-                                            self.session,
-                                            'super_tensor.nc')
+        if not surrogate:
+            h5_super_tensor_path = os.path.join(self.raw_path,
+                                                self.monkey,
+                                                self.date,
+                                                self.session,
+                                                'super_tensor.nc')
+        else:
+            h5_super_tensor_path = os.path.join(self.raw_path,
+                                                self.monkey,
+                                                self.date,
+                                                self.session,
+                                                'super_tensor_surr.nc')
         #  try:
         #      hf = h5py.File(h5_super_tensor_path, 'r')
         #  except (OSError):

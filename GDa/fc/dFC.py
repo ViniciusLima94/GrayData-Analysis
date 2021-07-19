@@ -73,10 +73,13 @@ def dFC(data, times=None, roi=None, sfreq=None, f_low=None, f_high=None, pairs=N
     x = z_score(x)
 
     # If a window is specified then does windowed dFC else compute the co-fluctuations time-series
-    is_windowed = False
-    if isinstance(win_args, dict):
-        is_windowed = True
-        win, times = define_windows(times, **win_args)
+    #  is_windowed = False
+    #  if isinstance(win_args, dict):
+    #      is_windowed = True
+    #      win, times = define_windows(times, **win_args)
+    if isinstance(decim, int):
+        x     = x[...,::decim]
+        times = times[::decim]
 
     # compute coherence on blocks of trials
     dfc = np.zeros((n_trials, n_pairs, len(times)))
@@ -85,10 +88,11 @@ def dFC(data, times=None, roi=None, sfreq=None, f_low=None, f_high=None, pairs=N
         # ______________________________ CORRELATION ____________________________
         #  @nb.jit(nopython=True)
         def pairwise_correlation(w_x, w_y):
-            cc = []
-            for w_s,w_e in win:
-                cc += [np.mean(x[tr,w_x,w_s:w_e]*x[tr,w_y,w_s:w_e],axis=-1)]
-            cc = np.stack(cc,axis=1)
+            #  cc = []
+            #  for w_s,w_e in win:
+            #      cc += [np.mean(x[tr,w_x,w_s:w_e]*x[tr,w_y,w_s:w_e],axis=-1)]
+            #  cc = np.stack(cc,axis=1)
+            cc = x[tr,w_x]*x[tr,w_y]
             return cc
 
         # define the function to compute in parallel
