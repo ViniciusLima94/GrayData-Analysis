@@ -22,7 +22,8 @@ def z_score(x):
         return (x-x.mean(dim="times"))/x.std(dim="times")
 
 
-def dFC(data, times=None, roi=None, sfreq=None, f_low=None, f_high=None, pairs=None, decim=None, win_args=None, block_size=None, verbose=False, n_jobs=1):
+def dFC(data, times=None, roi=None, sfreq=None, f_low=None, f_high=None, pairs=None, decim=None, 
+        block_size=None, verbose=False, n_jobs=1):
     r'''
     Computes dynamic FC for data in the format ("trials","roi","times")
     - x: Input tensor data with shape ("trials","roi","times").
