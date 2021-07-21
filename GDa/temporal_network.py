@@ -15,12 +15,14 @@ import os
 import h5py
 
 _DEFAULT_TYPE = np.float32
+# Defining default paths
 _COORDS_PATH  = 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat'
-#  _COORDS_PATH = 'GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat'
+_DATA_PATH    = '../GrayLab'
+_COH_PATH     = '../Results'
 
 class temporal_network():
 
-    def __init__(self, data_raw_path='GrayLab/', tensor_raw_path='super_tensors', monkey='lucy', session=1,
+    def __init__(self, coh_file=None, monkey='lucy', session=1, coh_thr=None,
                  date='150128', trial_type=None, behavioral_response=None, wt=None,
                  drop_trials_after=True, relative=False, keep_weights=False, q=None, verbose=False):
         r'''
@@ -30,6 +32,7 @@ class temporal_network():
         - raw_path: Raw path to the coherence super tensor
         - monkey: Monkey name
         - session: session number
+        - coh_thr: Thresholds to use (if not passed they will be computed according to the pars relative and q)
         - date: date of the recording session
         - align_to: Wheter data is aligned to cue or match
         - trial_type: the type of trial (DRT/fixation)
@@ -53,7 +56,7 @@ class temporal_network():
         if behavioral_response is not None: behavioral_response = np.asarray(behavioral_response)
 
         # Load session info
-        self.info           = GDa.session.session(raw_path=data_raw_path, monkey=monkey, date=date, session=session)
+        self.info           = GDa.session.session(raw_path=_DATA_PATH, monkey=monkey, date=date, session=session)
         # Storing recording info
         self.recording_info = self.info.recording_info
         # Storing trial info
@@ -62,9 +65,11 @@ class temporal_network():
         del self.info
 
         # Setting up mokey and recording info to load and save files
-        self.raw_path = tensor_raw_path
+        #  self.raw_path = tensor_raw_path
+        self.coh_file = coh_file
         self.monkey   = monkey
         self.date     = date
+        self.coh_thr  = coh_thr
         self.session  = f'session0{session}'
         self.trial_type          = trial_type
         self.behavioral_response = behavioral_response
@@ -73,7 +78,7 @@ class temporal_network():
         self.__load_h5(wt)
 
         # Threshold the super tensor
-        if isinstance(q, (int,float)):
+        if isinstance(q, (int,float)) or isinstance(self.coh_thr, xr.DataArray):
             # Drop trials before thresholding
             if (trial_type is not None or behavioral_response is not None) and (drop_trials_after is False):
                 #  print(f'drop_trials_after={drop_trials_after}')
@@ -91,12 +96,17 @@ class temporal_network():
 
     def __load_h5(self, wt):
         # Path to the file
+        h5_super_tensor_path = os.path.join(_COH_PATH,
+                                            self.monkey,
+                                            self.date,
+                                            self.session,
+                                            self.coh_file)
         #  h5_super_tensor_path = os.path.join(self.raw_path,
         #                                      self.monkey,
         #                                      self.date,
         #                                      self.session,
         #                                      'super_tensor.nc')
-        h5_super_tensor_path = os.path.join(self.raw_path)
+        #  h5_super_tensor_path = os.path.join(self.raw_path)
         #  try:
         #      hf = h5py.File(h5_super_tensor_path, 'r')
         #  except (OSError):
@@ -138,7 +148,7 @@ class temporal_network():
         try:
             self.super_tensor = xr.load_dataarray(h5_super_tensor_path)
         except:
-            raise OSError('File "super_tensor.nc" not found for monkey')
+            raise OSError(f'File {self.coh_file} not found for monkey')
 
         # Copy axes values to class attributes
         self.time  = self.super_tensor.times.values
@@ -347,9 +357,10 @@ class temporal_network():
         return d_eu
 
     def __compute_coherence_thresholds(self, q, relative, keep_weights, verbose):
-        if verbose: print('Computing coherence thresholds')
-        self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','times')).values,
-                                                    q=q, relative=relative, verbose=verbose)
+        if not isinstance(self.coh_thr, xr.DataArray):
+            if verbose: print('Computing coherence thresholds')
+            self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','times')).values,
+                                                        q=q, relative=relative, verbose=verbose)
         # Temporarily store the stacked super-tensor
         tmp  = self.super_tensor.stack(observations=('trials','times'))
         # Create the mask by applying threshold
