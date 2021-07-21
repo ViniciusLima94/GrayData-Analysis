@@ -5,7 +5,7 @@
 #SBATCH --ntasks=40
 #SBATCH --mem-per-cpu=2000
 #SBATCH --cpus-per-task=1
-#SBATCH --array=0-10
+#SBATCH --array=11-21
 
 #module load python/3.6.8
 #python3 -O save_coherences.py $SLURM_ARRAY_TASK_ID
