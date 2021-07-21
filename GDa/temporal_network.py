@@ -101,48 +101,6 @@ class temporal_network():
                                             self.date,
                                             self.session,
                                             self.coh_file)
-        #  h5_super_tensor_path = os.path.join(self.raw_path,
-        #                                      self.monkey,
-        #                                      self.date,
-        #                                      self.session,
-        #                                      'super_tensor.nc')
-        #  h5_super_tensor_path = os.path.join(self.raw_path)
-        #  try:
-        #      hf = h5py.File(h5_super_tensor_path, 'r')
-        #  except (OSError):
-        #      raise OSError('File "super_tensor.h5" not found for monkey')
-
-        #  # Reade h5 file containing coherence data
-        #  self.super_tensor = hf['coherence'][:]
-        #  self.tarray       = hf['tarray'][:]
-        #  self.freqs        = hf['freqs'][:]
-        #  self.bands        = hf['bands'][:]
-        #  self.roi          = hf['roi'][:]
-
-        #  # Reading metadata
-        #  self.session_info = {}
-        #  self.session_info['nT'] = self.super_tensor.shape[1]
-        #  for k in hf['info'].keys():
-        #      if k == 'nC':
-        #          self.session_info[k] = int( np.squeeze( np.array(hf['info/'+k]) ) )
-        #      else:
-        #          self.session_info[k] = np.squeeze( np.array(hf['info/'+k]) )
-
-        #  if isinstance(wt, tuple):
-        #      self.tarray       = self.tarray[wt[0]:-wt[1]]
-        #      self.super_tensor = self.super_tensor[...,wt[0]:-wt[1]]
-
-        #  # Concatenate trials in the super tensor
-        #  self.super_tensor = self.super_tensor.swapaxes(1,2)
-
-        #  # Convert to xarray
-        #  self.super_tensor = xr.DataArray(self.super_tensor.astype(_DEFAULT_TYPE), dims=("links","bands","trials","time"),
-        #                                   coords={"trials": self.trial_info.trial_index.values, 
-        #                                           "time":   self.tarray} )
-
-        #  # Metadata (the same as session_info)
-        #  self.super_tensor.attrs         = self.session_info
-        # Getting euclidian distance between each pair of nodes
 
         # Try to read the file in the path specified
         try:
@@ -343,12 +301,6 @@ class temporal_network():
         '''
         xy   = self.__get_coords()
         d_eu = np.zeros(len(self.super_tensor.attrs['sources']))
-        #  for i in range( self.session_info['pairs'].shape[0] ):
-        #      c1 = self.session_info['channels_labels'].astype(int)[self.session_info['sources'][i]]
-        #      c2 = self.session_info['channels_labels'].astype(int)[self.session_info['targets'][i]]
-        #      dx = xy[c1-1,0] - xy[c2-1,0]
-        #      dy = xy[c1-1,1] - xy[c2-1,1]
-        #      d_eu[i] = np.sqrt(dx**2 + dy**2)
         c1 = self.session_info['channels_labels'].astype(int)[self.session_info['sources']]
         c2 = self.session_info['channels_labels'].astype(int)[self.session_info['targets']]
         dx = xy[c1-1,0] - xy[c2-1,0]
