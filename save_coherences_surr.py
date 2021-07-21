@@ -6,7 +6,7 @@ import h5py
 from   config                          import *
 from   GDa.session                     import session
 from   GDa.io                          import set_paths
-from   GDa.signal.surrogates           import phase_rand_surrogates
+from   GDa.signal.surrogates           import phase_rand_surrogates, trial_swap_surrogates
 from   xfrites.conn.conn_coh           import conn_coherence_wav
 from   joblib                          import Parallel, delayed
 
@@ -53,7 +53,8 @@ if  __name__ == '__main__':
     )
 
     # Create data surrogate
-    ses.data.values = phase_rand_surrogates(ses.data,val=0,seed=seed,verbose=False,n_jobs=-1)
+    #  ses.data.values = phase_rand_surrogates(ses.data, val=0, seed=seed,verbose=False,n_jobs=-1)
+    ses.data.values = trial_swap_surrogates(ses.data, seed=seed, verbose=False)
 
     # compute the coherence
     coh = conn_coherence_wav(ses.data.values.astype(np.float32), **kw)
