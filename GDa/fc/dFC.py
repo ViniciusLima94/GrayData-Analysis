@@ -21,13 +21,54 @@ def z_score(x):
         assert "times" in x.dims
         return (x-x.mean(dim="times"))/x.std(dim="times")
 
-
-def dFC(data, times=None, roi=None, sfreq=None, f_low=None, f_high=None, pairs=None, decim=None, 
+def conn_correlation(data, times=None, roi=None, sfreq=None, f_low=None, f_high=None, pairs=None, win_sample=None, decim=None, 
         block_size=None, verbose=False, n_jobs=1):
-    r'''
-    Computes dynamic FC for data in the format ("trials","roi","times")
-    - x: Input tensor data with shape ("trials","roi","times").
-    '''
+    """ 
+    Computes co-fluctuation time-series between rois (elementwise product of the z_score time-series) 
+    for data in the format ("trials","roi","times").
+    Parameters
+    ----------
+    data : array_like
+        Electrophysiological data. Several input types are supported :
+            * Standard NumPy arrays of shape (n_epochs, n_roi, n_times)
+            * mne.Epochs
+            * xarray.DataArray of shape (n_epochs, n_roi, n_times)
+    roi : array_like | None
+        ROI names of a single subject. If the input is an xarray, the
+        name of the ROI dimension can be provided
+    times : array_like | None
+        Time vector array of shape (n_times,). If the input is an xarray, the
+        name of the time dimension can be provided
+    sfreq : float
+        The sampling frequency
+    f_low: float
+        Lower frequency for filtering signal.
+    f_high:
+        Upper frequency for filtering the signal.
+    pairs : array_like | None
+        Pairs of contacts
+    win_sample : array_like | None
+        Array of shape (n_windows, 2) in order to take the mean of the
+        estimated coherence inside sliding windows. You can use the function
+        :func:`frites.conn.define_windows` to define either manually either
+        sliding windows.
+    decim : int | 1
+        To reduce memory usage, decimation factor after time-frequency
+        decomposition. default 1 If int, returns tfr[…, ::decim]. If slice,
+        returns tfr[…, decim].
+    block_size : int | None
+        Number of blocks of trials to process at once. This parameter can be
+        use in order to decrease memory load. If None, all trials are used. If
+        for example block_size=2, the number of trials are subdivided into two
+        groups and each group is process one after the other.
+    n_jobs : int | 1
+        Number of jobs to use for parallel computing (use -1 to use all
+        jobs). The parallel loop is set at the pair level.
+    Returns
+    -------
+    dFC : xarray.DataArray
+        DataArray of shape (n_trials, n_pairs, n_freqs, n_times)
+    """ 
 
     set_log_level(verbose)
 
@@ -61,6 +102,12 @@ def dFC(data, times=None, roi=None, sfreq=None, f_low=None, f_high=None, pairs=N
     else:
         indices = [np.arange(n_trials)]
 
+    # temporal mean
+    need_mean = isinstance(win_sample, np.ndarray) and win_sample.shape[1] == 2
+    if need_mean:
+        if decim > 2:
+            win_sample = np.floor(win_sample / decim).astype(int)
+        times = times[win_sample].mean(1)
 
     # show info
     logger.info(f"Compute pairwise dFC (n_pairs={n_pairs}"
@@ -73,11 +120,7 @@ def dFC(data, times=None, roi=None, sfreq=None, f_low=None, f_high=None, pairs=N
     # z-score data
     x = z_score(x)
 
-    # If a window is specified then does windowed dFC else compute the co-fluctuations time-series
-    #  is_windowed = False
-    #  if isinstance(win_args, dict):
-    #      is_windowed = True
-    #      win, times = define_windows(times, **win_args)
+    # Decimate if needed
     if isinstance(decim, int):
         x     = x[...,::decim]
         times = times[::decim]
@@ -85,15 +128,16 @@ def dFC(data, times=None, roi=None, sfreq=None, f_low=None, f_high=None, pairs=N
     # compute coherence on blocks of trials
     dfc = np.zeros((n_trials, n_pairs, len(times)))
     for tr in indices:
-
         # ______________________________ CORRELATION ____________________________
-        #  @nb.jit(nopython=True)
         def pairwise_correlation(w_x, w_y):
-            #  cc = []
-            #  for w_s,w_e in win:
-            #      cc += [np.mean(x[tr,w_x,w_s:w_e]*x[tr,w_y,w_s:w_e],axis=-1)]
-            #  cc = np.stack(cc,axis=1)
+            # Elementwise product of z_scored time-series
             cc = x[tr,w_x]*x[tr,w_y]
+            # mean inside temporal sliding window (if needed)
+            if need_mean:
+                cc = []
+                for w_s, w_e in win_sample:
+                    cc += [cc[..., w_s:w_e].mean(-1, keepdims=True)]
+                cc = np.concatenate(cc, axis=-1)
             return cc
 
         # define the function to compute in parallel
