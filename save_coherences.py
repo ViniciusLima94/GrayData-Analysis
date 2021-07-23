@@ -47,7 +47,7 @@ if  __name__ == '__main__':
     kw = dict(
         freqs=freqs, times=ses.data.time, roi=ses.data.roi, foi=foi, n_jobs=20, pairs=pairs,
         sfreq=ses.data.attrs['fsample'], mode=mode, decim_at=decim_at, n_cycles=n_cycles, decim=delta,
-        sm_times=sm_times, sm_freqs=sm_freqs, block_size=2
+        sm_times=sm_times, sm_freqs=sm_freqs, block_size=1
     )
 
     # compute the coherence
