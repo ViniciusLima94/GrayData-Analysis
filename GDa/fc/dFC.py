@@ -84,7 +84,6 @@ def conn_correlation(data, times=None, roi=None, sfreq=None, f_low=None, f_high=
     trials, sfreq = data['y'].data, data.attrs['sfreq']
     n_trials, n_roi, n_times = data.shape
 
-
     # get the sorted non-directed pairs and build roi pairs names
     if (pairs is None):
         x_s, x_t = np.triu_indices(n_roi, k=1)
