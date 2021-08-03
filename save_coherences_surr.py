@@ -11,11 +11,12 @@ from   xfrites.conn.conn_coh           import conn_coherence_wav
 from   joblib                          import Parallel, delayed
 
 idx     = int(sys.argv[-1])
-seed    = int(sys.argv[-2])
+seed    = int(sys.argv[-2]) * 1000
 
 nmonkey = 0
 nses    = 1
 ntype   = 0
+
 
 #################################################################################################
 # Which trial type, alignment and behav. response to use
@@ -49,15 +50,15 @@ if  __name__ == '__main__':
     kw = dict(
         freqs=freqs, times=ses.data.time, roi=ses.data.roi, foi=foi, n_jobs=20, pairs=pairs,
         sfreq=ses.data.attrs['fsample'], mode=mode, decim_at=decim_at, n_cycles=n_cycles, decim=delta,
-        sm_times=sm_times, sm_freqs=sm_freqs, block_size=1
+        sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel, block_size=1
     )
 
     # Create data surrogate
-    ses.data.values = phase_rand_surrogates(ses.data, val=0, seed=seed,verbose=False,n_jobs=-1)
-    #  ses.data.values = trial_swap_surrogates(ses.data, seed=seed, verbose=False)
+    #  ses.data.values = phase_rand_surrogates(ses.data, val=0, seed=seed,verbose=False,n_jobs=-1)
+    ses.data.values = trial_swap_surrogates(ses.data, seed=seed, verbose=False)
 
     # compute the coherence
-    coh = conn_coherence_wav(ses.data.values.astype(np.float32), **kw)
+    coh = conn_coherence_wav(ses.data.values, **kw).astype(np.float32)
     # reordering dimensions
     coh = coh.transpose("roi","freqs","trials","times")
     # replace trial axis for the actual values

@@ -31,8 +31,9 @@ dirs = {
 #####################################################################################################
 
 # Smoothing windows
-sm_times = 600
-sm_freqs = 6
+sm_times  = 500
+sm_freqs  = 4
+sm_kernel = "square"
 
 # Defining parameters
 delta = 15       # Downsampling factor
