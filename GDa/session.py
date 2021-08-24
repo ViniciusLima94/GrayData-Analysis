@@ -17,14 +17,21 @@ from  tqdm           import tqdm
 class session_info():
     
     def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', session = 1):
-        r'''
-        Session info class, it will store recording and trial info of the session specified.
-        > INPUTS:
-        - raw_path: Raw path to the LFP data and metadata
-        - monkey: Monkey name
-        - date: date of the recording session
-        - session: session number
-        '''
+        """
+        The session_info class stores recording and trial info of the session specified.
+
+        Parameters
+        ----------
+        raw_path: string | 'GrayLab/'
+            Raw path to the LFP data and metadata
+        monkey: string | 'lucy'
+            Monkey name
+        date: string | '150128'
+            date of the recording session
+        session: int | 1
+            session number
+        """
+
         #Check for incorrect parameter values
         assert monkey in ['lucy', 'ethyl'], 'monkey should be either "lucy" or "ethyl"'
 
@@ -55,27 +62,34 @@ class session_info():
         self.trial_info     = pd.DataFrame.from_dict(self.trial_info, orient='columns')
     
     def print_paths(self, ):
-        print('dir: ' + self.__paths.dir)
-        print('dir_out: ' + self.__paths.dir_out)
+        print(f'dir: {self.__paths.dir}')
+        print(f'dir_out: {self.__paths.dir_out}')
 
 class session(session_info):
     
     def __init__(self, raw_path = 'GrayLab/', monkey = 'lucy', date = '150128', session = 1,
                  slvr_msmod = False, align_to = 'cue', evt_dt = [-0.65, 3.00]):
 
-        r'''
+        """
         Session class, it will store the data with the recording and trial info of the session specified.
-        > INPUTS:
-        - raw_path: Raw path to the LFP data and metadata
-        - monkey: Monkey name
-        - date: date of the recording session
-        - session: session number
-        - slvr_msmod: Whether to load or not channels with slvr_msmod
-        - align_to: Wheter data is aligned to cue or match
-        - trial_type: the type of trial (DRT/fixation) 
-        - behavioral_response: Wheter to get sucessful (1) or unsucessful (0) trials
-        - evt_dt: Get signal from evt_dt[0] to evt_dt[1]
-        '''
+
+        Parameters
+        ----------
+        raw_path: string | 'GrayLab/'
+            Raw path to the LFP data and metadata
+        monkey: string | 'lucy'
+            Monkey name
+        date: string | '150128'
+            date of the recording session
+        session: int | 1
+            session number
+        slvr_msmod: bool | False
+            Whether to load or not channels with slvr_msmod
+        align_to: string | 'cue'
+            Wheter data is aligned to cue or match
+        evt_dt: array_like | [-0.65, 3.00] 
+            Get signal from evt_dt[0] to evt_dt[1]
+        """
         #Check for incorrect parameter values
         assert monkey in ['lucy', 'ethyl'], 'monkey should be either "lucy" or "ethyl"'
             
@@ -150,11 +164,6 @@ class session(session_info):
         stimulus = self.trial_info['sample_image'].values
         # Labels of the selected channels
         labels   = self.recording_info['channel_numbers'][indch]
-        # Number of possible pairs (undirected network)
-        #  nP       = int( scipy.special.comb(n_channels, 2) )
-        # Every pair combination
-        #  i, j     = np.tril_indices(n_channels, k = -1)
-        #  pairs    = np.array([j,i]).T
         # Area names for selected channels 
         area     = self.recording_info['area'][indch]
         area     = np.array(area, dtype='<U13')
