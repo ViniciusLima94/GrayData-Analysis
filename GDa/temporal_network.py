@@ -29,6 +29,7 @@ class temporal_network():
         """
         Temporal network class, this object will have information about the session analysed and store the coherence
         networks (a.k.a. supertensor).
+
         Parameters
         ----------
         coh_file: string | None
