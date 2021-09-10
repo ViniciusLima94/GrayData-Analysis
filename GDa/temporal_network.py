@@ -14,6 +14,7 @@ from   frites.utils          import parallel_func
 import os
 import h5py
 
+# Define default return type
 _DEFAULT_TYPE = np.float32
 # Defining default paths
 _COORDS_PATH  = 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat'
@@ -25,29 +26,39 @@ class temporal_network():
     def __init__(self, coh_file=None, monkey='lucy', session=1, coh_thr=None,
                  date='150128', trial_type=None, behavioral_response=None, wt=None,
                  drop_trials_after=True, relative=False, keep_weights=False, q=None, verbose=False):
-        r'''
+        """
         Temporal network class, this object will have information about the session analysed and store the coherence
         networks (a.k.a. supertensor).
-        > INPUTS:
-        - raw_path: Raw path to the coherence super tensor
-        - monkey: Monkey name
-        - session: session number
-        - coh_thr: Thresholds to use (if not passed they will be computed according to the pars relative and q)
-        - date: date of the recording session
-        - align_to: Wheter data is aligned to cue or match
-        - trial_type: the type of trial (DRT/fixation)
-        - behavioral_response: Wheter to get sucessful (1) or unsucessful (0) trials
-        - wt: Tuple. Trimming window will remove the wt[0] and wt[1] points in the start and end of each trial
-        - drop_trials_after: If True the trials that are not in trial_type are droped only after
+        Parameters
+        ----------
+        coh_file: string | None
+            Path to the coherence file
+        monkey: string | 'lucy'
+            Monkey name
+        session: int | 1
+            session number
+        coh_thr: array_like | None
+            Thresholds to use (if not passed they will be computed according to the pars relative and q)
+        date: string | '150128'
+            date of the recording session
+        trial_type: int | None
+            the type of trial (DRT/fixation)
+        behavioral_response: int | None
+            Wheter to get sucessful (1) or unsucessful (0) trials
+        wt Tuple | None 
+            Trimming window will remove the wt[0] and wt[1] points in the start and end of each trial
+        drop_trials_after: bool | True
+            If True the trials that are not in trial_type are droped only after
             computing the thresholds which mean that the thresholds will be commom for all types of trials
             specified in trial_types.
-        - relative: if threshold is true wheter to do it in ralative (one thr per link per band) or
+        relative: bool | False 
+            If threshold is true wheter to do it in ralative (one thr per link per band) or
             an common thr for links per band.
-        - surrogate: If True, loads file with surrogate instead.
-        - keep_weights: If True, will keep the top weights after thresholding.
-        - q: Quartile value to use for thresholding.
-        - verbose: Wheter to print information or not.
-        '''
+        keep_weights: bool | False 
+            If True, will keep the top weights after thresholding.
+        q: float | None
+            Quartile value to use for thresholding.
+        """
 
         # Check for incorrect parameter values
         assert monkey in ['lucy', 'ethyl'], 'monkey should be either "lucy" or "ethyl"'
@@ -185,15 +196,22 @@ class temporal_network():
             self.super_tensor.attrs[key] = self.super_tensor.attrs[key][filtered_trials_idx]
 
     def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
-        r'''
+        """
         Filter super-tensor by desired trials based on trial_type and behav. response.
-        > INPUTS:
-        - trial_type: List with the number of the desired trial_types to load
-        - behavioral_response: List with the number of the desired behavioral_responses to load
-        > OUTPUTS:
-        - filtered_trials: The number of the trials correspondent to the selected trial_type and behavioral_response
-        - filtered_trials_idx: The index of the trials corresponding to the selected trial_type and behavioral_response
-        '''
+
+        Parameters
+        ----------
+        trial_type: int | None
+            the type of trial (DRT/fixation)
+        behavioral_response: int | None
+            Wheter to get sucessful (1) or unsucessful (0) trials
+        Returns
+        -------
+        filtered_trials | array_like
+            The number of the trials correspondent to the selected trial_type and behavioral_response
+        filtered_trials_idx | array_like
+            The index of the trials corresponding to the selected trial_type and behavioral_response
+        """
         # Check for invalid values
         assert _check_values(trial_type,[None, 1.0, 2.0, 3.0]) is True, "Trial type should be either 1, 2, 3 or None."
         assert _check_values(behavioral_response,[None,np.nan, 0.0, 1.0]) is True, "Behavioral response should be either 0, 1, NaN or None."
@@ -209,15 +227,20 @@ class temporal_network():
         return filtered_trials, filtered_trials_idx
 
     def get_data_from(self, stage=None, pad=False):
-        r'''
+        """
         Return a copy of the super-tensor only for the data points correspondent for a
         given experiment stage (baseline, cue, delay, match).
-        > INPUT:
-        - stage: Name of the stage from which to get data from.
-        - pad: If true will only zero out elements out of the specified task stage.
-        > OUTPUTS:
-        Copy of the super-tensor for the stage specified.
-        '''
+
+        Parameters
+        ----------
+        stage: string | None
+            Name of the stage from which to get data from.
+        - pad: bool | False
+            If true will only zero out elements out of the specified task stage.
+        Returns
+        -------
+            Copy of the super-tensor for the stage specified.
+        """
         assert stage in ['baseline','cue','delay','match'], "stage should be 'baseline', 'cue', 'delay' or 'match'."
         assert pad   in [False, True], "pad should be either False or True."
 
@@ -234,15 +257,20 @@ class temporal_network():
             return self.super_tensor.stack(observations=("trials","times")).isel(observations=self.s_mask[stage])
 
     def get_number_of_samples(self, stage=None, total=False):
-        r'''
+        """
         Return the number of samples for a given stage for all the trials.
-        > INPUT:
-        - stage: Name of the stage from which to get number of samples from.
-        - total: If True will get the total number of observations for all trials
-                 otherwise will get the number of observations per trial.
-        > OUTPUTS:
-        Return the number of samples for the stage provided for all trials concatenated.
-        '''
+
+        Parameters
+        ----------
+        stage: string | None
+            Name of the stage from which to get data from.
+        total: bool | False
+            If True will get the total number of observations for all trials
+            otherwise will get the number of observations per trial.
+        Returns
+        -------
+            Return the number of samples for the stage provided for all trials concatenated.
+        """
         assert stage in ['baseline','cue','delay','match'], "stage should be 'baseline', 'cue', 'delay' or 'match'."
 
         # Check if the binary mask was already created
@@ -257,18 +285,22 @@ class temporal_network():
             return self.s_mask[stage].sum(dim='times')
 
     def get_averaged_st(self, win_delay=None):
-        r'''
+        """
         Get the trial averaged super-tensor, it averages togheter the trials for delays in
         the ranges specified by win_delay.
-        > INPUTS:
-        - win_delay: The delay durations that should be averaged together, e.g.,
+
+        Parameters
+        ----------
+        win_delay: array_like | None
+               The delay durations that should be averaged together, e.g.,
                if win_delay = [[800, 1000],[1000,1200]] all the trials
                in which the delays are between 800-1000ms will be averaged together,
                likewise for 1000-1200ms, therefore two averaged super-tensors will be
                returnd. If None the average is done for all trials.
-        > OUTPUTS:
-        - The trial averaged super-tensor.
-        '''
+        Returns
+        -------
+            The trial averaged super-tensor.
+        """
         assert isinstance(win_delay, (type(None), list))
 
         # Delay duration for each trial
@@ -287,18 +319,18 @@ class temporal_network():
             return avg_super_tensor
 
     def __get_coords(self,):
-        r'''
+        """
         Get the channels coordinates.
-        '''
+        """
         from pathlib import Path
         _path = os.path.join(Path.home(), _COORDS_PATH)
         xy    = scipy.io.loadmat(_path)['xy']
         return xy
 
     def __get_euclidean_distances(self, ):
-        r'''
+        """
         Get the channels euclidean distances based on their coordinates.
-        '''
+        """
         xy   = self.__get_coords()
         d_eu = np.zeros(len(self.super_tensor.attrs['sources']))
         c1 = self.session_info['channels_labels'].astype(int)[self.session_info['sources']]
