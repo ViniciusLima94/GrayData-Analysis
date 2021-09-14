@@ -14,15 +14,23 @@ from   .util                 import instantiate_graph, _check_inputs, _unwrap_in
 _DEFAULT_TYPE = np.float32
 
 def compute_nodes_degree(A, mirror=False):
-    r'''
+    """
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the strength (weighted) degree (binary) of each
     node is computed.
-    > INPUTS:
-    - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
-    - mirror: If True will mirror the adjacency matrix (should be used if only the upper/lower triangle is given.
-    > OUTPUTS:
-    - node_degree: A matrix containing the nodes degree with shape (roi,trials,time).
-    '''
+
+    Parameters
+    ----------
+    A: array_like
+        Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    mirror: bool | False
+        If True will mirror the adjacency matrix (should be used if only the upper/lower triangle is given.
+
+    Returns
+    -------
+    node_degree: array_like
+        A matrix containing the nodes degree with shape (roi,trials,time).
+    """
+
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
@@ -40,18 +48,24 @@ def compute_nodes_degree(A, mirror=False):
     return node_degree
 
 def compute_nodes_clustering(A, verbose=False, backend='igraph', n_jobs=1):
-    r'''
+    """
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the clustering coefficient for each
     node is computed for all the trials concatenated.
-    > INPUTS:
-    - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
-    - is_weighted: Scepecify if the network is weighted or binary.
-    - verbose: Wheater to print the progress or not.
-    - backend: Wheter to use igraph or brainconn package.
-    - n_jobs: Number of jobs to use when parallelizing in observations.
-    > OUTPUTS:
-    - clustering: A matrix containing the nodes clustering with shape (roi,trials,time).
-    '''
+
+    Parameters
+    ----------
+    A: array_like
+        Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    backend: string | "igraph"
+        Wheter to use igraph or brainconn package.
+    n_jobs: int | 1
+        Number of jobs to use when parallelizing in observations.
+
+    Returns
+    -------
+    clustering: array_like
+        A matrix containing the nodes clustering with shape (roi,trials,time).
+    """
     assert backend in ['igraph','brainconn']
     # Check inputs
     _check_inputs(A, 4)
@@ -101,17 +115,24 @@ def compute_nodes_clustering(A, verbose=False, backend='igraph', n_jobs=1):
     return clustering
 
 def compute_nodes_coreness(A, verbose=False, n_jobs=1):
-    r'''
+    """
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the coreness for each
     node is computed for all the trials concatenated.
-    > INPUTS:
-    - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
-    - is_weighted: Scepecify if the network is weighted or binary.
-    - verbose: Wheater to print the progress or not.
-    - n_jobs: Number of jobs to use when parallelizing in observations.
-    > OUTPUTS:
-    - coreness: A matrix containing the nodes coreness with shape (roi,trials,time).
-    '''
+
+    Parameters
+    ----------
+    A: array_like
+        Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    backend: string | "igraph"
+        Wheter to use igraph or brainconn package.
+    n_jobs: int | 1
+        Number of jobs to use when parallelizing in observations.
+
+    Returns
+    -------
+    coreness: array_like
+        A matrix containing the nodes coreness with shape (roi,trials,time).
+    """
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
@@ -149,19 +170,27 @@ def compute_nodes_coreness(A, verbose=False, n_jobs=1):
     return coreness
 
 def compute_nodes_coreness_bc(A, verbose=False, n_jobs=1):
-    r'''
+    """
     The same as 'compute_nodes_coreness' but based on brainconnectivity toolbox method can be either for binary
     or weighted undirected graphs.
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the coreness for each
     node is computed for all the trials concatenated.
-    > INPUTS:
-    - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
-    - is_weighted: Scepecify if the network is weighted or binary.
-    - verbose: Wheater to print the progress or not.
-    - n_jobs: Number of jobs to use when parallelizing in observations.
-    > OUTPUTS:
-    - coreness: A matrix containing the nodes coreness with shape (roi,trials,time).
-    '''
+
+    Parameters
+    ----------
+    A: array_like
+        Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    backend: string | "igraph"
+        Wheter to use igraph or brainconn package.
+    n_jobs: int | 1
+        Number of jobs to use when parallelizing in observations.
+
+    Returns
+    -------
+    coreness: array_like
+        A matrix containing the nodes coreness with shape (roi,trials,time).
+    """
+
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
@@ -219,17 +248,25 @@ def compute_nodes_coreness_bc(A, verbose=False, n_jobs=1):
     return coreness
 
 def compute_nodes_betweenness(A, verbose=False, backend='igraph', n_jobs=1):
-    r'''
+    """
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the betweenness for each
     node is computed for all the trials concatenated.
-    > INPUTS:
-    - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
-    - is_weighted: Scepecify if the network is weighted or binary.
-    - verbose: Wheater to print the progress or not.
-    - n_jobs: Number of jobs to use when parallelizing in observations.
-    > OUTPUTS:
-    - betweenness: A matrix containing the nodes betweenness with shape (roi,time).
-    '''
+
+    Parameters
+    ----------
+    A: array_like
+        Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    backend: string | "igraph"
+        Wheter to use igraph or brainconn package.
+    n_jobs: int | 1
+        Number of jobs to use when parallelizing in observations.
+
+    Returns
+    -------
+    betweenness: array_like
+        A matrix containing the nodes betweenness with shape (roi,time).
+    """
+
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
@@ -278,14 +315,24 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={}, verbose=False, ba
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the network partition for each
     node is computed for all the trials concatenated.
-    > INPUTS:
-    - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
-    - kw_leiden: Parameters to be passed to leindelalg (for further info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
-    - is_weighted: Scepecify if the network is weighted or binary.
-    - verbose: Wheater to print the progress or not.
-    > OUTPUTS:
-    - partition: A list with the all the partition found for each layer of the
-    matrix (for each observation or trials,time if flatten is False).
+
+    Parameters
+    ----------
+    A: array_like
+        Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    kw_louvain: dict | {}
+        Parameters to be passed to louvain alg from BrainConnectivity toolbox
+    kw_leiden: dict | {}
+        Parameters to be passed to leindelalg (for further info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
+    backend: string | "igraph"
+        Wheter to use igraph or brainconn package.
+    n_jobs: int | 1
+        Number of jobs to use when parallelizing in observations.
+
+    Returns
+    -------
+    partition: 
+        A list with the all the partition found for each layer of the
     '''
 
     assert backend in ['igraph','brainconn']
@@ -368,17 +415,26 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verb
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time), the allegiance matrix for
     the whole period provided will be computed.
-    > INPUTS:
-    - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
-    - kw_louvain: Parameters to be passed to louvain alg for brainconn package (for further info see: brainconn.readthedocs.io/en/latest/generated/brainconn.modularity.community_louvain.html#brainconn.modularity.community_louvain)
-    - kw_leiden: Parameters to be passed to leindelalg (for frther info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
-    - concat: Wheter trials are concatenated or not.
-    - is_weighted: Scepecify if the network is weighted or binary.
-    - verbose: Wheater to print the progress or not.
-    - backend: Wheter to use igraph or brainconn package.
-    - n_jobs: Number of jobs to use when parallelizing in observations.
-    > OUTPUTS:
-    - T: The allegiance matrix between all nodes with shape (roi, roi)
+
+    Parameters
+    ----------
+    A: array_like
+        Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    kw_louvain: dict | {}
+        Parameters to be passed to louvain alg from BrainConnectivity toolbox
+    kw_leiden: dict | {}
+        Parameters to be passed to leindelalg (for further info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
+    concat: bool | False
+        Wheter trials are concatenated or not.
+    backend: string | "igraph"
+        Wheter to use igraph or brainconn package.
+    n_jobs: int | 1
+        Number of jobs to use when parallelizing in observations.
+
+    Returns
+    -------
+    T: array_like
+        The allegiance matrix between all nodes with shape (roi, roi)
     '''
 
     assert backend in ['igraph','brainconn']
@@ -439,22 +495,35 @@ def compute_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, concat=False, verb
     return T
 
 def windowed_allegiance_matrix(A, kw_louvain={}, kw_leiden={}, times=None,  verbose=False, win_args=None, backend='igraph', n_jobs=1):
-    r'''
+    """
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time), the windowed allegiance matrix.
     For each window the observations are concatenated for all trials and then the allegiance matrix is estimated.
-    > INPUTS:
-    - A: Multiplex adjacency matrix with shape (roi,roi,trials,time).
-    - kw_louvain: Parameters to be passed to louvain alg for brainconn package (for frther info see: brainconn.readthedocs.io/en/latest/generated/brainconn.modularity.community_louvain.html#brainconn.modularity.community_louvain)
-    - kw_leiden: Parameters to be passed to leindelalg (for frther info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
-    - times: Time array to construct the windows.
-    - is_weighted: Scepecify if the network is weighted or binary.
-    - verbose: Wheater to print the progress or not.
-    - win_args: Dict. with arguments to be passed to define_windows (for more details see frites.conn.conn_sliding_windows)
-    - backend: Wheter to use igraph or brainconn package.
-    - n_jobs: Number of jobs to use when parallelizing over windows.
-    > OUTPUTS:
-    - T: The allegiance matrix between all nodes with shape (roi, roi, trials, time)
-    '''
+
+    Parameters
+    ----------
+    A: array_like
+        Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    kw_louvain: dict | {}
+        Parameters to be passed to louvain alg from BrainConnectivity toolbox
+    kw_leiden: dict | {}
+        Parameters to be passed to leindelalg (for further info see: https://leidenalg.readthedocs.io/en/stable/reference.html)
+    times: array_like
+        Time array to construct the windows.
+    win_args: dict 
+        Which arguments to be passed to define_windows (for more details see frites.conn.conn_sliding_windows)
+    concat: bool | False
+        Wheter trials are concatenated or not.
+    backend: string | "igraph"
+        Wheter to use igraph or brainconn package.
+    n_jobs: int | 1
+        Number of jobs to use when parallelizing in observations.
+
+    Returns
+    -------
+    T: array_like
+        The allegiance matrix between all nodes with shape (roi, roi, trials, time)
+    """
+
     from frites.conn.conn_sliding_windows import define_windows
 
     assert isinstance(win_args, dict)
