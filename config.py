@@ -6,7 +6,6 @@ import numpy as np
 #####################################################################################################
 # Directories
 #####################################################################################################
-
 dates = np.loadtxt('GrayLab/lucy/sessions.txt', dtype=str)
 
 # Directories
@@ -18,21 +17,13 @@ dirs = {
         'date'   :[dates, []]
         }
 
-#  dirs = {
-#          'rawdata':'GrayLab/',
-#          'results':'Results/',
-#          'monkey' :['lucy', 'ethyl'],
-#          'session':'session01',
-#          'date'   :[['150128', '150211', '150304'], []]
-#          }
-
 #####################################################################################################
 # Spectral analysis
 #####################################################################################################
 
 # Smoothing windows
 sm_times  = 500
-sm_freqs  = 4
+sm_freqs  = 1
 sm_kernel = "square"
 
 # Defining parameters

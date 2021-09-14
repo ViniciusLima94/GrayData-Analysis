@@ -18,8 +18,8 @@ ntype   = 0
 #################################################################################################
 # Which trial type, alignment and behav. response to use
 #################################################################################################
-trial_type = 3
-align_to  = 'cue'
+trial_type          = 3
+align_to            = 'cue'
 behavioral_response = None 
 
 if  __name__ == '__main__':

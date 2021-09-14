@@ -21,8 +21,8 @@ ntype   = 0
 #################################################################################################
 # Which trial type, alignment and behav. response to use
 #################################################################################################
-trial_type = 3
-align_to  = 'cue'
+trial_type          = 3
+align_to            = 'cue'
 behavioral_response = None 
 
 if  __name__ == '__main__':
@@ -54,8 +54,8 @@ if  __name__ == '__main__':
     )
 
     # Create data surrogate
-    #  ses.data.values = phase_rand_surrogates(ses.data, val=0, seed=seed,verbose=False,n_jobs=-1)
-    ses.data.values = trial_swap_surrogates(ses.data, seed=seed, verbose=False)
+    ses.data.values = phase_rand_surrogates(ses.data, val=0, seed=seed,verbose=False,n_jobs=-1)
+    #  ses.data.values = trial_swap_surrogates(ses.data, seed=seed, verbose=False)
 
     # compute the coherence
     coh = conn_coherence_wav(ses.data.values, **kw).astype(np.float32)
