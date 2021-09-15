@@ -16,7 +16,10 @@
    version="1.1"
    id="svg8"
    inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)"
-   sodipodi:docname="sig_anl.svg">
+   sodipodi:docname="sig_anl.svg"
+   inkscape:export-filename="/home/vinicius/storage1/projects/GrayData-Analysis/notebooks/img/n3.0.4/sig_anl.png"
+   inkscape:export-xdpi="200"
+   inkscape:export-ydpi="200">
   <defs
      id="defs2">
     <clipPath
@@ -10189,9 +10192,9 @@
      inkscape:pageshadow="2"
      inkscape:zoom="0.49497475"
      inkscape:cx="828.83759"
-     inkscape:cy="868.06895"
+     inkscape:cy="706.44454"
      inkscape:document-units="mm"
-     inkscape:current-layer="g10660"
+     inkscape:current-layer="g18"
      showgrid="false"
      inkscape:window-width="1731"
      inkscape:window-height="1404"
@@ -13490,18 +13493,6 @@
              x="277.98907 291.70905 303.96906 316.64905 329.34906 335.70908">Band 0</tspan>
         </text>
       </g>
-      <g
-         id="g2644">
-        <g
-           clip-path="url(#clipPath2650)"
-           id="g2646">
-          <path
-             inkscape:connector-curvature="0"
-             id="path2652"
-             style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:0.01;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
-             d="m 491.472,253.08 v 0.84937 215.74126 0.84937 h 10.872 V 469.67063 253.92937 253.08 Z" />
-        </g>
-      </g>
     </g>
     <g
        transform="matrix(0.35277777,0,0,-0.35277777,71.318491,85.119219)"
@@ -16777,18 +16768,6 @@
              y="-568.49988"
              x="277.98907 291.70905 303.96906 316.64905 329.34906 335.70908">Band 1</tspan>
         </text>
-      </g>
-      <g
-         id="g6699">
-        <g
-           clip-path="url(#clipPath6705)"
-           id="g6701">
-          <path
-             inkscape:connector-curvature="0"
-             id="path6707"
-             style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:0.01;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
-             d="m 491.472,253.08 v 0.84937 215.74126 0.84937 h 10.872 V 469.67063 253.92937 253.08 Z" />
-        </g>
       </g>
     </g>
     <g
@@ -21419,18 +21398,6 @@ d6KhT5D1hAAAAABJRU5ErkJggg==
            x="-586.34973"
            y="85.797821"
            transform="scale(1,-1)" />
-      </g>
-      <g
-         id="g10754">
-        <g
-           clip-path="url(#clipPath10760)"
-           id="g10756">
-          <path
-             inkscape:connector-curvature="0"
-             id="path10762"
-             style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke:#ffffff;stroke-width:0.01;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
-             d="m 491.472,253.08 v 0.84937 215.74126 0.84937 h 10.872 V 469.67063 253.92937 253.08 Z" />
-        </g>
       </g>
     </g>
     <g
