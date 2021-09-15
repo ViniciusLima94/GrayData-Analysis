@@ -1,24 +1,38 @@
 import numpy  as np
+import numba  as nb
 import xarray as xr
 from   frites.utils   import parallel_func
-from   numba          import jit
 from   .util          import custom_mean, custom_std
 
+#  def find_start_end(array):
+#      r'''
+#      Given a binary array find thje indexes where the sequences of ones start and begin.
+#      e.g., for the array [0,1,1,1,0,0], would return 1 and 3 respectively.
+#      > INPUTS:
+#      - array: Binary array.
+#      > OUTPUTS:
+#      - A matrix containing the start anb ending index for each sequence of consecutive ones.
+#      '''
+#      bounded = np.hstack(([0], array, [0]))
+#      # get 1 at run starts and -1 at run ends
+#      difs        = np.diff(bounded)
+#      run_starts, = np.where(difs > 0)
+#      run_ends,   = np.where(difs < 0)
+#      return np.array([run_starts,run_ends]).T
+
+# Using NUMBA to pre-compile find_start_end
+nb.jit(nopython=True)
 def find_start_end(array):
-    r'''
-    Given a binary array find thje indexes where the sequences of ones start and begin.
-    e.g., for the array [0,1,1,1,0,0], would return 1 and 3 respectively.
-    > INPUTS:
-    - array: Binary array.
-    > OUTPUTS:
-    - A matrix containing the start anb ending index for each sequence of consecutive ones.
-    '''
-    bounded = np.hstack(([0], array, [0]))
+    # bounded = np.hstack(([0], array, [0]))
+    bounded       = np.zeros(len(array)+2)
+    bounded[1:-1] = array
     # get 1 at run starts and -1 at run ends
     difs        = np.diff(bounded)
     run_starts, = np.where(difs > 0)
     run_ends,   = np.where(difs < 0)
-    return np.array([run_starts,run_ends]).T
+    out         = np.zeros((len(run_ends),2))
+    out[:,0], out[:,1] = run_starts, run_ends
+    return out.astype(np.int_)
 
 def find_activation_sequences(spike_train, dt=None, pad=False, max_size=None):
     r'''
@@ -43,13 +57,15 @@ def find_activation_sequences(spike_train, dt=None, pad=False, max_size=None):
     if dt is None:
         dt = 1
     # make sure all runs of ones are well-bounded
-    bounded = np.hstack(([0], spike_train, [0]))
-    # get 1 at run starts and -1 at run ends
-    difs        = np.diff(bounded)
-    run_starts, = np.where(difs > 0)
-    run_ends,   = np.where(difs < 0)
-    # Length of each activation sequence
-    act_lengths =  (run_ends - run_starts)*dt
+    #  bounded = np.hstack(([0], spike_train, [0]))
+    #  # get 1 at run starts and -1 at run ends
+    #  difs        = np.diff(bounded)
+    #  run_starts, = np.where(difs > 0)
+    #  run_ends,   = np.where(difs < 0)
+    #  # Length of each activation sequence
+    #  act_lengths =  (run_ends - run_starts)*dt
+    out         = find_start_end(spike_train)
+    act_lengths = (out[:,1]-out[:,0])*dt
     # Padding 
     if max_size is None:
         max_size    = int( np.round(len(spike_train)/2) )
@@ -330,7 +346,6 @@ CV (mean activation time over its std).
     # Normalized total act. time
     mu_tot = act_lengths.sum() / ( samples * dt )
     return np.array([mu,mu_st,mu_tot,cv])
-
 
 def compute_burstness_stats_from_act_seq(act_lengths, dt=None):
     r'''
