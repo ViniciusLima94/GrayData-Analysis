@@ -30,7 +30,7 @@ if  __name__ == '__main__':
     if not os.path.exists(path_st):
         os.makedirs(path_st)
     # Add name of the file
-    path_st = os.path.join(path_st, f'super_tensor.nc')
+    path_st = os.path.join(path_st, f'super_tensor_k_{kernel_dims[0]}.nc')
 
     #  Instantiating session
     ses   = session(raw_path = dirs['rawdata'], monkey = dirs['monkey'][nmonkey], date = dirs['date'][nmonkey][idx],
@@ -46,8 +46,8 @@ if  __name__ == '__main__':
 
     kw = dict(
         freqs=freqs, times=ses.data.time, roi=ses.data.roi, foi=foi, n_jobs=20, pairs=pairs,
-        sfreq=ses.data.attrs['fsample'], mode=mode, decim_at=decim_at, n_cycles=n_cycles, decim=delta,
-        sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel, block_size=1
+        sfreq=ses.data.attrs['fsample'], mode=mode, n_cycles=n_cycles, decim=delta,
+        kernel_dims=kernel_dims, sm_kernel=sm_kernel, block_size=1
     )
 
     # compute the coherence

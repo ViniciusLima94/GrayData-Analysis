@@ -22,8 +22,7 @@ dirs = {
 #####################################################################################################
 
 # Smoothing windows
-sm_times  = 500
-sm_freqs  = 1
+kernel_dims = (500,1) # Time, Frequency
 sm_kernel = "square"
 
 # Defining parameters
@@ -42,11 +41,9 @@ if mode in ["morlet", "mt_1"]:
     freqs = np.linspace(foi[0,0], foi[-1,1], n_freqs, endpoint=True)
     n_cycles     = freqs/2
     mt_bandwidth = None
-    decim_at='tfd'
 elif mode == "mt_2":
     freqs = foi.mean(axis=1)
     W     = np.ceil( foi[:,1]-foi[:,0] )   # Bandwidth
     foi   = None
     n_cycles     = np.array([3, 5, 9, 12, 16])
     mt_bandwidth = np.array([2, 4, 4.28, 5.647, 9.65])
-    decim_at     = 'coh'
