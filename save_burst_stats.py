@@ -38,10 +38,10 @@ dirs = { 'rawdata':'/home/vinicius/storage1/projects/GrayData-Analysis/GrayLab',
          'session':'session01',
          'date'   :[['141014', '141015', '141205', '150128', '150211', '150304'], []] }
 
-
 ##################################################################################
 # Config params to specify which coherence file to read
 ##################################################################################
+_REL  = False # If threshold is relative or absolute
 _SURR = False # If it is surrogate data or not
 _KS   = 500   # 0.5s kernel size
 
@@ -49,6 +49,17 @@ if _SURR:
     _COH_FILE = f'super_tensor_s{12000}_k{_KS}.nc'
 else:
     _COH_FILE = f'super_tensor_k{_KS}.nc'
+
+
+##################################################################################
+# Instantiate a dummy temp net
+##################################################################################
+
+# Instantiating a temporal network object without thresholding the data
+net =  temporal_network(coh_file=_COH_FILE, monkey=dirs['monkey'][nmonkey], 
+                        session=1, date='150128', trial_type=[1],
+                        behavioral_response=[1], wt=(20,20), 
+                        verbose=True, q=None)
 
 ##################################################################################
 # Compute burstness statistics for different thresholds
@@ -62,7 +73,7 @@ bs_stats = np.zeros([len(q_list), net.super_tensor.shape[0], len(stages), 4])
 
 for j in tqdm( range(len(q_list)) ):
     ## Default threshold
-    kw = dict(q=q_list[j], keep_weights=False, relative=False)
+    kw = dict(q=q_list[j], keep_weights=False, relative=_REL)
 
     # Instantiating a temporal network object without thresholding the data
     net =  temporal_network(coh_file=_COH_FILE, monkey=dirs['monkey'][nmonkey],
@@ -87,4 +98,4 @@ bs_stats = xr.DataArray(bs_stats, dims=("thr","roi","stages","stats"),
                                 "stages":stages,
                                 "stats":stats_names})
 
-bs_stats.to_netcdf(f"bs_stats_k_{_KS}_surr_{_SURR}.nc")
+bs_stats.to_netcdf(f"bs_stats_k_{_KS}_surr_{_SURR}_rel_{_REL}.nc")
