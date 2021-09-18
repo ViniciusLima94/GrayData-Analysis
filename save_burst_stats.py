@@ -15,7 +15,7 @@ import h5py
 from   tqdm                              import tqdm
 from   sklearn.manifold                  import TSNE
 from   config                            import *
-from   scipy     
+from   scipy                             import stats
 
 # Bands names
 band_names  = [r'$\theta$', r'$\alpha$', r'$\beta$', r'h-$\beta$', r'gamma']
