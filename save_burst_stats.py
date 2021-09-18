@@ -1,3 +1,5 @@
+import sys
+
 import GDa.stats.bursting                as     bst
 from   GDa.session                       import session
 from   GDa.temporal_network              import temporal_network
@@ -25,6 +27,28 @@ stages      = ['baseline', 'cue', 'delay', 'match']
 stats_names = [r"$\mu$","std$_{\mu}$",r"$\mu_{tot}$","CV"]
 
 ##################################################################################
+# Config params to specify which coherence file to read
+##################################################################################
+idx     = int(sys.argv[-1])
+
+#                 _REL   _SURR
+pars  = np.array([[False,False],
+                 [False,True],
+                 [True,False],
+                 [True,True]])
+
+# If threshold is relative or absolute
+_REL  = pars[idx,0] 
+# If it is surrogate data or not
+_SURR = pars[idx,1] 
+_KS   = 500   # 0.5s kernel size
+
+if _SURR:
+    _COH_FILE = f'super_tensor_s{12000}_k{_KS}.nc'
+else:
+    _COH_FILE = f'super_tensor_k{_KS}.nc'
+
+##################################################################################
 # Parameters to read the data (temporary)
 ##################################################################################
 idx      = 3
@@ -38,18 +62,9 @@ dirs = { 'rawdata':'/home/vinicius/storage1/projects/GrayData-Analysis/GrayLab',
          'session':'session01',
          'date'   :[['141014', '141015', '141205', '150128', '150211', '150304'], []] }
 
-##################################################################################
-# Config params to specify which coherence file to read
-##################################################################################
-_REL  = False # If threshold is relative or absolute
-_SURR = False # If it is surrogate data or not
-_KS   = 500   # 0.5s kernel size
-
-if _SURR:
-    _COH_FILE = f'super_tensor_s{12000}_k{_KS}.nc'
-else:
-    _COH_FILE = f'super_tensor_k{_KS}.nc'
-
+# Path in which to save burst stats data
+path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
+path_st = os.path.join(path_st, f"bs_stats_k_{_KS}_surr_{_SURR}_rel_{_REL}.nc")
 
 ##################################################################################
 # Instantiate a dummy temp net
@@ -69,7 +84,7 @@ net =  temporal_network(coh_file=_COH_FILE, monkey=dirs['monkey'][nmonkey],
 q_list  = np.arange(0.2, 1.0, 0.1)
 
 # Store burst stats. for each link in each stage and frequency band
-bs_stats = np.zeros([len(q_list), net.super_tensor.shape[0], len(stages), 4])
+bs_stats = np.zeros((len(q_list), net.super_tensor.sizes["freqs"], net.super_tensor.shape[0], len(stages), 4))
 
 for j in tqdm( range(len(q_list)) ):
     ## Default threshold
@@ -87,15 +102,17 @@ for j in tqdm( range(len(q_list)) ):
     for stage in stages:
         n_samp += [net.get_number_of_samples(stage=stage, total=True)]
 
-    bs_stats[j] = bst.tensor_burstness_stats(net.super_tensor.isel(freqs=1), net.s_mask,
-                                             drop_edges=True, samples=n_samp,
-                                             dt=delta/net.super_tensor.attrs['fsample'],
-                                             n_jobs=20, verbose=False)
+    for f in range(net.super_tensor.sizes["freqs"]):
+        bs_stats[j,f] = bst.tensor_burstness_stats(net.super_tensor.isel(freqs=f), net.s_mask,
+                                                 drop_edges=True, samples=n_samp,
+                                                 dt=delta/net.super_tensor.attrs['fsample'],
+                                                 n_jobs=40)
 
-bs_stats = xr.DataArray(bs_stats, dims=("thr","roi","stages","stats"),
+bs_stats = xr.DataArray(bs_stats, dims=("thr","freqs","roi","stages","stats"),
                         coords={"thr":q_list,
+                                "freqs":net.super_tensor.freqs,
                                 "roi":net.super_tensor.roi,
                                 "stages":stages,
                                 "stats":stats_names})
 
-bs_stats.to_netcdf(f"bs_stats_k_{_KS}_surr_{_SURR}_rel_{_REL}.nc")
+bs_stats.to_netcdf(path_st)
