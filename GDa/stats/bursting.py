@@ -1,40 +1,10 @@
 import numpy  as np
-import numba  as nb
+import cupy   as cp
 import xarray as xr
 from   frites.utils   import parallel_func
 from   .util          import custom_mean, custom_std
 
-#  def find_start_end(array):
-#      r'''
-#      Given a binary array find thje indexes where the sequences of ones start and begin.
-#      e.g., for the array [0,1,1,1,0,0], would return 1 and 3 respectively.
-#      > INPUTS:
-#      - array: Binary array.
-#      > OUTPUTS:
-#      - A matrix containing the start anb ending index for each sequence of consecutive ones.
-#      '''
-#      bounded = np.hstack(([0], array, [0]))
-#      # get 1 at run starts and -1 at run ends
-#      difs        = np.diff(bounded)
-#      run_starts, = np.where(difs > 0)
-#      run_ends,   = np.where(difs < 0)
-#      return np.array([run_starts,run_ends]).T
-
-# Using NUMBA to pre-compile find_start_end
-nb.jit(nopython=True)
-def find_start_end(array):
-    # bounded = np.hstack(([0], array, [0]))
-    bounded       = np.zeros(len(array)+2)
-    bounded[1:-1] = array
-    # get 1 at run starts and -1 at run ends
-    difs        = np.diff(bounded)
-    run_starts, = np.where(difs > 0)
-    run_ends,   = np.where(difs < 0)
-    out         = np.zeros((len(run_ends),2))
-    out[:,0], out[:,1] = run_starts, run_ends
-    return out.astype(np.int_)
-
-def find_activation_sequences(spike_train, dt=None, pad=False, max_size=None):
+def find_activation_sequences(spike_train, dt=None, target="cpu"):
     r'''
     Given a spike-train, it finds the length of all activations in it.
     For example, for the following spike-train: x = {0111000011000011111},
@@ -43,34 +13,24 @@ def find_activation_sequences(spike_train, dt=None, pad=False, max_size=None):
     > INPUTS:
     - spike_train: The binary spike train.
     - dt: If providade the returned array with the length of activations will be given in seconds.
-    - pad: Wheter to pad or not the array containing the size of the activations lengths in spike_train.
-           For example for an spike-train (x) with size N, the maximum number of activations happens when 
-           x=[0,1,0,1,0....], therefore the maximum size of the activations lengths array will be
-           round(N/2). If the option pad is set to true the act_lengths will be padded at the right side of 
-           the array with NaN in order to it have size round(N/2) or the provided max_size.
-    - max_size: Max size of the returned array, if none it is set as round(N/2)
     > OUTPUTS:
     - act_lengths: Array containing the length of activations
     '''
-    if pad==True and max_size is not None: 
-        assert max_size>=int( np.round(len(spike_train)/2) ), "Max size should be greater or equal the maximum number of activation or None."
+    if target=="cpu":
+        _np = np
+    elif target=="gpu":
+        _np = cp
+
     if dt is None:
         dt = 1
     # make sure all runs of ones are well-bounded
-    #  bounded = np.hstack(([0], spike_train, [0]))
+    bounded = _np.hstack(([0], spike_train, [0]))
     #  # get 1 at run starts and -1 at run ends
-    #  difs        = np.diff(bounded)
-    #  run_starts, = np.where(difs > 0)
-    #  run_ends,   = np.where(difs < 0)
+    difs        = _np.diff(bounded)
+    run_starts, = _np.where(difs > 0)
+    run_ends,   = _np.where(difs < 0)
     #  # Length of each activation sequence
-    #  act_lengths =  (run_ends - run_starts)*dt
-    out         = find_start_end(spike_train)
-    act_lengths = (out[:,1]-out[:,0])*dt
-    # Padding 
-    if max_size is None:
-        max_size    = int( np.round(len(spike_train)/2) )
-    if pad and len(act_lengths)<max_size:
-        act_lengths = np.hstack( (act_lengths,np.ones(max_size-len(act_lengths))*np.nan) )
+    act_lengths =  (run_ends - run_starts)*dt
     return act_lengths
 
 def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=False):
