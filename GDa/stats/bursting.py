@@ -1,4 +1,5 @@
 import numpy  as np
+import numba  as nb
 import cupy   as cp
 import xarray as xr
 from   frites.utils   import parallel_func
@@ -6,13 +7,12 @@ from   frites.utils   import parallel_func
 
 def _return_target(target="cpu"):
     if target=="cpu":
-        _np = np
+        xp = np
     elif target=="gpu":
-        _np = cp
+        xp = cp
     elif target=="auto":
-        if isinstance(spike_train,np.ndarray): _np=np
-        elif isinstance(spike_train,cp.ndarray): _np=cp
-    return _np
+        xp = cp.get_array_module(x)
+    return xp
 
 def find_activation_sequences(spike_train, dt=None, target="cpu"):
     r'''
@@ -26,17 +26,16 @@ def find_activation_sequences(spike_train, dt=None, target="cpu"):
     > OUTPUTS:
     - act_lengths: Array containing the length of activations
     '''
-
-    _np = _return_target(target=target)
+    xp = _return_target(target=target)
 
     if dt is None:
         dt = 1
     # make sure all runs of ones are well-bounded
-    bounded = _np.hstack(([0], spike_train, [0]))
+    bounded = xp.hstack(([0], spike_train, [0]))
     #  # get 1 at run starts and -1 at run ends
-    difs        = _np.diff(bounded)
-    run_starts, = _np.where(difs > 0)
-    run_ends,   = _np.where(difs < 0)
+    difs        = xp.diff(bounded)
+    run_starts, = xp.where(difs > 0)
+    run_ends,   = xp.where(difs < 0)
     #  # Length of each activation sequence
     act_lengths =  (run_ends - run_starts)*dt
     return act_lengths
@@ -53,6 +52,7 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     > OUTPUTS:
     - act_lengths: Array containing the length of activations
     '''
+    xp = _return_target(target=target)
     # Certifies that both spike_train and maks are either in host or device
     assert type(spike_train)==type(mask)
     # Find the size of the activations lengths for the masked spike_train
@@ -60,8 +60,9 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     # If drop_edges is true it will check if activation at the left and right edges crosses the mask
     # limits.
     if drop_edges:
-        idx,        = np.where(mask==True)
+        idx,        = xp.where(mask==True)
         i,j         = idx[0], idx[-1]
+        if isinstance(act_lengths, cp.ndarray): act_lengths=cp.asnumpy(act_lengths)
         if i>=1 and len(act_lengths)>0:
             if spike_train[i-1]==1 and spike_train[i]==1:
                 act_lengths = np.delete(act_lengths,0)
@@ -86,22 +87,25 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     - act_lengths: Array containing the length of activations for each link and trial
     '''
 
-    _np = _return_target(target=target)
+    xp = _return_target(target=target)
 
     # Checking inputs
-    assert isinstance(spike_train, (np.ndarray, xr.DataArray,cp.ndarray))
-    assert isinstance(mask, (dict, np.ndarray, xr.DataArray,cp.ndarray))
+    assert isinstance(spike_train, (xp.ndarray, xr.DataArray))
+    assert isinstance(mask, (dict, xp.ndarray, xr.DataArray))
     assert len(spike_train.shape) == 3
 
-    n_edges=spike_train.shape[0]
+    n_edges  = spike_train.shape[0]
+    n_trials = spike_train.shape[1]
+    n_times  = spike_train.shape[2]
 
+    @nb.jit(nopython=True)
     def _edgewise(x, m):
         act_lengths = []
-        for i in range(x.shape[0]):
-            act_lengths += [_np.apply_along_axis(masked_find_activation_sequences, -1, 
-                            x[i,...], m[i,...], drop_edges=drop_edges, 
-                            dt=dt, target=target)]
-        act_lengths = _np.concatenate( act_lengths, axis=0 )
+        for i in range(n_trials):
+            act_lengths += [xp.apply_along_axis(masked_find_activation_sequences, -1, 
+                                                x[i,...], m[i,...], drop_edges=drop_edges, 
+                                                dt=dt, target=target)]
+        act_lengths = xp.concatenate( act_lengths, axis=0 )
         return act_lengths 
 
     # Computed in parallel for each edge
@@ -109,7 +113,7 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     _edgewise, n_jobs=n_jobs, verbose=False,
     total=n_edges)
 
-    if isinstance(mask, (np.ndarray, xr.DataArray)):
+    if isinstance(mask, (xp.ndarray, xr.DataArray)):
         assert len(mask.shape) == 2
         act_lengths = parallel(p_fun(spike_train[e,...], mask) for e in range(n_edges))
     elif isinstance(mask, dict):
