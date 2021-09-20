@@ -21,7 +21,7 @@ from   .util          import custom_mean, custom_std
 #      return np.array([run_starts,run_ends]).T
 
 # Using NUMBA to pre-compile find_start_end
-nb.jit(nopython=True)
+@nb.jit(nopython=True)
 def find_start_end(array):
     # bounded = np.hstack(([0], array, [0]))
     bounded       = np.zeros(len(array)+2)
@@ -34,7 +34,8 @@ def find_start_end(array):
     out[:,0], out[:,1] = run_starts, run_ends
     return out.astype(np.int_)
 
-def find_activation_sequences(spike_train, dt=None, pad=False, max_size=None):
+@nb.jit(nopython=True)
+def find_activation_sequences(spike_train, dt=None):
     r'''
     Given a spike-train, it finds the length of all activations in it.
     For example, for the following spike-train: x = {0111000011000011111},
@@ -52,27 +53,20 @@ def find_activation_sequences(spike_train, dt=None, pad=False, max_size=None):
     > OUTPUTS:
     - act_lengths: Array containing the length of activations
     '''
-    if pad==True and max_size is not None: 
-        assert max_size>=int( np.round(len(spike_train)/2) ), "Max size should be greater or equal the maximum number of activation or None."
+    #  if pad==True and max_size is not None: 
+    #      assert max_size>=int( np.round(len(spike_train)/2) ), "Max size should be greater or equal the maximum number of activation or None."
     if dt is None:
         dt = 1
-    # make sure all runs of ones are well-bounded
-    #  bounded = np.hstack(([0], spike_train, [0]))
-    #  # get 1 at run starts and -1 at run ends
-    #  difs        = np.diff(bounded)
-    #  run_starts, = np.where(difs > 0)
-    #  run_ends,   = np.where(difs < 0)
-    #  # Length of each activation sequence
-    #  act_lengths =  (run_ends - run_starts)*dt
     out         = find_start_end(spike_train)
     act_lengths = (out[:,1]-out[:,0])*dt
     # Padding 
-    if max_size is None:
-        max_size    = int( np.round(len(spike_train)/2) )
-    if pad and len(act_lengths)<max_size:
-        act_lengths = np.hstack( (act_lengths,np.ones(max_size-len(act_lengths))*np.nan) )
+    #  if max_size is None:
+    #      max_size    = int( np.round(len(spike_train)/2) )
+    #  if pad and len(act_lengths)<max_size:
+    #      act_lengths = np.hstack( (act_lengths,np.ones(max_size-len(act_lengths))*np.nan) )
     return act_lengths
 
+@nb.jit(nopython=True)
 def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=False):
     r'''
     Similar to "find_activation_sequences" but a mask is applied to the spike_train while computing
@@ -86,7 +80,7 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     - act_lengths: Array containing the length of activations
     '''
     # Find the size of the activations lengths for the masked spike_train
-    act_lengths = find_activation_sequences(spike_train[mask], dt=dt, pad=False, max_size=None)
+    act_lengths = find_activation_sequences(spike_train[mask], dt=dt)
     # If drop_edges is true it will check if activation at the left and right edges crosses the mask
     # limits.
     if drop_edges:
