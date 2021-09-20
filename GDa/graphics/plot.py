@@ -97,6 +97,35 @@ class Background():
             self.axes.text(x, y, letter, transform=self.axes.transAxes, size=fontsize, 
                            weight='bold', ha='left', va='bottom')
 
+    def box(self, pos, title=None, titlestyle=None, pad=0.0, **args):
+        """Draw a box with optional title.
+
+        Args:
+            pos:         (left, right, bottom, top) axes coordinates.
+            title:       Optional box title.
+            titlestyle:  Dict with arguments passed to plt.text().
+            pad:         Padding size in axes coordinates.
+        """
+
+        plt.sca(self.axes)
+        width = pos[1] - pos[0]
+        height = pos[3] - pos[2]
+
+        defargs = dict(ec=self.linecolor, linewidth=self.linewidth, fc='none')
+        defargs.update(args)
+
+        fancy = matplotlib.patches.FancyBboxPatch((pos[0], pos[2]), width, height,
+                                                  boxstyle=f"round,pad={pad}", **defargs)
+        self.axes.add_patch(fancy)
+
+        if title:
+            titleargs = dict(ha='left', va='center', backgroundcolor='w',
+                             color=self.linecolor, fontsize=12)
+            if titlestyle is not None:
+                titleargs.update(titlestyle)
+
+            plt.text(pos[0]+0.02, pos[3]+pad, title, **titleargs)
+
 def add_panel_letters(fig, axes=None, fontsize=18, xpos=-0.04, ypos=1.05):
     labels = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
