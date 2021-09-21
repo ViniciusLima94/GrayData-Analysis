@@ -1,5 +1,7 @@
 import numpy as np 
+import numba as nb
 
+nb.jit(nopython=True)
 def custom_mean(array, axis=None):
     r'''
     Custom mean function that returns zero in case the array is a empty slice.
@@ -14,6 +16,7 @@ def custom_mean(array, axis=None):
     else:
         return np.nanmean(array, axis=axis)
 
+nb.jit(nopython=True)
 def custom_std(array, axis=None):
     r'''
     Custom std function that returns zero in case the array is a empty slice.

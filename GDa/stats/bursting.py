@@ -4,88 +4,105 @@ import xarray as xr
 from   frites.utils   import parallel_func
 from   .util          import custom_mean, custom_std
 
-#  def find_start_end(array):
-#      r'''
-#      Given a binary array find thje indexes where the sequences of ones start and begin.
-#      e.g., for the array [0,1,1,1,0,0], would return 1 and 3 respectively.
-#      > INPUTS:
-#      - array: Binary array.
-#      > OUTPUTS:
-#      - A matrix containing the start anb ending index for each sequence of consecutive ones.
-#      '''
-#      bounded = np.hstack(([0], array, [0]))
-#      # get 1 at run starts and -1 at run ends
-#      difs        = np.diff(bounded)
-#      run_starts, = np.where(difs > 0)
-#      run_ends,   = np.where(difs < 0)
-#      return np.array([run_starts,run_ends]).T
+def find_start_end(array, find_zeros=False):
+    """
+    Given a binary array find the indexes where the sequences of ones start and begin if find_zeros is False. 
+    Otherwise it will find the indexes where the sequences of zeros start and begin.
+    For instance, for the array [0,1,1,1,0,0], would return 1 and 3 respectively for find_zeros=False, 
+    and 1 and 2 for find_zeros=True.
 
-# Using NUMBA to pre-compile find_start_end
-@nb.jit(nopython=True)
-def find_start_end(array):
-    # bounded = np.hstack(([0], array, [0]))
-    bounded       = np.zeros(len(array)+2)
-    bounded[1:-1] = array
-    # get 1 at run starts and -1 at run ends
+    Parameters
+    ----------
+    array: array_like 
+        Binary array.
+    find_zeros: bool | False
+        Wheter to find a sequence of zeros or ones
+
+    Returns
+    -------
+    The matrix containing the start anb ending index 
+    for each sequence of consecutive ones or zeros with shapes [n_seqs,2]
+    where n_seqs is the number of sequences found.
+    """
+    if find_zeros: 
+        _bounds = [1]
+    else:
+        _bounds = [0]
+
+    bounded     = np.hstack((_bounds, array, _bounds))
     difs        = np.diff(bounded)
-    run_starts, = np.where(difs > 0)
-    run_ends,   = np.where(difs < 0)
-    out         = np.zeros((len(run_ends),2))
-    out[:,0], out[:,1] = run_starts, run_ends
-    return out.astype(np.int_)
+    # get 1 at run starts and -1 at run ends if find_zeros is False
+    if not find_zeros:
+        run_starts, = np.where(difs > 0)
+        run_ends,   = np.where(difs < 0)
+    # get -1 at run starts and 1 at run ends if find_zeros is True
+    else:
+        run_starts, = np.where(difs < 0)
+        run_ends,   = np.where(difs > 0)
+    return np.array([run_starts,run_ends]).T
 
-@nb.jit(nopython=True)
 def find_activation_sequences(spike_train, dt=None):
-    r'''
+    """
     Given a spike-train, it finds the length of all activations in it.
     For example, for the following spike-train: x = {0111000011000011111},
     the array with the corresponding sequences of activations (ones) will be 
     returned: [3, 2, 5] (times dt if this parameter is provided).
-    > INPUTS:
-    - spike_train: The binary spike train.
-    - dt: If providade the returned array with the length of activations will be given in seconds.
-    - pad: Wheter to pad or not the array containing the size of the activations lengths in spike_train.
-           For example for an spike-train (x) with size N, the maximum number of activations happens when 
-           x=[0,1,0,1,0....], therefore the maximum size of the activations lengths array will be
-           round(N/2). If the option pad is set to true the act_lengths will be padded at the right side of 
-           the array with NaN in order to it have size round(N/2) or the provided max_size.
-    - max_size: Max size of the returned array, if none it is set as round(N/2)
-    > OUTPUTS:
-    - act_lengths: Array containing the length of activations
-    '''
-    #  if pad==True and max_size is not None: 
-    #      assert max_size>=int( np.round(len(spike_train)/2) ), "Max size should be greater or equal the maximum number of activation or None."
+
+    Parameters
+    ----------
+    spike_train: array_like
+        The binary spike train.
+    dt: int | None
+        If provided the returned array with the length of activations will be given in seconds.
+
+    Returns
+    -------
+    act_lengths: array_like
+        Array containing the length of activations with shape [n_seqs]
+        where n_seqs is the number of sequences found.
+    """
+
+    # If no dt is specified it is set to 1
     if dt is None:
         dt = 1
     out         = find_start_end(spike_train)
     act_lengths = (out[:,1]-out[:,0])*dt
-    # Padding 
-    #  if max_size is None:
-    #      max_size    = int( np.round(len(spike_train)/2) )
-    #  if pad and len(act_lengths)<max_size:
-    #      act_lengths = np.hstack( (act_lengths,np.ones(max_size-len(act_lengths))*np.nan) )
+
     return act_lengths
 
-@nb.jit(nopython=True)
 def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=False):
-    r'''
+    """
     Similar to "find_activation_sequences" but a mask is applied to the spike_train while computing
     the size of the activation sequences.'
-    > INPUTS:
-    - spike_train: The binary spike train.
-    - mask: Binary mask applied to the spike-train.
-    - dt: If providade the returned array with the length of activations will be given in seconds.
-    - drop_edges: If True will remove the size of the last burst size in case the spike trains ends at one.
-    > OUTPUTS:
-    - act_lengths: Array containing the length of activations
-    '''
+
+    Parameters
+    ----------
+    spike_train: array_like
+        The binary spike train.
+    mask: array_like
+        Binary mask applied to the spike-train.
+    dt: int | None
+        If provided the returned array with the length of activations will be given in seconds.
+    drop_edges: bool | False
+        If True will remove the size of the last burst size in case the spike trains ends at one.
+
+    Returns
+    -------
+    act_lengths: array_like
+        Array containing the length of activations with shape [n_seqs]
+        where n_seqs is the number of sequences found.
+    """
+
+    # Assure that mask is type bool
+    mask = mask.astype(bool)
+
     # Find the size of the activations lengths for the masked spike_train
     act_lengths = find_activation_sequences(spike_train[mask], dt=dt)
     # If drop_edges is true it will check if activation at the left and right edges crosses the mask
     # limits.
     if drop_edges:
-        idx,        = np.where(mask==True)
-        i,j         = idx[0], idx[-1]
+        idx, = np.where(mask==True)
+        i,j  = idx[0], idx[-1]
         if i>=1 and len(act_lengths)>0:
             if spike_train[i-1]==1 and spike_train[i]==1:
                 act_lengths = np.delete(act_lengths,0)
@@ -160,20 +177,20 @@ CV (mean activation time over its std).
     > OUTPUTS:
     - array containing mu, mu_tot, and CV computed from the activation sequences in the spike train.
     '''
-    assert len(mask)==len(samples)
     if dt is None: dt = 1
 
     # Computing activation lengths
     out  = tensor_find_activation_sequences(spike_train, mask, dt=dt, drop_edges=drop_edges, n_jobs=n_jobs)
 
-    if isinstance(out, (np.ndarray, xr.DataArray)):
-        bs_stats = np.zeros((out.shape[0],4))
+    if isinstance(out, list):
+        bs_stats = np.zeros((len(out),4))
         # Computing statistics for each link
         bs_stats[:,0] = [custom_mean( v ) for v in out]
         bs_stats[:,1] = [custom_std( v )  for v in out]
         bs_stats[:,2] = [np.sum( v )/(samples*dt) for v in out]
         bs_stats[:,3] = bs_stats[:,1]/bs_stats[:,0]
     elif isinstance(out, dict):
+        assert len(mask)==len(samples)
         # Getting keys
         keys = list( out.keys() )
         bs_stats = np.zeros((len(out[keys[0]]),len(keys),4))
