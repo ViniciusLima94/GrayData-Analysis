@@ -6,7 +6,6 @@ from   .util          import custom_mean, custom_std
 
 import numpy  as np
 import numba  as nb
-import xarray as xr
 from   frites.utils   import parallel_func
 
 @nb.jit(nopython=True)
@@ -120,18 +119,18 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     act_lengths = find_activation_sequences(spike_train[mask], dt=dt)
     # If drop_edges is true it will check if activation at the
     # left and right edges crosses the mask limits.
-    if len(act_lengths)>0 and drop_edges:
+    if drop_edges:
         idx, = np.where(mask==True)
         i,j  = idx[0], idx[-1]
         # If the mask starts at the beggining of the array
         # there is no possibility to cross from the left side
         if i>=1:
-            if spike_train[i-1]==1 and spike_train[i]==1:
+            if spike_train[i-1]==1 and spike_train[i]==1 and len(act_lengths)>0 :
                 act_lengths = np.delete(act_lengths,0)
         # If the mask ends at the ending of the array
         # there is no possibility to cross from the right side
         if j<len(mask)-1:
-            if spike_train[j]==1 and spike_train[j+1]==1:
+            if spike_train[j]==1 and spike_train[j+1]==1 and len(act_lengths)>0 :
                 act_lengths = np.delete(act_lengths,-1)
 
     if pad:
@@ -167,8 +166,8 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     """
 
     # Checking inputs
-    assert isinstance(spike_train, (np.ndarray, xr.DataArray))
-    assert isinstance(mask, (dict, np.ndarray,  xr.DataArray))
+    assert isinstance(spike_train, np.ndarray)
+    assert isinstance(mask, (dict, np.ndarray))
     assert spike_train.ndim == 3
 
     # Number of edges
@@ -192,22 +191,30 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     _edgewise, n_jobs=n_jobs, verbose=False,
     total=n_edges)
 
-    if isinstance(mask, (np.ndarray, xr.DataArray)):
-        assert len(mask.shape) == 2 
+    if isinstance(mask, np.ndarray):
+        assert mask.ndim == 2
         # If it is DataArray should be converted to ndarray to be compatible with numba
-        if isinstance(mask, xr.DataArray):
-            act_lengths = parallel(p_fun(spike_train[e,...], mask) for e in range(n_edges))
-        else:
-            act_lengths = parallel(p_fun(spike_train[e,...], mask.values) for e in range(n_edges))
+        act_lengths = parallel(p_fun(spike_train[e,...], mask) for e in range(n_edges))
+        act_lengths = np.stack(act_lengths,axis=0)
+        #  Trade 0s for NaN
+        act_lengths = act_lengths.astype(np.float)
+        act_lengths[act_lengths==0] = np.nan
+        # Concatenate trials
+        act_lengths = act_lengths.reshape(act_lengths.shape[0],
+                                          act_lengths.shape[1]*act_lengths.shape[2])
     elif isinstance(mask, dict):
         # Use the same keys as the mask
         act_lengths = dict.fromkeys(mask.keys())
         for key in mask.keys():
-            assert len(mask[key].shape) == 2
-            if isinstance(mask, xr.DataArray):
-                act_lengths[key] = parallel(p_fun(spike_train[e,...], mask[key].values) for e in range(n_edges))
-            else:
-                act_lengths[key] = parallel(p_fun(spike_train[e,...], mask[key]) for e in range(n_edges))
+            act_lengths[key] = parallel(p_fun(spike_train[e,...], mask[key]) for e in range(n_edges))
+            act_lengths[key] = np.stack(act_lengths[key],axis=0)
+            #  Trade 0s for NaN
+            act_lengths[key] = act_lengths[key].astype(np.float)
+            act_lengths[key][act_lengths[key]==0] = np.nan
+            # Concatenate trials
+            act_lengths[key] = act_lengths[key].reshape(act_lengths[key].shape[0],
+                                                        act_lengths[key].shape[1]*act_lengths[key].shape[2])
+
 
     return act_lengths
 
@@ -239,34 +246,44 @@ def tensor_burstness_stats(spike_train, mask, drop_edges=False, samples=None, dt
             a dicitionary should be provided where for each key an array with size [trials, time]
             is provided.
 
-
     Returns
     -------
     bs_stats: array_like
         array containing mu, mu_tot, and CV computed from the activation sequences in the spike train
         with shape [links,4] or [links,stages,4].
     """
+    if dt is None:
+        dt = 1
 
     # Computing activation lengths
     out = tensor_find_activation_sequences(spike_train, mask, dt=dt, drop_edges=drop_edges, n_jobs=n_jobs)
 
-    if isinstance(out, list):
+    if isinstance(out, np.ndarray):
+        # In order ot be able to use NaN
         bs_stats = np.zeros((len(out),4))
         # Computing statistics for each link
-        bs_stats[:,0] = [custom_mean( v ) for v in out]
-        bs_stats[:,1] = [custom_std( v )  for v in out]
-        bs_stats[:,2] = [np.sum( v )/(samples*dt) for v in out]
-        bs_stats[:,3] = bs_stats[:,1]/bs_stats[:,0]
+        bs_stats[:,0] = np.nanmean(out,axis=-1)
+        bs_stats[:,1] = np.nanstd(out,axis=-1)
+        bs_stats[:,2] = np.nansum(out,axis=-1)/(samples*dt)
+        bs_stats[:,3] = bs_stats[:,1]/bs_stats[:,0] 
+        #  bs_stats[:,0] = [custom_mean( v ) for v in out]
+        #  bs_stats[:,1] = [custom_std( v )  for v in out]
+        #  bs_stats[:,2] = [np.sum( v )/(samples*dt) for v in out]
+        #  bs_stats[:,3] = bs_stats[:,1]/bs_stats[:,0]
     elif isinstance(out, dict):
         assert len(mask)==len(samples)
         # Getting keys
         keys = list( out.keys() )
         bs_stats = np.zeros((len(out[keys[0]]),len(keys),4))
         for idx, key in enumerate(out.keys()):
-            bs_stats[:,idx,0] = [custom_mean( v ) for v in out[key]]
-            bs_stats[:,idx,1] = [custom_std( v )  for v in out[key]]
-            bs_stats[:,idx,2] = [np.sum( v )/(samples[idx]*dt) for v in out[key]]
-            bs_stats[:,idx,3] = bs_stats[:,idx,1]/bs_stats[:,idx,0]
+            bs_stats[:,idx,0] = np.nanmean(out[key],axis=-1)
+            bs_stats[:,idx,1] = np.nanstd(out[key],axis=-1)
+            bs_stats[:,idx,2] = np.nansum(out[key],axis=-1)/(samples[idx]*dt)
+            bs_stats[:,idx,3] = bs_stats[:,idx,1]/bs_stats[:,idx,0] 
+            #  bs_stats[:,idx,0] = [custom_mean( v ) for v in out[key]]
+            #  bs_stats[:,idx,1] = [custom_std( v )  for v in out[key]]
+            #  bs_stats[:,idx,2] = [np.sum( v )/(samples[idx]*dt) for v in out[key]]
+            #  bs_stats[:,idx,3] = bs_stats[:,idx,1]/bs_stats[:,idx,0]
     return bs_stats
 
 #  @nb.jit(nopython=True)
