@@ -64,7 +64,7 @@ dirs = { 'rawdata':'/home/vinicius/storage1/projects/GrayData-Analysis/GrayLab',
 
 # Path in which to save burst stats data
 path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
-path_st = os.path.join(path_st, f"bs_stats_k_{_KS}_surr_{_SURR}_rel_{_REL}.nc")
+path_st = os.path.join(path_st, f"bs_stats_k_{_KS}_surr_{_SURR}_rel_{_REL}_numba.nc")
 
 ##################################################################################
 # Instantiate a dummy temp net
@@ -102,11 +102,14 @@ for j in tqdm( range(len(q_list)) ):
     for stage in stages:
         n_samp += [net.get_number_of_samples(stage=stage, total=True)]
 
+    np_mask = {}
+    for key in net.s_mask.keys(): np_mask[key] = net.s_mask[key].values
+
     for f in range(net.super_tensor.sizes["freqs"]):
-        bs_stats[j,f] = bst.tensor_burstness_stats(net.super_tensor.isel(freqs=f), net.s_mask,
+        bs_stats[j,f] = bst.tensor_burstness_stats(net.super_tensor.isel(freqs=f).values, np_mask,
                                                  drop_edges=True, samples=n_samp,
                                                  dt=delta/net.super_tensor.attrs['fsample'],
-                                                 n_jobs=40)
+                                                 n_jobs=1)
 
 bs_stats = xr.DataArray(bs_stats, dims=("thr","freqs","roi","stages","stats"),
                         coords={"thr":q_list,
