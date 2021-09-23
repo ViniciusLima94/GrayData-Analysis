@@ -237,14 +237,12 @@ def tensor_burstness_stats(spike_train, mask, drop_edges=False, samples=None, dt
     drop_edges: bool | False
         If True will remove the size of the last burst size in case the spike trains ends at one.
     samples: int, array_like | None
-        
+        Total number of samples for each in the spike-train for the period
+        delimitated by the mask.
     dt: int | None
         If provided the returned array with the length of activations will be given in seconds.
     n_jobs: int | 1
         Number of threads to use
-    - mask: Binary mask applied to the spike-train with size [trials, time]. For more than one mask
-            a dicitionary should be provided where for each key an array with size [trials, time]
-            is provided.
 
     Returns
     -------
@@ -266,10 +264,6 @@ def tensor_burstness_stats(spike_train, mask, drop_edges=False, samples=None, dt
         bs_stats[:,1] = np.nanstd(out,axis=-1)
         bs_stats[:,2] = np.nansum(out,axis=-1)/(samples*dt)
         bs_stats[:,3] = bs_stats[:,1]/bs_stats[:,0] 
-        #  bs_stats[:,0] = [custom_mean( v ) for v in out]
-        #  bs_stats[:,1] = [custom_std( v )  for v in out]
-        #  bs_stats[:,2] = [np.sum( v )/(samples*dt) for v in out]
-        #  bs_stats[:,3] = bs_stats[:,1]/bs_stats[:,0]
     elif isinstance(out, dict):
         assert len(mask)==len(samples)
         # Getting keys
@@ -280,10 +274,6 @@ def tensor_burstness_stats(spike_train, mask, drop_edges=False, samples=None, dt
             bs_stats[:,idx,1] = np.nanstd(out[key],axis=-1)
             bs_stats[:,idx,2] = np.nansum(out[key],axis=-1)/(samples[idx]*dt)
             bs_stats[:,idx,3] = bs_stats[:,idx,1]/bs_stats[:,idx,0] 
-            #  bs_stats[:,idx,0] = [custom_mean( v ) for v in out[key]]
-            #  bs_stats[:,idx,1] = [custom_std( v )  for v in out[key]]
-            #  bs_stats[:,idx,2] = [np.sum( v )/(samples[idx]*dt) for v in out[key]]
-            #  bs_stats[:,idx,3] = bs_stats[:,idx,1]/bs_stats[:,idx,0]
     return bs_stats
 
 #  @nb.jit(nopython=True)
