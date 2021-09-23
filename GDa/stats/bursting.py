@@ -99,7 +99,6 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
         activation time-series with 0s and 1s intercalated).
         If pad is True the series returned will have size ceil(n/2) by being padded with zeros to the right.
 
-
     Returns
     -------
     act_lengths: array_like
