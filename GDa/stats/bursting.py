@@ -1,12 +1,7 @@
 import numpy  as np
 import numba  as nb
-import xarray as xr
 from   frites.utils   import parallel_func
 from   .util          import custom_mean, custom_std
-
-import numpy  as np
-import numba  as nb
-from   frites.utils   import parallel_func
 
 @nb.jit(nopython=True)
 def _nan_pad(x, new_size, pad_value):
