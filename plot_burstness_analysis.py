@@ -1,425 +1,353 @@
-r'''
+"""
 Script to plot burstness statistics computed in _burstness_analysis.py_ .
-'''
-import matplotlib.pyplot        as       plt
-import seaborn                  as       sns
+"""
 
-from   GDa.temporal_network     import   temporal_network
-from   GDa.util                 import   smooth
-from   GDa.session              import   session
-
-import scipy
 import sys
 import os
-import h5py
 
-from   config                   import   *
-from   tqdm                     import   tqdm
+# GDa functions
+import GDa.stats.bursting                as     bst
+from   GDa.session                       import session
+from   GDa.temporal_network              import temporal_network
+from   GDa.util                          import smooth
 
+import matplotlib.pyplot                 as     plt
 import matplotlib
-matplotlib.use('Agg')
+import GDa.graphics.plot                 as     plot
 
-###############################################################################
-# Setting parameters to read and save data as usual
-###############################################################################
+import numpy                             as     np
+import xarray                            as     xr
 
-idx     = int(sys.argv[-1]) # Index to acess the desired session
-nmonkey = 0
-nses    = 1
-ntype   = 0
 
+from   tqdm                              import tqdm
+from   sklearn.manifold                  import TSNE
+from   scipy                             import stats
+
+#############################################################################
+#### Plotting and file saving configurations
+#############################################################################
+SMALL_SIZE, MEDIUM_SIZE, BIGGER_SIZE = plot.set_plot_config()
 
 # Bands names
 band_names  = [r'band 1', r'band 2', r'band 3', r'band 4', r'band 5']
 stages      = ['baseline', 'cue', 'delay', 'match']
+_stats      = [r"$\mu$","std$_{\mu}$",r"$\mu_{tot}$","CV"]
 
-###############################################################################
-# Instantiating session 
-###############################################################################
+### Methods to read coherence files
+def get_coh_file(ks=None, surr=False):
+    if surr:
+        _COH_FILE = f'super_tensor_s{12000}_k{ks}.nc'
+    else:
+        _COH_FILE = f'super_tensor_k{ks}.nc'
+    return _COH_FILE
+
+### Methods to read burst stats files
+def get_bst_file(ks=None, surr=False, rel=False):
+        return f'~/storage1/projects/GrayData-Analysis/Results/lucy/150128/session01/bs_stats_k_{ks}_surr_{surr}_rel_{rel}_numba.nc'
+
+#############################################################################
+### Visualizing the super tensor
+#############################################################################
+
+#### Loading session and setting coherence parameters
+# Parameters to read the data
+idx      = 3
+nses     = 1
+nmonkey  = 0
+align_to = 'cue'
+
+dirs = { 'rawdata':'/home/vinicius/storage1/projects/GrayData-Analysis/GrayLab',
+         'results':'Results/',
+         'monkey' :['lucy', 'ethyl'],
+         'session':'session01',
+         'date'   :[['141014', '141015', '141205', '150128', '150211', '150304'], []] }
 #  Instantiating session
 ses   = session(raw_path = dirs['rawdata'], monkey = dirs['monkey'][nmonkey], date = dirs['date'][nmonkey][idx],
-                session = 1, slvr_msmod = False, align_to = 'cue', evt_dt = [-0.65, 3.00])
+                session = nses, slvr_msmod = False, align_to = align_to, evt_dt = [-0.65, 3.00])
 # Load data
 ses.read_from_mat()
+# Smoothing windows
+sm_times  = 500
+sm_freqs  = 1
+sm_kernel = "square"
 
-###############################################################################
-# Reading file with the computed statistics (burstness_stats.h5)
-###############################################################################
-# Path in which to save coherence data
-path_st = os.path.join('figures', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
-if not os.path.exists(path_st):
-    os.makedirs(path_st)
+# Defining parameters
+delta = 15       # Downsampling factor
+mode  = 'morlet' # ("morlet", "mt_1", "mt_2")
+foi   = np.array([
+        [0.1, 6.],
+        [6., 14.],
+        [14., 26.],
+        [26., 42.],
+        [42., 80.]
+            ])
 
-path_stats = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
-hf         = h5py.File(os.path.join(path_stats, 'burstness_stats.h5'), 'r')
+if mode in ["morlet", "mt_1"]:
+    n_freqs = 50
+    freqs = np.linspace(foi[0,0], foi[-1,1], n_freqs, endpoint=True)
+    n_cycles     = freqs/2
+    mt_bandwidth = None
+    decim_at='tfd'
+elif mode == "mt_2":
+    freqs = foi.mean(axis=1)
+    W     = np.ceil( foi[:,1]-foi[:,0] )   # Bandwidth
+    foi   = None
+    n_cycles     = np.array([3, 5, 9, 12, 16])
+    mt_bandwidth = np.array([2, 4, 4.28, 5.647, 9.65])
+    decim_at     = 'coh'
 
-###############################################################################
-# Defining parameters to instantiate temporal network
-###############################################################################
-
-def set_net_params(trial_type=None, behavioral_response=None, relative=None, q=None):
-    r'''
-    Return dict. with parameters to instantiate temporal network object.
-    '''
-
-    # Default parameters plus params passed to method trial type 1
-    return dict( data_raw_path='GrayLab/', tensor_raw_path='Results/', monkey=dirs['monkey'][nmonkey],
-                 session=1, date=dirs['date'][nmonkey][idx], trial_type=trial_type,
-                 behavioral_response=behavioral_response, relative=relative, q=q, wt=(30,30), verbose=False )
-
-###############################################################################
-# 1. Trial averaged super-tensor for each band 
-###############################################################################
-
-# Instantiating a temporal network object without thresholding the data
-net =  temporal_network( **set_net_params([1], [1]) )
-
-plt.figure(figsize=(20,30))
-aux = scipy.stats.zscore(net.super_tensor.mean(dim='trials'), axis=-1)
-for i in tqdm( range(len(band_names)) ):
-    plt.subplot(len(band_names), 1, i+1)
-    plt.imshow(aux[:,i,:], 
-               aspect = 'auto', cmap = 'RdBu_r', origin = 'lower',
-               extent = [net.tarray[0], net.tarray[-1], 1, net.session_info['nP']], 
-               vmin=-4, vmax=4)
-    plt.colorbar()
-    plt.ylabel('Pair Number', fontsize=15)
-    plt.title(band_names[i])
-plt.xlabel('Time [a.u.]', fontsize=15)
-plt.tight_layout()
-plt.savefig(
-    os.path.join(path_st, f"trial_averaged_super_tensor_{dirs['date'][nmonkey][idx]}.png"),
-    dpi=120)
-plt.close()
-
-###############################################################################
-# 1.1. Trial averaged (for similar delay periods) super-tensor for each band 
-###############################################################################
-win_delay=[
-           [1,1.1],
-           [1.1, 1.2],
-           [1.2, 1.3],
-           [1.3, 1.4],
-           [1.4, 1.6]
-          ]
-
-avg_st = net.get_averaged_st(win_delay=win_delay)
-
-for b in tqdm( range(len(band_names)) ):
-    plt.figure(figsize=(20,30))
-    aux  = scipy.stats.zscore(net.super_tensor.mean(dim='trials'), axis=-1)
-    for i in range(len(avg_st)):
-        plt.subplot(len(avg_st), 1, i+1)
-        aux = ( avg_st[i][:,b,:]-avg_st[i][:,b,:].mean(dim='time') ) / avg_st[i][:,b,:].std(dim='time')
-        plt.imshow(aux,
-                   aspect = 'auto', cmap = 'RdBu_r', origin = 'lower',
-                   extent = [net.tarray[0], net.tarray[-1], 1, net.session_info['nP']],
-                   )
-        plt.colorbar()
-        plt.ylabel('Pair Number')
-        plt.xlabel('Time [a.u.]')
-        plt.title(f'alpha band, delay window = {win_delay[i]}')
-    plt.savefig(
-        os.path.join(path_st, f"trial_averaged_delays_super_tensor_band_{b}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=120)
-    plt.close()
-
-###############################################################################
-# Saving euclidian distances of edges
-###############################################################################
-
-d_eu = net.super_tensor.attrs['d_eu']
-
-###############################################################################
-# 2. Evoked-response potentials
-###############################################################################
-
-plt.figure(figsize=(20,30))
-# Average activation sequences over links
-mu_filtered_super_tensor = net.super_tensor.mean(dim='links')
-for i in tqdm( range(len(band_names)) ):
-    plt.subplot(len(band_names), 1, i+1)
+#############################################################################
+### Panel with supertensor, ERP and t-sne projection (q=0.8)
+#############################################################################
+def plot_erp(ax, net, i):
+    """
+    Plot ERP at axis ax, i is used to index a specific frequency band
+    """
+    plt.sca(ax)
+    # Average activation sequences over links
+    mu_filtered_super_tensor = net.super_tensor.mean(dim='roi')
     for t in range(net.super_tensor.shape[2]):
-        plt.plot(net.tarray, 
-        mu_filtered_super_tensor.isel(trials=t, bands=i).values, 
+        plt.plot(net.time,
+        mu_filtered_super_tensor.isel(trials=t, freqs=i).values,
         color='b', lw=.1)
-    plt.plot(net.tarray, 
-             mu_filtered_super_tensor.isel(bands=i).median(dim='trials'),
-             color='k', lw=3)
-    plt.plot(net.tarray, 
-             mu_filtered_super_tensor.isel(bands=i).quantile(q=5/100,dim='trials'),
-             color='r', lw=3)
-    plt.plot(net.tarray,
-             mu_filtered_super_tensor.isel(bands=i).quantile(q=95/100,dim='trials'),
-             color='r', lw=3)
-    plt.title(band_names[i])
-    plt.xlim([net.tarray[0],net.tarray[-1]])
-plt.xlabel('Time [s]', fontsize=15)
-plt.tight_layout()
-plt.savefig(
-    os.path.join(path_st, f"evoked_reponse_potential_{dirs['date'][nmonkey][idx]}.png"),
-    dpi=120)
-plt.close()
+    plt.plot(net.time,
+             mu_filtered_super_tensor.isel(freqs=i).median(dim='trials'),
+            color='k', lw=3)
+    plt.plot(net.time,
+         mu_filtered_super_tensor.isel(freqs=i).quantile(q=5/100,dim='trials'),
+        color='r', lw=3)
+    plt.plot(net.time,
+    mu_filtered_super_tensor.isel(freqs=i).quantile(q=95/100,dim='trials'),
+    color='r', lw=3)
+    plt.xlim([net.time[0],net.time[-1]])
 
-###############################################################################
-# 3. Burstness statistics dependence on the threshold
-###############################################################################
-cv = hf['q_dependence'][:]
+def plot_tsne(ax, net, i):
+    """
+    Plot the t-sne projection at axis ax, i is used to index a specific frequency band
+    """
+    plt.sca(ax)
+    aux = net.super_tensor.isel(freqs=i, trials=slice(0,50))
+    aux = aux.stack(observations=("trials","times"))
+    Y = TSNE(n_components=2,
+             metric='hamming',
+             perplexity=30.0,
+             square_distances=True,
+             n_jobs=20).fit_transform(aux.T)
+    for i in range(len(stages)):
+        plt.plot(Y[net.s_mask[stages[i]][:50*len(net.time)],0],
+                 Y[net.s_mask[stages[i]][:50*len(net.time)],1],
+                 '.', ms=2, label = stages[i])
+        plt.legend()
 
-q_list = np.arange(0.2, 1.0, 0.1)
+def plot_erp_panel(_KS=None, _SURR=False, _REL=False, title=None):
+    # Instantiate network
+    q_thr = 0.8
+    ## Default threshold
+    kw = dict(q=q_thr, keep_weights=False, relative=_REL)
 
-titles = ['Mean burst duration', 'Norm. total active time', 'CV']
-plt.figure(figsize=(12,15))
+    # Instantiating a temporal network object without thresholding the data
+    net =  temporal_network(coh_file=get_coh_file(ks=_KS, surr=_SURR), monkey=dirs['monkey'][nmonkey], 
+                            session=1, date='150128', trial_type=[1],
+                            behavioral_response=[1], wt=(20,20), drop_trials_after=True,
+                            verbose=True, **kw)
+    # Mask to track observations within a task-stage
+    net.create_stage_masks(flatten=True)
+
+    
+    # Plot panel
+    fig = plt.figure(figsize=(10, 7), dpi=600)
+
+    gs1 = fig.add_gridspec(nrows=1, ncols=1, left=0.05, right=0.95, bottom=0.5, top=0.95)
+    gs2 = fig.add_gridspec(nrows=1, ncols=3, width_ratios=(1,0.001,0.6), left=0.05, right=0.95, bottom=0.08, top=0.4)
+    # Panel A
+    ax1 = plt.subplot(gs1[0])
+    plt.sca(ax1)
+    plt.imshow(net.super_tensor[:,1,:10,:].stack(observations=('trials','times')), 
+               aspect = 'auto', cmap = 'gray', origin = 'lower', 
+               extent = [0, 10*len(net.time), 1, net.super_tensor.sizes['roi']], vmin=0, vmax=1)
+    plt.ylabel("Edge index", fontsize=SMALL_SIZE)
+    plt.xlabel('Time [a.u]', fontsize=SMALL_SIZE)
+    # Panel B
+    ax2 = plt.subplot(gs2[0])
+    ax3 = plt.subplot(gs2[2])
+
+    plot_erp(ax2,  net, 1)
+    plt.ylabel(r'$\langle C_{ij} \rangle$', fontsize=SMALL_SIZE)
+    plt.xlabel('Time [s]', fontsize=SMALL_SIZE)
+    plot_tsne(ax3, net, 1)
+    plt.xticks([])
+    plt.yticks([])
+    plt.xlabel(r"tsne$_x$")
+    plt.ylabel(r"tsne$_y$")
+
+    bg = plot.Background(visible=False)
+    plot.add_panel_letters(fig, axes=[ax1, ax2, ax3], fontsize=18,
+                           xpos=[-0.045,-0.1,-0.13], ypos=[1.0, 1.0, 1.0]);
+    
+    bg.axes.text(0.50, 1.0, title, ha='center', fontsize=MEDIUM_SIZE)
+
+    plt.savefig(f"img/n5.0.0/figure0_surr_{_SURR}_ks_{_KS}_rel_{_REL}.png")
+
+#### Original data and absolute threshold (q=0.8)
+plot_erp_panel(_KS=500, _SURR=False, _REL=False, title=r"Original data and absolute threshold (q=0.8)")
+#### Original data and relative threshold (q=0.8)
+plot_erp_panel(_KS=500, _SURR=False, _REL=True, title=r"Original data and realtive threshold (q=0.8)")
+#### Surrogate data and absolute threshold (q=0.8)
+plot_erp_panel(_KS=500, _SURR=True, _REL=False, title=r"Surrogate data and absolute threshold (q=0.8)")
+#### Surrogate data and relative threshold (q=0.8)
+plot_erp_panel(_KS=500, _SURR=True, _REL=True, title=r"Surrogate data and relative threshold (q=0.8)")
+
+#############################################################################
+### Burstness statistic### Burstness statistics
+#############################################################################
+def plot_q_dependece(ax, bs_stats,stats,freq,ylabel=None):
+    plt.sca(ax)
+    # Axis limits
+    _xlim0, _xlim1 = bs_stats.thr[0],bs_stats.thr[-1]
+    _ylim0, _ylim1 = bs_stats.isel(stats=stats, freqs=freq).median(dim="roi").min()-0.05, bs_stats.isel(stats=stats, freqs=freq).median(dim="roi").max()+0.05
+    # Number of edges
+    n_edges = bs_stats.sizes["roi"]
+    # Compute the median over edges
+    _median = bs_stats.isel(stats=stats,freqs=freq).median(dim="roi")
+    # Compute the 5% quantile over edges
+    _q005   = bs_stats.isel(stats=stats,freqs=freq).quantile(0.05, dim="roi", keep_attrs=True) #/ np.sqrt(n_edges)
+    # Compute the 95% quantile over edges
+    _q095   = bs_stats.isel(stats=stats,freqs=freq).quantile(0.95, dim="roi", keep_attrs=True) #/ np.sqrt(n_edges)
+    for s in range(_median.sizes["stages"]):
+        plt.plot(bs_stats.thr, _median.isel(stages=s))
+        plt.fill_between(bs_stats.thr,
+                         _q005.isel(stages=s),
+                         _q095.isel(stages=s), alpha=0.2)
+    plt.vlines(bs_stats.thr.values[1], _ylim0, _ylim1, color="gray")
+    plt.vlines(bs_stats.thr.values[6], _ylim0, _ylim1, ls='--', color="gray")
+    plt.xlim(_xlim0, _xlim1)
+    plt.ylim(_ylim0, _ylim1)
+    plt.ylabel(ylabel, fontsize=MEDIUM_SIZE)
+
+def plot_stats_dist(ax, bs_stats, stats, freq, thr, nbins, xlabel=None, legend=None):
+    plt.sca(ax)
+    _ylim0, _ylim1 = bs_stats.isel(stats=stats, freqs=freq).median(dim="roi").min()-0.05, bs_stats.isel(stats=stats, freqs=freq).median(dim="roi").max()+0.05
+    bins=np.linspace(_ylim0, _ylim1,50)
+    for i in range(bs_stats.sizes["stages"]):
+        plt.hist(bs_stats.isel(stats=stats,stages=i,thr=thr, freqs=freq), bins=bins, density=True, lw=1, histtype='step', fill=False, label=stages[i], orientation='horizontal')
+    if isinstance(legend, list):
+        plt.legend( prop={'size': 5})
+    plt.ylabel(xlabel, fontsize=MEDIUM_SIZE)
+
+def plot_panel_bst(_KS=None, _SURR=False, _REL=False, title=None):
+    
+    bs_stats = xr.load_dataarray( get_bst_file(ks=_KS, surr=_SURR, rel=_REL) )
+    
+    
+    # For the histograms of each measurement
+    nbins  = 100
+
+    fig = plt.figure(figsize=(7, 8), dpi=150)
+
+    gs1 = fig.add_gridspec(nrows=4, ncols=3, left=0.1, right=0.95, bottom=0.05, top=0.9, wspace=0.3, hspace=.3)
+
+    # Panel A
+    ax1 = plt.subplot(gs1[0])
+    ax2 = plt.subplot(gs1[3])
+    ax3 = plt.subplot(gs1[6])
+    ax4 = plt.subplot(gs1[9])
+
+    #### Plotting dependence on threshold of the metrics #####
+    plot_q_dependece(ax1, bs_stats, 0, 1, ylabel=_stats[0]+" [s]")
+    plt.legend(stages, prop={'size': 5})
+    plot_q_dependece(ax2, bs_stats, 1, 1, ylabel=_stats[1]+" [s]")
+    plot_q_dependece(ax3, bs_stats, 2, 1, ylabel=_stats[2])
+    plot_q_dependece(ax4, bs_stats, 3, 1, ylabel=_stats[3])
+    plt.xlabel("q", fontsize=MEDIUM_SIZE)
+
+    # Panel B
+    ax5 = plt.subplot(gs1[1])
+    ax6 = plt.subplot(gs1[4])
+    ax7 = plt.subplot(gs1[7])
+    ax8 = plt.subplot(gs1[10])
+
+    ##### Histograms for low threshold ####
+    # Mean active time
+    plot_stats_dist(ax5, bs_stats, 0, 1, 1, nbins, xlabel=None, legend=stages)
+    # STD of mean active time
+    plot_stats_dist(ax6, bs_stats, 1, 1, 1, nbins, xlabel=None, legend=None)
+    # Total active time
+    plot_stats_dist(ax7, bs_stats, 2, 1, 1, nbins, xlabel=None, legend=None)
+    # CV
+    plot_stats_dist(ax8, bs_stats, 3, 1, 1, nbins, xlabel=None, legend=None)
+    plt.xlabel("#count", fontsize=MEDIUM_SIZE)
+
+    # Panel C
+    ax9  = plt.subplot(gs1[2])
+    ax10 = plt.subplot(gs1[5])
+    ax11 = plt.subplot(gs1[8])
+    ax12 = plt.subplot(gs1[11])
+
+    ##### Histograms for high threshold ####
+    # Mean active time
+    plot_stats_dist(ax9,  bs_stats, 0, 1, 6, nbins, xlabel=None, legend=stages)
+    # STD of mean active time
+    plot_stats_dist(ax10, bs_stats, 1, 1, 6, nbins, xlabel=None, legend=None)
+    # Total active time
+    plot_stats_dist(ax11, bs_stats, 2, 1, 6, nbins, xlabel=None, legend=None)
+    # CV
+    plot_stats_dist(ax12, bs_stats, 3, 1, 6, nbins, xlabel=None, legend=None)
+    plt.xlabel("#count", fontsize=MEDIUM_SIZE)
+    
+    for index in range(12):
+        fig.get_axes()[index].spines['right'].set_visible(False)
+        fig.get_axes()[index].spines['top'].set_visible(False)
+
+    bg = plot.Background(visible=False)
+    #bg.box((0.32, 0.65, 0.01, 0.95), lw=2)
+    #bg.box((0.66, 0.99, 0.01, 0.95), lw=2, ls='--')
+    bg.axes.text(0.50, 0.96, title, ha='center', fontsize=MEDIUM_SIZE);
+    plot.add_panel_letters(fig, axes=[ax1, ax5, ax9], fontsize=18,
+                               xpos=[-0.15,-0.15,-0.15], ypos=[1.1, 1.1, 1.1]);
+    bg.hline(0.92, x0=0.407, x1=0.637, lw=2)
+    bg.hline(0.92, x0=0.71, x1=0.952, lw=2, ls="--")
+    plt.savefig(f"img/n5.0.0/qdependence_surr_{_SURR}_ks_{_KS}_rel_{_REL}.png")
+
+#### Original data and absolute threshold
+plot_panel_bst(_KS=500, _SURR=False, _REL=False, title="Burst stats. dependence on the threshold (absolute)")
+#### Original data and relative threshold
+plot_panel_bst(_KS=500, _SURR=False, _REL=True, title="Burst stats. dependence on the threshold (relative)")
+#### Surrogate data and absolute threshold
+plot_panel_bst(_KS=500, _SURR=True, _REL=False, title="Burst stats. dependence on the threshold (absolute) for the surrogate")
+#### Surrogate data and relative threshold
+plot_panel_bst(_KS=500, _SURR=True, _REL=True, title="Burst stats. dependence on the threshold (relative) for the surrogate")
+
+#############################################################################
+### Burstiness statistics - comparison with surrogates
+#############################################################################
+_SURR = False
+_REL  = True
+_KS   = 500
+# Original
+bs_o = xr.load_dataarray( get_bst_file(ks=_KS, surr=_SURR, rel=_REL) )
+# Surrogate
+bs_s = xr.load_dataarray( get_bst_file(ks=_KS, surr=_SURR, rel=_REL) )
+
+x = np.linspace(-20,20,100)
+y = x
+
+plt.figure(figsize=(10,12))
+c     = ['blue', 'orange', 'green', 'red']
 count = 1
-for i in tqdm( range(len(net.bands)) ):
-    for k in range(3):
-        plt.subplot(5,3,count)
-        for s in range(len(stages)):
-            v_median = np.median(  cv[:,i,k,s,:],axis=0)
-            v_q05    = np.quantile(cv[:,i,k,s,:], 5/100, axis=0)
-            v_q95    = np.quantile(cv[:,i,k,s,:], 95/100, axis=0)
-            diq      = (v_q95-v_q05)/2
-            plt.plot(q_list, v_median, label=stages[s])
-            plt.fill_between(q_list, v_median-diq, v_median+diq, alpha=0.2)
-        count +=1
-        plt.xlim([0.2,0.9])
-        if k == 0: plt.ylabel(f'Band {i}', fontsize=15)
-        if i == 0: plt.title(titles[k], fontsize=15)
-        if i < 4:  plt.xticks([])
-        if i == 0 and k==0: plt.legend()
-        if i == 4: plt.xlabel('q', fontsize=15)
+for i in range(bs_o.sizes["stats"]):
+    for q in [0,7]:
+        plt.subplot(4,2,count)
+        for s in range(4):
+            plt.scatter(bs_s.isel(thr=q,stages=s,stats=i), bs_o.isel(thr=q,stages=s,stats=i), c=c[s], s=2, label=f"{stages[s]}")
+        plt.xlim(bs_s.isel(stats=i, thr=q).min(), bs_s.isel(stats=i, thr=q).max())
+        plt.ylim(bs_o.isel(stats=i, thr=q).min(), bs_o.isel(stats=i, thr=q).max())
+        if i==0 and q==0: plt.legend(fontsize=BIGGER_SIZE)
+        if i==0 and q==0: plt.title(f"q = {bs_o.thr.values[q]}", fontsize=BIGGER_SIZE)
+        if i==0 and q==7: plt.title(f"q = {bs_o.thr.values[q].round(2)}", fontsize=BIGGER_SIZE)
+        if q==0: plt.ylabel(f"{_stats[i]}" + ", original", fontsize=MEDIUM_SIZE)
+        if i==3: plt.xlabel(f"{_stats[i]}" + ", surrogate", fontsize=MEDIUM_SIZE)
+        plt.plot(x,y, "k")
+        count+=1
 plt.tight_layout()
-plt.savefig(
-    os.path.join(path_st, f"q_dependence_{dirs['date'][nmonkey][idx]}.png"),
-    dpi=120)
+plt.savefig(f"img/n5.0.0/scatter_stats_surr_{_SURR}_ks_{_KS}_rel_{_REL}.png")
 plt.close()
-
-###############################################################################
-# 4. Burstness statistics distributions
-###############################################################################
-bs_stats = hf['bs_stats'][:]
-
-q_list = np.array([0.3, 0.5, 0.8, 0.9]) # Overwriting q_list
-
-for idx, q in tqdm( enumerate(q_list) ):
-    titles = ['Mean burst duration', 'Norm. total active time', 'CV']
-    bins   = [np.linspace(0.07,0.14,50), np.linspace(0.12,0.30,50), np.linspace(0.55,0.85,50) ]
-    plt.figure(figsize=(20,20))
-    count = 1
-    for i in range(len(net.bands)):
-        for k in range(3):
-            plt.subplot(5,3,count)
-            for j in range(len(stages)):
-                sns.kdeplot(data=bs_stats[idx][:,i,j,k], shade=True)
-                if i==0: plt.title(titles[k], fontsize=15)
-                if count in [1,4,7,10,13]: plt.ylabel(f'Band {i}', fontsize=15)
-            plt.legend(['baseline','cue','delay','match'])
-            count+=1
-    plt.tight_layout()
-    plt.savefig(
-        os.path.join(path_st, f"stats_dists_q_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=120)
-    plt.close()
-
-###############################################################################
-# 5. Burstness statistics averaged for all links
-###############################################################################
-
-titles = ['Mean burst duration', 'Norm. total active time', 'CV']
-for idx, q in tqdm( enumerate(q_list) ):
-    plt.figure(figsize=(20,5))
-    for k in range(3):
-        plt.subplot(1,3,k+1)
-        for j in range(len(net.bands)):
-            p=bs_stats[idx][:,j,0,k]
-            c=bs_stats[idx][:,j,1,k]
-            d=bs_stats[idx][:,j,2,k]
-            m=bs_stats[idx][:,j,3,k]
-            nf=np.sqrt(net.super_tensor.shape[0])
-            plt.errorbar(range(4), [p.mean(), c.mean(), d.mean(), m.mean()], 
-                         [p.std()/nf, c.std()/nf, d.std()/nf, m.std()/nf])
-            plt.xticks(range(4), ['baseline', 'cue', 'delay', 'match'], fontsize=15)
-            plt.title(titles[k], fontsize=15)
-        plt.legend(band_names)
-    plt.savefig(
-        os.path.join(path_st, f"stats_link_avg_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=120)
-    plt.close()
-
-###############################################################################
-# 6. Burstness statistics ploted as matrix Nodes x Nodes 
-###############################################################################
-
-nC = net.super_tensor.attrs['nC'] # Number of channels
-
-for idx, q in tqdm( enumerate(q_list) ):
-    # Converting stats to matrix
-    mu     = np.zeros([nC, nC, len(net.bands), len(stages)])  
-    mu_tot = np.zeros([nC, nC, len(net.bands), len(stages)]) 
-    CV     = np.zeros([nC, nC, len(net.bands), len(stages)]) 
-    for j in range( net.session_info['pairs'].shape[0]):
-        mu[net.session_info['pairs'][j,0], net.session_info['pairs'][j,1], :, :]     = bs_stats[idx][j,:,:,0]
-        mu_tot[net.session_info['pairs'][j,0], net.session_info['pairs'][j,1], :, :] = bs_stats[idx][j,:,:,1]
-        CV[net.session_info['pairs'][j,0], net.session_info['pairs'][j,1], :, :]     = bs_stats[idx][j,:,:,2]
-
-    # Plotting
-    ################################################ MU ################################################
-    plt.figure(figsize=(15,15))
-    count = 1
-    for k in tqdm( range(len(net.bands)) ):
-        for i in range(len(stages)):
-            plt.subplot(len(net.bands),len(stages),count)
-            aux = (mu[:,:,k,i]+mu[:,:,k,i].T)
-            plt.imshow(aux, aspect='auto',
-                       cmap='jet', origin='lower',
-                       vmin=0, vmax=np.median(mu[:,:,k,:]+mu[:,:,k,:].transpose(1,0,2)*4) )
-            plt.colorbar()
-            if stages[i] == 'baseline': plt.yticks(range(nC), ses.data.roi.values)
-            else: plt.yticks([])
-            if k == 4: plt.xticks(range(nC), ses.data.roi.values, rotation=90)
-            else: plt.xticks([])
-            if k == 0: plt.title(stages[i], fontsize=15)
-            if stages[i] == 'baseline': plt.ylabel(band_names[k], fontsize=15)
-            #plt.colorbar()
-            count+=1
-    plt.tight_layout()
-    plt.savefig(
-        os.path.join(path_st, f"matrix_mu_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=120)
-    plt.close()
-    ############################################## MU_tot ##############################################
-    plt.figure(figsize=(15,15))
-    count = 1
-    for k in tqdm( range(len(net.bands)) ):
-        for i in range(len(stages)):
-            plt.subplot(len(net.bands),len(stages),count)
-            aux = (mu_tot[:,:,k,i]+mu_tot[:,:,k,i].T)
-            plt.imshow(aux, aspect='auto', cmap='jet', origin='lower', vmin=0, vmax=0.3)
-            plt.colorbar()
-            if stages[i] == 'baseline': plt.yticks(range(49), ses.data.roi.values)
-            else: plt.yticks([])
-            if k == 4: plt.xticks(range(49), ses.data.roi.values, rotation=90)
-            else: plt.xticks([])
-            if k == 0: plt.title(stages[i], fontsize=15)
-            if stages[i] == 'baseline': plt.ylabel(band_names[k], fontsize=15)
-            #plt.colorbar()
-            count+=1
-    plt.tight_layout()
-    plt.savefig(
-        os.path.join(path_st, f"matrix_mu_tot_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=120)
-    plt.close()
-    ################################################ CV ################################################
-    plt.figure(figsize=(15,15))
-    count = 1
-    for k in tqdm( range(len(net.bands)) ):
-        for i in range(len(stages)):
-            plt.subplot(len(net.bands),len(stages),count)
-            aux = (CV[:,:,k,i]+CV[:,:,k,i].T)
-            plt.imshow(aux**6, aspect='auto', cmap='jet', origin='lower', vmin=0, vmax=0.3)
-            plt.colorbar()
-            if stages[i] == 'baseline': plt.yticks(range(49), ses.data.roi.values)
-            else: plt.yticks([])
-            if k == 4: plt.xticks(range(49), ses.data.roi.values, rotation=90)
-            else: plt.xticks([])
-            if k == 0: plt.title(stages[i], fontsize=15)
-            if stages[i] == 'baseline': plt.ylabel(band_names[k], fontsize=15)
-            #plt.colorbar()
-            count+=1
-    plt.tight_layout()
-    plt.savefig(
-        os.path.join(path_st, f"matrix_cv_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=120)
-    plt.close()
-
-###############################################################################
-# 7. Burstness vs mean active time 
-###############################################################################
-
-for idx, q in tqdm( enumerate(q_list) ):
-    plt.figure(figsize=(15,20))
-    count = 1
-    x_min, x_max = bs_stats[idx][...,0].min(), bs_stats[idx][...,0].max()
-    y_min, y_max = bs_stats[idx][...,2].min(), bs_stats[idx][...,2].max()
-    bins         = [np.linspace(x_min,x_max,20),np.linspace(y_min, y_max,20)]
-    for j in tqdm( range(len(net.bands)) ):
-        Hb, xb, yb = np.histogram2d(bs_stats[idx][:,j,0,0], bs_stats[idx][:,j,0,2],
-                                    bins=bins, density = True  )
-        for i in range(1,len(stages)):
-            # Plotting top links
-            plt.subplot(len(net.bands), len(stages)-1, count)
-            H, xb, yb = np.histogram2d(bs_stats[idx][:,j,i,0], bs_stats[idx][:,j,i,2],
-                                   bins=bins, density = True )
-            plt.imshow(H-Hb, aspect='auto', cmap='RdBu_r', origin='lower',
-                       extent=[1000*xb[0],1000*xb[-1],yb[0],yb[-1]],
-                       interpolation='gaussian', vmin=-1000, vmax=1000)
-            plt.colorbar()
-            if j < 4 : plt.xticks([])
-            if i > 1 : plt.yticks([])
-            if j == 4: plt.xlabel('Mean burst dur. [ms]', fontsize=15)
-            if j == 0: plt.title(f'{stages[i]}-baseline', fontsize=15)
-            if i == 1: plt.ylabel('CV', fontsize=15)
-            count += 1
-    plt.tight_layout()
-    plt.savefig(
-        os.path.join(path_st, f"bst_mu_dist_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=120)
-    plt.close()
-
-###############################################################################
-# 8. Burstness vs euclidean distance 
-###############################################################################
-
-for idx, q in tqdm( enumerate(q_list) ):
-    plt.figure(figsize=(15,20))
-    count = 1
-    x_min, x_max = d_eu.min(), d_eu.max()
-    y_min, y_max = bs_stats[idx][...,2].min(), bs_stats[idx][...,2].max()
-    bins         = [np.linspace(x_min,x_max,20),np.linspace(y_min, y_max,20)]
-    for j in tqdm( range(len(net.bands)) ):
-        Hb, xb, yb = np.histogram2d(d_eu, bs_stats[idx][:,j,0,2],
-                                    bins=bins, density = True  )
-        for i in range(1,len(stages)):
-            # Plotting top links
-            plt.subplot(len(net.bands), len(stages)-1, count)
-            H, xb, yb = np.histogram2d(d_eu, bs_stats[idx][:,j,i,2],
-                                   bins=bins, density = True )
-            plt.imshow(H-Hb, aspect='auto', cmap='RdBu_r', origin='lower',
-                       extent=[xb[0],xb[-1],yb[0],yb[-1]],
-                       interpolation='gaussian', vmin=-0.02, vmax=0.02)
-            plt.colorbar()
-            if j < 4 : plt.xticks([])
-            if i > 1 : plt.yticks([])
-            if j == 4: plt.xlabel('Euclidian distance', fontsize=15)
-            if j == 0: plt.title(f'{stages[i]}-baseline', fontsize=15)
-            if i == 1: plt.ylabel('CV', fontsize=15)
-            count += 1
-    plt.tight_layout()
-    plt.savefig(
-        os.path.join(path_st, f"bst_eucl_dist_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=120)
-    plt.close()
-
-###############################################################################
-# 9. Meta-connectivity analysis
-###############################################################################
-
-CCij = hf['meta_conn'][:]
-
-for idx, q in tqdm( enumerate(q_list) ):
-    plt.figure(figsize=(20,20))
-    count = 1
-    for b in range(len(net.bands)):
-        for i in range(len(stages)):
-            plt.subplot(len(net.bands),len(stages),count)
-            plt.imshow(CCij[idx][b,...,i], aspect='auto', cmap='RdBu_r', origin='lower',
-                       vmin=-CCij[idx][b,...].mean()*3, vmax=CCij[idx][b,...].mean()*3)
-            if b == 0: plt.title(stages[i], fontsize=15)
-            if i == 0: plt.ylabel(band_names[b], fontsize=15)
-            plt.colorbar(extend='both')
-            count+=1
-    plt.tight_layout()
-    plt.savefig(
-        os.path.join(path_st, f"meta_conn_{int(100*q)}_{dirs['date'][nmonkey][idx]}.png"),
-        dpi=120)
-    plt.close()

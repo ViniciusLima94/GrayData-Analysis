@@ -18,10 +18,10 @@ import h5py
 _DEFAULT_TYPE = np.float32
 # Defining default paths
 _COORDS_PATH  = 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat'
-_DATA_PATH    = '../GrayLab'
-_COH_PATH     = '../Results'
-#  _DATA_PATH    = 'GrayLab/'
-#  _COH_PATH     = 'Results/'
+#  _DATA_PATH    = '../GrayLab'
+#  _COH_PATH     = '../Results'
+_DATA_PATH    = 'GrayLab/'
+_COH_PATH     = 'Results/'
 
 class temporal_network():
 
