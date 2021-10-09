@@ -30,7 +30,7 @@ if  __name__ == '__main__':
     if not os.path.exists(path_st):
         os.makedirs(path_st)
     # Add name of the file
-    path_st = os.path.join(path_st, f'super_tensor_k{sm_times}.nc')
+    path_st = os.path.join(path_st, f'super_tensor_k{sm_times}_{mode}.nc')
 
     #  Instantiating session
     ses   = session(raw_path = dirs['rawdata'], monkey = dirs['monkey'][nmonkey], date = dirs['date'][nmonkey][idx],
