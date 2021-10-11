@@ -1,4 +1,5 @@
 import sys
+import argparse
 
 import GDa.stats.bursting                as     bst
 from   GDa.session                       import session
@@ -29,14 +30,24 @@ stats_names = [r"$\mu$","std$_{\mu}$",r"$\mu_{tot}$","CV"]
 ##################################################################################
 # Config params to specify which coherence file to read
 ##################################################################################
-mode    = sys.argv[-2]
-idx     = int(sys.argv[-1])
+#  mode    = sys.argv[-2]
+#  idx     = int(sys.argv[-1])
+
+# Argument parsing
+parser = argparse.ArgumentParser()
+parser.add_argument("MODE", help="wheter to load coherence computed with morlet or multitaper", choices=["morlet","multitaper"],
+                    type=str)
+parser.add_argument("IDX", help="which condition to run",
+                    type=int)
+args  = parser.parse_args()
+mode  = args.MODE
+idx   = args.IDX
 
 #                 _REL   _SURR
 pars  = np.array([[False,False],
-                 [False,True],
-                 [True,False],
-                 [True,True]])
+                  [False,True],
+                  [True,False],
+                  [True,True]])
 
 # If threshold is relative or absolute
 _REL  = pars[idx,0] 
@@ -44,10 +55,7 @@ _REL  = pars[idx,0]
 _SURR = pars[idx,1] 
 _KS   = 500   # 0.5s kernel size
 
-if _SURR:
-    _COH_FILE = f'super_tensor_s{12000}_k{_KS}_{mode}.nc'
-else:
-    _COH_FILE = f'super_tensor_k{_KS}_{mode}.nc'
+_COH_FILE = f'super_tensor_k_{_KS}_surr_{_SURR}_{mode}.nc'
 
 ##################################################################################
 # Parameters to read the data (temporary)

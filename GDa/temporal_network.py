@@ -18,10 +18,10 @@ import h5py
 _DEFAULT_TYPE = np.float32
 # Defining default paths
 _COORDS_PATH  = 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat'
-_DATA_PATH    = '../GrayLab'
-_COH_PATH     = '../Results'
-#  _DATA_PATH    = 'GrayLab/'
-#  _COH_PATH     = 'Results/'
+#  _DATA_PATH    = '../GrayLab'
+#  _COH_PATH     = '../Results'
+_DATA_PATH    = 'GrayLab/'
+_COH_PATH     = 'Results/'
 
 class temporal_network():
 
@@ -76,9 +76,9 @@ class temporal_network():
         # Load session info
         info                = GDa.session.session(raw_path=_DATA_PATH, monkey=monkey, date=date, session=session)
         # Storing recording info
-        self.recording_info = self.info.recording_info
+        self.recording_info = info.recording_info
         # Storing trial info
-        self.trial_info     = self.info.trial_info
+        self.trial_info     = info.trial_info
         #
         del info
 
@@ -138,10 +138,10 @@ class temporal_network():
         self.freqs = self.super_tensor.freqs.values
 
         # Copying metadata as class attributes
-        #  self.session_info = {}
-        #  self.session_info['nT'] = self.super_tensor.sizes["trials"]
-        #  for key in self.super_tensor.attrs.keys():
-        #      self.session_info[key] = self.super_tensor.attrs[key]
+        self.session_info = {}
+        self.session_info['nT'] = self.super_tensor.sizes["trials"]
+        for key in self.super_tensor.attrs.keys():
+            self.session_info[key] = self.super_tensor.attrs[key]
 
         # Crop beginning/ending of super-tensor due to edge effects
         if isinstance(wt, tuple):
