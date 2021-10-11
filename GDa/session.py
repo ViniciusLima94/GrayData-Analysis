@@ -180,6 +180,62 @@ class session(session_info):
                            'indch': indch, 't_cue_on': t_con,
                            't_cue_off': t_coff, 't_match_on': t_mon}
 
+    def __filter_trial_indexes(self, trial_type=None, behavioral_response=None):
+        """
+        Filter session data by desired trials based on trial_type and behav. response.
+
+        Parameters
+        ----------
+        trial_type: int | None
+            the type of trial (DRT/fixation)
+        behavioral_response: int | None
+            Wheter to get sucessful (1) or unsucessful (0) trials
+        Returns
+        -------
+        filtered_trials | array_like
+            The number of the trials correspondent to the selected trial_type and behavioral_response
+        filtered_trials_idx | array_like
+            The index of the trials corresponding to the selected trial_type and behavioral_response
+        """
+        # Check for invalid values
+        assert _check_values(trial_type,[None, 1.0, 2.0, 3.0]) is True, "Trial type should be either 1, 2, 3 or None."
+        assert _check_values(behavioral_response,[None,np.nan, 0.0, 1.0]) is True, "Behavioral response should be either 0, 1, NaN or None."
+
+        if trial_type is not None: trial_type = np.asarray(trial_type)
+        if behavioral_response is not None: behavioral_response = np.asarray(behavioral_response)
+
+        if isinstance(trial_type, np.ndarray) and behavioral_response is None:
+            idx = self.trial_info['trial_type'].isin(trial_type)
+        if trial_type is None and isinstance(behavioral_response, np.ndarray):
+            idx = self.trial_info['behavioral_response'].isin(behavioral_response)
+        if isinstance(trial_type, np.ndarray) and isinstance(behavioral_response, np.ndarray):
+            idx = self.trial_info['trial_type'].isin(trial_type) & self.trial_info['behavioral_response'].isin(behavioral_response)
+        filtered_trials     = self.trial_info[idx].trial_index.values
+        filtered_trials_idx = self.trial_info[idx].index.values
+        return filtered_trials, filtered_trials_idx
+
+    def filter_trials(self, trial_type, behavioral_response):
+        """
+        Get only selected trials of the session data
+        """
+        filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=trial_type, behavioral_response=behavioral_response)
+        self.data = self.data.sel(trials=filtered_trials)
+        # Filtering attributes
+        for key in ['stim', 't_cue_off', 't_cue_on', 't_match_on']:
+            self.data.attrs[key] = self.data.attrs[key][filtered_trials_idx]
+
     def convert_to_xarray_ephy(self, ):
         # Create dataset
         return DatasetEphy([self.data], roi='roi', times='time')
+
+################################################ AUX FUNCTIONS ################################################
+def _check_values(values, in_list):
+    is_valid=True
+    if values is None:
+        return is_valid
+    else:
+        for val in values:
+            if val not in in_list:
+                is_valid=False
+                break
+        return is_valid
