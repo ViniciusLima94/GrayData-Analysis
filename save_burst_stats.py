@@ -29,6 +29,7 @@ stats_names = [r"$\mu$","std$_{\mu}$",r"$\mu_{tot}$","CV"]
 ##################################################################################
 # Config params to specify which coherence file to read
 ##################################################################################
+mode    = sys.argv[-2]
 idx     = int(sys.argv[-1])
 
 #                 _REL   _SURR
@@ -44,9 +45,9 @@ _SURR = pars[idx,1]
 _KS   = 500   # 0.5s kernel size
 
 if _SURR:
-    _COH_FILE = f'super_tensor_s{12000}_k{_KS}.nc'
+    _COH_FILE = f'super_tensor_s{12000}_k{_KS}_{mode}.nc'
 else:
-    _COH_FILE = f'super_tensor_k{_KS}.nc'
+    _COH_FILE = f'super_tensor_k{_KS}_{mode}.nc'
 
 ##################################################################################
 # Parameters to read the data (temporary)
@@ -64,7 +65,7 @@ dirs = { 'rawdata':'/home/vinicius/storage1/projects/GrayData-Analysis/GrayLab',
 
 # Path in which to save burst stats data
 path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
-path_st = os.path.join(path_st, f"bs_stats_k_{_KS}_surr_{_SURR}_rel_{_REL}_numba.nc")
+path_st = os.path.join(path_st, f"bs_stats_k_{_KS}_surr_{_SURR}_rel_{_REL}_numba_{mode}.nc")
 
 ##################################################################################
 # Instantiate a dummy temp net

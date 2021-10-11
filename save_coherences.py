@@ -7,9 +7,27 @@ from   config                          import *
 from   GDa.session                     import session
 from   GDa.io                          import set_paths
 from   xfrites.conn.conn_coh           import conn_coherence_wav
+from   GDa.signal.surrogates           import phase_rand_surrogates, trial_swap_surrogates
 from   joblib                          import Parallel, delayed
+import argparse
 
-idx     = int(sys.argv[-1])
+#  idx     = int(sys.argv[-1])
+
+# Argument parsing
+parser = argparse.ArgumentParser()
+parser.add_argument("SIDX", help="index of the session to run", 
+                    type=int)
+parser.add_argument("SURR", help="wheter to compute for surrogate data or not",
+                    type=int)
+parser.add_argument("SEED", help="seed for create surrogates",
+                    type=int)
+args   = parser.parse_args()
+# The index of the session to use
+idx    = args.SIDX
+# Wheter to use surrogate or not
+surr   = bool( args.SURR )
+# Wheter to use surrogate or not
+seed   = args.SEED
 
 nmonkey = 0
 nses    = 1
@@ -30,7 +48,7 @@ if  __name__ == '__main__':
     if not os.path.exists(path_st):
         os.makedirs(path_st)
     # Add name of the file
-    path_st = os.path.join(path_st, f'super_tensor_k{sm_times}.nc')
+    path_st = os.path.join(path_st, f'super_tensor_k_{sm_times}_surr_{surr}_{mode}.nc')
 
     #  Instantiating session
     ses   = session(raw_path = dirs['rawdata'], monkey = dirs['monkey'][nmonkey], date = dirs['date'][nmonkey][idx],
@@ -50,6 +68,9 @@ if  __name__ == '__main__':
         sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel, block_size=1
     )
 
+    # Create data surrogate
+    if surr: ses.data.values = phase_rand_surrogates(ses.data, val=0, seed=seed,verbose=False,n_jobs=-1)
+
     # compute the coherence
     coh = conn_coherence_wav(ses.data.values, **kw).astype(np.float32)
     # reordering dimensions
@@ -64,7 +85,7 @@ if  __name__ == '__main__':
     coh.attrs['sources'] = x_s
     coh.attrs['targets'] = x_t
     coh.attrs['decim']   = delta
-    #  coh.attrs['areas']   = ses.data.roi.values.astype('str')
+    coh.attrs['areas']   = ses.data.roi.values.astype('str')
 
     if os.path.isfile(path_st):
         os.system(f'rm {path_st}')
