@@ -8,11 +8,14 @@ from   tqdm   import tqdm
 
 @nb.njit
 def _is_binary(matrix): 
-    r'''
+    """
     Check if a matrix is binary or weighted.
-    > INPUT:
-    - matrix: The adjacency matrix or tensor.
-    '''
+
+    Parameters
+    ----------
+    matrix: array_like
+        The adjacency matrix or tensor.
+    """
     is_binary = True
     for v in np.nditer(matrix):
         if v.item() != 0 and v.item() != 1:
@@ -21,14 +24,19 @@ def _is_binary(matrix):
     return is_binary
 
 def _convert_to_affiliation_vector(n_nodes, partitions):
-    r'''
+    """
     Convert partitions in leidenalg format to array.
-    > INPUTS:
-    - n_nodes:    The number of nodes.
-    - partitions: Parition objects of type "leidenalg.VertexPartition.ModularityVertexPartition"
-    > OUTPUTS:
-    - av: Affiliation vector.
-    '''
+    Parameters
+    ----------
+    n_nodes: int
+        The number of nodes.
+    partitions: ModularityVertexPartition
+        Parition objects of type "leidenalg.VertexPartition.ModularityVertexPartition"
+    Returns
+    -------
+    av: array_like
+        Affiliation vector.
+    """
     # Extact list of partitions
     #  partitions = partitions.values[0]
     # Number of time points
@@ -42,15 +50,22 @@ def _convert_to_affiliation_vector(n_nodes, partitions):
 
 @nb.jit(nopython=True)
 def MODquality(A,av,gamma=1):
-    r'''
+    """
     Given an affiliation vector compute the modularity of the graph given by A (adapted from brainconn).
-    > INPUTS:
-    - A: Adjacency matrix.
-    - av: Affiliation vector of size (n_nodes) containing the label of the community of each node.
-    - gamma: Value of gamma to use.
-    > OUTPUTS:
-    - The modularity index of the network.
-    '''
+
+    Parameters
+    ----------
+    A: array_like
+        Adjacency matrix.
+    av: array_like
+        Affiliation vector of size (n_nodes) containing the label of the community of each node.
+    gamma: float
+        Value of gamma to use.
+
+    Returns
+    -------
+    The modularity index of the network.
+    """
     # Number of nodes
     n_nodes = A.shape[0]
     # Degrees
@@ -66,15 +81,23 @@ def MODquality(A,av,gamma=1):
 
 #@nb.jit(nopython=True)
 def CPMquality(A,av,gamma=1):
-    r'''
+    """
     Constant Potts Model (CPM) quality function.
-    > INPUTS:
-    - A: Adjacency matrix.
-    - av: Affiliation vector of size (n_nodes) containing the label of the community of each node.
-    - gamma: Value of gamma to use.
-    > OUTPUTS:
-    - H: The quality given by the CPM model.
-    '''
+
+    Parameters
+    ----------
+    A: array_like
+        Adjacency matrix.
+    av: array_like
+        Affiliation vector of size (n_nodes) containing the label of the community of each node.
+    gamma: float
+        Value of gamma to use.
+
+    Returns
+    -------
+    H: float
+        The quality given by the CPM model.
+    """
     av    = av.astype(int)
     # Total number of communities
     n_comm = int(np.max(av))+1
@@ -93,25 +116,35 @@ def CPMquality(A,av,gamma=1):
     return H
 
 def _check_inputs(array, dims):
-    r'''
+    """
     Check the input type and size.
-    > INPUT:
-    - array: The data array.
-    - dims: The number of dimensions the array should have.
-    '''
+
+    Parameters
+    ----------
+    array: array_lie
+        The data array.
+    dims: int
+        The number of dimensions the array should have.
+    """
     assert isinstance(dims, int)
     assert isinstance(array, (np.ndarray, xr.DataArray))
     assert len(array.shape)==dims, f"The adjacency tensor should be {dims}D."
 
 def _unwrap_inputs(array, concat_trials=False):
-    r'''
+    """
     Unwrap array and its dimensions for further manipulation.
-    > INPUTS:
-    - array: The data array (roi,roi,trials,time).
-    - concat_trials: Wheter to concatenate or not trials of the values in the array.
-    > OUTPUTS:
-    - array values concatenated or not and the values for each of its dimensions.
-    '''
+
+    Parameters
+    ----------
+    array: array_like
+        The data array (roi,roi,trials,time).
+    concat_trials: bool | False
+        Wheter to concatenate or not trials of the values in the array.
+
+    Returns
+    -------
+    array values concatenated or not and the values for each of its dimensions.
+    """
     if isinstance(array, xr.DataArray): 
         # Concatenate trials and time axis
         try:
@@ -143,15 +176,22 @@ def _reshape_list(array, shapes, dtype):
     return container
 
 def convert_to_adjacency(tensor,sources,targets):
-    r'''
+    """
     Convert the tensor with the edge time-series to a matrix representations.
-    > INPUTS:
-    - tensor: The tensor with the edge time series (roi,freqs,trials,times).
-    - sources: list of source nodes.
-    - targets: list of target nodes.
-    > OUTPUTS:
-    - The adjacency matrix (roi,roi,freqs,trials,times).
-    '''
+    
+    Parameters
+    ----------
+    tensor: array_like
+        The tensor with the edge time series (roi,freqs,trials,times).
+    sources: array_like
+        list of source nodes.
+    targets: array_like
+        list of target nodes.
+
+    Returns
+    -------
+    The adjacency matrix (roi,roi,freqs,trials,times).
+    """
 
     assert tensor.ndim==4
     assert tensor.shape[0]==len(sources)==len(targets)
@@ -168,30 +208,22 @@ def convert_to_adjacency(tensor,sources,targets):
         i, j        = sources[p], targets[p]
         A[i,j,...]  = A[j,i,...] = tensor[p,...]
     return A
-#  def convert_to_adjacency(tensor,):
-#      # Number of pairs
-#      n_pairs    = tensor.shape[0]
-#      # Number of channels
-#      n_channels = int(np.roots([1,-1,-2*n_pairs])[0])
-#      # Number of bands
-#      n_bands    = tensor.shape[1]
-#      # Number of trials
-#      n_trials   = tensor.shape[2]
-#      # Number of time points
-#      n_times    = tensor.shape[3]
-#      # Channels combinations 
-#      pairs      = np.transpose( np.tril_indices(n_channels, k = -1) )
-
-#      # Adjacency tensor
-#      A = np.zeros([n_channels, n_channels, n_bands, n_trials, n_times])
-
-#      for p in range(n_pairs):
-#          i, j          = int(pairs[p,0]), int(pairs[p,1])
-#          A[i,j,...]  = A[j,i,...] = tensor[p,...]
-
-#      return A
 
 def instantiate_graph(A, is_weighted = False):
+    """
+    Convert a numpy array adjacency matrix into a igraph object
+    
+    Parameters
+    ----------
+    A: array_like
+        Adjacency matrix (roi,roi).
+    is_weighted: bool | False
+        Wheter the matrix is weighted or not.
+
+    Returns
+    -------
+    The adjacency matrix as an igraph object.
+    """
     if is_weighted:
         g = ig.Graph.Weighted_Adjacency(A.tolist(), attr="weight", loops=False, mode=ig.ADJ_UNDIRECTED)
     else:
@@ -199,15 +231,23 @@ def instantiate_graph(A, is_weighted = False):
     return g
 
 def compute_coherence_thresholds(tensor, q=0.8, relative=False, verbose=False):
-    r'''
+    """
     Compute the power/coherence thresholds for the data
-    > INPUTS:
-    - tensor: Data with dimensions [nodes/links,bands,observations] or [nodes/links,bands,trials,time]
-    - q: Quartile value to use as threshold
-    - relative: If True compute one threshold for each node/link in each band (defalta False)
-    > OUTPUTS:
-    - coh_thr: Threshold values, if realtive is True it will have dimensions ["links","bands","trials"] otherwise ["bands","trials"] (if tensor shape is 3 there is no "trials" dimension)
-    '''
+
+    Parameters
+    ----------
+    tensor: array_like
+        Data with dimensions (nodes/links,bands,observations) or (nodes/links,bands,trials,time)
+    q: array_like | 0.8
+        Quantile value to use as threshold
+    relative: bool | False
+        If True compute one threshold for each node/link in each band (defalta False)
+
+    Returns
+    -------
+    coh_thr: array_like
+        Threshold values, if realtive is True it will have dimensions ("links","bands","trials") otherwise ("bands","trials") (if tensor shape is 3 there is no "trials" dimension)
+    """
     if len(tensor.shape)==4: 
         n_nodes, n_bands, n_trials, n_obs = tensor.shape[0], tensor.shape[1], tensor.shape[2], tensor.shape[3]
         if relative:
@@ -238,11 +278,10 @@ def compute_coherence_thresholds(tensor, q=0.8, relative=False, verbose=False):
             for i in (tqdm(itr) if verbose else itr):
                 coh_thr[i] = stats.mstats.mquantiles(tensor[:,i,:].flatten(), prob=q)
             coh_thr = xr.DataArray(coh_thr, dims=("freqs"))
-
     return coh_thr
 
 def check_symmetric(a, rtol=1e-05, atol=1e-08):
-    r'''
+    """
     Check if the matrix a is symmetric
-    '''
+    """
     return numpy.allclose(a, a.T, rtol=rtol, atol=atol)

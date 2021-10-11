@@ -28,7 +28,8 @@ sm_kernel = "square"
 
 # Defining parameters
 delta = 15       # Downsampling factor
-mode  = 'morlet' # ("morlet", "mt_1", "mt_2")
+#  mode  = 'morlet' # ("morlet", "mt_1", "mt_2")
+mode  = 'multitaper' # ("morlet", "mt_1", "mt_2")
 foi   = np.array([
         [0.1, 6.],
         [6., 14.],
@@ -43,7 +44,7 @@ if mode in ["morlet", "mt_1"]:
     n_cycles     = freqs/2
     mt_bandwidth = None
     decim_at='tfd'
-elif mode == "mt_2":
+elif mode == "multitaper":
     freqs = foi.mean(axis=1)
     W     = np.ceil( foi[:,1]-foi[:,0] )   # Bandwidth
     foi   = None

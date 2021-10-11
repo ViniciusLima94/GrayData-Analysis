@@ -33,17 +33,19 @@ band_names  = [r'band 1', r'band 2', r'band 3', r'band 4', r'band 5']
 stages      = ['baseline', 'cue', 'delay', 'match']
 _stats      = [r"$\mu$","std$_{\mu}$",r"$\mu_{tot}$","CV"]
 
+mode = "multitaper"
+
 ### Methods to read coherence files
 def get_coh_file(ks=None, surr=False):
     if surr:
-        _COH_FILE = f'super_tensor_s{12000}_k{ks}.nc'
+        _COH_FILE = f'super_tensor_s{12000}_k{ks}_{mode}.nc'
     else:
-        _COH_FILE = f'super_tensor_k{ks}.nc'
+        _COH_FILE = f'super_tensor_k{ks}_{mode}.nc'
     return _COH_FILE
 
 ### Methods to read burst stats files
 def get_bst_file(ks=None, surr=False, rel=False):
-        return f'~/storage1/projects/GrayData-Analysis/Results/lucy/150128/session01/bs_stats_k_{ks}_surr_{surr}_rel_{rel}_numba.nc'
+        return f'~/storage1/projects/GrayData-Analysis/Results/lucy/150128/session01/bs_stats_k_{ks}_surr_{surr}_rel_{rel}_numba_{mode}.nc'
 
 #############################################################################
 ### Visualizing the super tensor
@@ -186,7 +188,7 @@ def plot_erp_panel(_KS=None, _SURR=False, _REL=False, title=None):
     
     bg.axes.text(0.50, 1.0, title, ha='center', fontsize=MEDIUM_SIZE)
 
-    plt.savefig(f"img/n5.0.0/figure0_surr_{_SURR}_ks_{_KS}_rel_{_REL}.png")
+    plt.savefig(f"img/n5.0.0/figure0_surr_{_SURR}_ks_{_KS}_rel_{_REL}_{mode}.png")
 
 #### Original data and absolute threshold (q=0.8)
 plot_erp_panel(_KS=500, _SURR=False, _REL=False, title=r"Original data and absolute threshold (q=0.8)")
@@ -306,7 +308,7 @@ def plot_panel_bst(_KS=None, _SURR=False, _REL=False, title=None):
                                xpos=[-0.15,-0.15,-0.15], ypos=[1.1, 1.1, 1.1]);
     bg.hline(0.92, x0=0.407, x1=0.637, lw=2)
     bg.hline(0.92, x0=0.71, x1=0.952, lw=2, ls="--")
-    plt.savefig(f"img/n5.0.0/qdependence_surr_{_SURR}_ks_{_KS}_rel_{_REL}.png")
+    plt.savefig(f"img/n5.0.0/qdependence_surr_{_SURR}_ks_{_KS}_rel_{_REL}_{mode}.png")
 
 #### Original data and absolute threshold
 plot_panel_bst(_KS=500, _SURR=False, _REL=False, title="Burst stats. dependence on the threshold (absolute)")
@@ -349,5 +351,5 @@ for i in range(bs_o.sizes["stats"]):
         plt.plot(x,y, "k")
         count+=1
 plt.tight_layout()
-plt.savefig(f"img/n5.0.0/scatter_stats_surr_{_SURR}_ks_{_KS}_rel_{_REL}.png")
+plt.savefig(f"img/n5.0.0/scatter_stats_surr_{_SURR}_ks_{_KS}_rel_{_REL}_{mode}.png")
 plt.close()
