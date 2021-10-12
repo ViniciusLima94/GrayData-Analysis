@@ -3,10 +3,10 @@ import xarray               as     xr
 import scipy
 
 import GDa.session
-from   GDa.misc.reshape      import reshape_trials, reshape_observations
-from   GDa.misc.create_grids import create_stages_time_grid
+#  from   GDa.misc.create_grids import create_stages_time_grid
+from   GDa.util              import create_stages_time_grid, filter_trial_indexes
 from   GDa.net.util          import compute_coherence_thresholds, convert_to_adjacency
-from   GDa.net.null_models   import randomize_edges
+#  from   GDa.net.null_models   import randomize_edges
 
 from   scipy                 import stats
 from   tqdm                  import tqdm
@@ -18,10 +18,10 @@ import h5py
 _DEFAULT_TYPE = np.float32
 # Defining default paths
 _COORDS_PATH  = 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat'
-#  _DATA_PATH    = '../GrayLab'
-#  _COH_PATH     = '../Results'
-_DATA_PATH    = 'GrayLab/'
-_COH_PATH     = 'Results/'
+_DATA_PATH    = '../GrayLab'
+_COH_PATH     = '../Results'
+#  _DATA_PATH    = 'GrayLab/'
+#  _COH_PATH     = 'Results/'
 
 class temporal_network():
 
@@ -151,42 +151,42 @@ class temporal_network():
         # Get euclidean distances
         self.super_tensor.attrs['d_eu'] = self.__get_euclidean_distances()
 
-    def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
-        """
-        Filter super-tensor by desired trials based on trial_type and behav. response.
+    #  def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
+    #      """
+    #      Filter super-tensor by desired trials based on trial_type and behav. response.
 
-        Parameters
-        ----------
-        trial_type: int | None
-            the type of trial (DRT/fixation)
-        behavioral_response: int | None
-            Wheter to get sucessful (1) or unsucessful (0) trials
-        Returns
-        -------
-        filtered_trials | array_like
-            The number of the trials correspondent to the selected trial_type and behavioral_response
-        filtered_trials_idx | array_like
-            The index of the trials corresponding to the selected trial_type and behavioral_response
-        """
-        # Check for invalid values
-        assert _check_values(trial_type,[None, 1.0, 2.0, 3.0]) is True, "Trial type should be either 1, 2, 3 or None."
-        assert _check_values(behavioral_response,[None,np.nan, 0.0, 1.0]) is True, "Behavioral response should be either 0, 1, NaN or None."
+    #      Parameters
+    #      ----------
+    #      trial_type: int | None
+    #          the type of trial (DRT/fixation)
+    #      behavioral_response: int | None
+    #          Wheter to get sucessful (1) or unsucessful (0) trials
+    #      Returns
+    #      -------
+    #      filtered_trials | array_like
+    #          The number of the trials correspondent to the selected trial_type and behavioral_response
+    #      filtered_trials_idx | array_like
+    #          The index of the trials corresponding to the selected trial_type and behavioral_response
+    #      """
+    #      # Check for invalid values
+    #      assert _check_values(trial_type,[None, 1.0, 2.0, 3.0]) is True, "Trial type should be either 1, 2, 3 or None."
+    #      assert _check_values(behavioral_response,[None,np.nan, 0.0, 1.0]) is True, "Behavioral response should be either 0, 1, NaN or None."
 
-        if isinstance(trial_type, np.ndarray) and behavioral_response is None:
-            idx = self.trial_info['trial_type'].isin(trial_type)
-        if trial_type is None and isinstance(behavioral_response, np.ndarray):
-            idx = self.trial_info['behavioral_response'].isin(behavioral_response)
-        if isinstance(trial_type, np.ndarray) and isinstance(behavioral_response, np.ndarray):
-            idx = self.trial_info['trial_type'].isin(trial_type) & self.trial_info['behavioral_response'].isin(behavioral_response)
-        filtered_trials     = self.trial_info[idx].trial_index.values
-        filtered_trials_idx = self.trial_info[idx].index.values
-        return filtered_trials, filtered_trials_idx
+    #      if isinstance(trial_type, np.ndarray) and behavioral_response is None:
+    #          idx = self.trial_info['trial_type'].isin(trial_type)
+    #      if trial_type is None and isinstance(behavioral_response, np.ndarray):
+    #          idx = self.trial_info['behavioral_response'].isin(behavioral_response)
+    #      if isinstance(trial_type, np.ndarray) and isinstance(behavioral_response, np.ndarray):
+    #          idx = self.trial_info['trial_type'].isin(trial_type) & self.trial_info['behavioral_response'].isin(behavioral_response)
+    #      filtered_trials     = self.trial_info[idx].trial_index.values
+    #      filtered_trials_idx = self.trial_info[idx].index.values
+    #      return filtered_trials, filtered_trials_idx
 
     def __filter_trials(self, trial_type, behavioral_response):
         """
         Get only selected trials of the super_tensor and its attributes
         """
-        filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=trial_type, behavioral_response=behavioral_response)
+        filtered_trials, filtered_trials_idx = filter_trial_indexes(self.trial_info, trial_type=trial_type, behavioral_response=behavioral_response)
         self.super_tensor = self.super_tensor.sel(trials=filtered_trials)
         # Filtering attributes
         for key in ['stim', 't_cue_off', 't_cue_on', 't_match_on']:
@@ -252,7 +252,7 @@ class temporal_network():
 
 
     def create_stage_masks(self, flatten=False):
-        filtered_trials, filtered_trials_idx = self.__filter_trial_indexes(trial_type=self.trial_type, behavioral_response=self.behavioral_response)
+        filtered_trials, filtered_trials_idx = filter_trial_indexes(self.trial_info, trial_type=self.trial_type, behavioral_response=self.behavioral_response)
         self.s_mask = create_stages_time_grid(
                       self.super_tensor.attrs['t_cue_on'],
                       self.super_tensor.attrs['t_cue_off'],
@@ -394,15 +394,3 @@ class temporal_network():
     #      # Concatenate bands
     #      self.A_null = xr.concat(self.A_null,dim="bands")
     #      self.A_null = self.A_null.transpose("surrogates","sources","targets","freqs","trials","times")
-
-################################################ AUX FUNCTIONS ################################################
-def _check_values(values, in_list):
-    is_valid=True
-    if values is None:
-        return is_valid
-    else:
-        for val in values:
-            if val not in in_list:
-                is_valid=False
-                break
-        return is_valid

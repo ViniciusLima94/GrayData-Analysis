@@ -4,7 +4,6 @@ import argparse
 import GDa.stats.bursting                as     bst
 from   GDa.session                       import session
 from   GDa.temporal_network              import temporal_network
-from   GDa.util                          import smooth
 
 import seaborn                           as       sns
 import numpy                             as       np
