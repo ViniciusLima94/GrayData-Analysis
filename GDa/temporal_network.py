@@ -151,37 +151,6 @@ class temporal_network():
         # Get euclidean distances
         self.super_tensor.attrs['d_eu'] = self.__get_euclidean_distances()
 
-    #  def __filter_trial_indexes(self,trial_type=None, behavioral_response=None):
-    #      """
-    #      Filter super-tensor by desired trials based on trial_type and behav. response.
-
-    #      Parameters
-    #      ----------
-    #      trial_type: int | None
-    #          the type of trial (DRT/fixation)
-    #      behavioral_response: int | None
-    #          Wheter to get sucessful (1) or unsucessful (0) trials
-    #      Returns
-    #      -------
-    #      filtered_trials | array_like
-    #          The number of the trials correspondent to the selected trial_type and behavioral_response
-    #      filtered_trials_idx | array_like
-    #          The index of the trials corresponding to the selected trial_type and behavioral_response
-    #      """
-    #      # Check for invalid values
-    #      assert _check_values(trial_type,[None, 1.0, 2.0, 3.0]) is True, "Trial type should be either 1, 2, 3 or None."
-    #      assert _check_values(behavioral_response,[None,np.nan, 0.0, 1.0]) is True, "Behavioral response should be either 0, 1, NaN or None."
-
-    #      if isinstance(trial_type, np.ndarray) and behavioral_response is None:
-    #          idx = self.trial_info['trial_type'].isin(trial_type)
-    #      if trial_type is None and isinstance(behavioral_response, np.ndarray):
-    #          idx = self.trial_info['behavioral_response'].isin(behavioral_response)
-    #      if isinstance(trial_type, np.ndarray) and isinstance(behavioral_response, np.ndarray):
-    #          idx = self.trial_info['trial_type'].isin(trial_type) & self.trial_info['behavioral_response'].isin(behavioral_response)
-    #      filtered_trials     = self.trial_info[idx].trial_index.values
-    #      filtered_trials_idx = self.trial_info[idx].index.values
-    #      return filtered_trials, filtered_trials_idx
-
     def __filter_trials(self, trial_type, behavioral_response):
         """
         Get only selected trials of the super_tensor and its attributes
@@ -368,29 +337,3 @@ class temporal_network():
     def reshape_observations(self, ):
         assert len(self.super_tensor.dims)==4
         self.super_tensor.stack(observations=('trials','times'))
-
-    #  def create_null_ensemble(self, n_stat, n_rewires,seed, n_jobs=1, verbose=False):
-    #      # Check if the adjacency matrix was already created
-    #      if not hasattr(self, 'A'):
-    #          self.convert_to_adjacency()
-
-    #      # Compute null-model for one single estimative 
-    #      def _single_estimative(band, seed):
-    #          return randomize_edges(self.A.isel(bands=band), n_rewires, seed, verbose)
-
-    #      # define the function to compute in parallel
-    #      parallel, p_fun = parallel_func(
-    #          _single_estimative, n_jobs=n_jobs, verbose=verbose,
-    #          total=n_stat)
-
-    #      self.A_null = []
-    #      itr = range(len(self.freqs))
-    #      for band in (tqdm(itr) if verbose else itr):
-    #          # compute the single trial coherence
-    #          A_tmp   = parallel(p_fun(band,i*(seed+100)) for i in range(n_stat))
-    #          self.A_null += [xr.concat(A_tmp,dim="surrogates")]
-    #          del A_tmp
-
-    #      # Concatenate bands
-    #      self.A_null = xr.concat(self.A_null,dim="bands")
-    #      self.A_null = self.A_null.transpose("surrogates","sources","targets","freqs","trials","times")
