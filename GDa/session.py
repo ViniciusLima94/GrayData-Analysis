@@ -181,11 +181,15 @@ class session(session_info):
                            'indch': indch, 't_cue_on': t_con,
                            't_cue_off': t_coff, 't_match_on': t_mon}
 
-    def filter_trials(self, trial_type, behavioral_response):
+    def filter_trials(self, trial_type=None, behavioral_response=None):
         """
         Get only selected trials of the session data (return instead of rewriting the class attribute)
         """
-        filtered_trials, filtered_trials_idx = filter_trial_indexes(trial_type=trial_type, behavioral_response=behavioral_response)
+        # Input conversion
+        if trial_type is not None: trial_type = np.asarray(trial_type)
+        if behavioral_response is not None: behavioral_response = np.asarray(behavioral_response)
+
+        filtered_trials, filtered_trials_idx = filter_trial_indexes(self.trial_info, trial_type=trial_type, behavioral_response=behavioral_response)
         data = self.data.sel(trials=filtered_trials)
         # Filtering attributes
         for key in ['stim', 't_cue_off', 't_cue_on', 't_match_on']:
