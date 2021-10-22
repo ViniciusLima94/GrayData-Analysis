@@ -63,8 +63,8 @@ if  __name__ == '__main__':
     pairs     = np.array([x_s,x_t]).T
 
     kw = dict(
-        freqs=freqs, times=ses.data.time, roi=ses.data.roi, foi=foi, n_jobs=20, pairs=pairs,
-        sfreq=ses.data.attrs['fsample'], mode=mode, decim_at=decim_at, n_cycles=n_cycles, decim=delta,
+        freqs=freqs, times="time", roi=ses.data.roi, foi=foi, n_jobs=20, pairs=pairs,
+        sfreq=ses.data.attrs['fsample'], mode=mode, n_cycles=n_cycles, decim=delta,
         sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel, block_size=1
     )
 
@@ -72,18 +72,18 @@ if  __name__ == '__main__':
     if surr: ses.data.values = phase_rand_surrogates(ses.data, val=0, seed=seed,verbose=False,n_jobs=-1)
 
     # compute the coherence
-    coh = conn_coherence_wav(ses.data.values, **kw).astype(np.float32)
+    coh = conn_coherence_wav(ses.data, **kw).astype(np.float32)
     # reordering dimensions
     coh = coh.transpose("roi","freqs","trials","times")
     # replace trial axis for the actual values
     coh = coh.assign_coords({"trials":ses.data.trials.values}) 
     # deleting attributes assigned by the method
-    coh.attrs = {}
+    #  coh.attrs = {}
     # copying data attributes
     for key in ses.data.attrs.keys():
         coh.attrs[key] = ses.data.attrs[key]
-    coh.attrs['sources'] = x_s
-    coh.attrs['targets'] = x_t
+    #  coh.attrs['sources'] = x_s
+    #  coh.attrs['targets'] = x_t
     coh.attrs['decim']   = delta
     coh.attrs['areas']   = ses.data.roi.values.astype('str')
 
