@@ -39,7 +39,7 @@ foi   = np.array([
             ])
 
 if mode in ["morlet", "mt_1"]:
-    n_freqs = 50
+    n_freqs = 30
     freqs = np.linspace(foi[0,0], foi[-1,1], n_freqs, endpoint=True)
     n_cycles     = freqs/2
     mt_bandwidth = None
