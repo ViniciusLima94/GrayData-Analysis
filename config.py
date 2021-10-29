@@ -22,7 +22,7 @@ dirs = {
 #####################################################################################################
 
 # Smoothing windows
-sm_times  = 0.5 # In seconds
+sm_times  = 0.3 # In seconds
 sm_freqs  = 1
 sm_kernel = "square"
 
@@ -30,17 +30,19 @@ sm_kernel = "square"
 delta  = 15       # Downsampling factor
 mode   = 'morlet' # ("morlet", "mt_1", "mt_2")
 #  mode  = 'multitaper' # ("morlet", "mt_1", "mt_2")
-foi   = np.array([
-        [0.1, 6.],
-        [6., 14.],
-        [14., 26.],
-        [26., 42.],
-        [42., 80.]
-            ])
+#  foi   = np.array([
+#          [0, 6.],
+#          [6., 14.],
+#          [14., 26.],
+#          [26., 42.],
+#          [42., 80.]
+#              ])
 
 if mode in ["morlet", "mt_1"]:
-    n_freqs = 30
-    freqs = np.linspace(foi[0,0], foi[-1,1], n_freqs, endpoint=True)
+    #  n_freqs = 15
+    freqs = np.linspace(3,75,10)#foi.mean(-1)#np.linspace(foi[0,0], foi[-1,1], n_freqs, endpoint=True)
+    # Frequency resolution
+    #  s_f   = (foi[:,1]-foi[:,0])/4
     n_cycles     = freqs/2
     mt_bandwidth = None
 elif mode == "multitaper":
