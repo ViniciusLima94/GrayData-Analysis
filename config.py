@@ -30,13 +30,13 @@ sm_kernel = "square"
 delta  = 15       # Downsampling factor
 mode   = 'morlet' # ("morlet", "mt_1", "mt_2")
 #  mode  = 'multitaper' # ("morlet", "mt_1", "mt_2")
-#  foi   = np.array([
-#          [0, 6.],
-#          [6., 14.],
-#          [14., 26.],
-#          [26., 42.],
-#          [42., 80.]
-#              ])
+foi   = np.array([
+        [0, 6.],
+        [6., 14.],
+        [14., 26.],
+        [26., 42.],
+        [42., 80.]
+            ])
 
 if mode in ["morlet", "mt_1"]:
     #  n_freqs = 15

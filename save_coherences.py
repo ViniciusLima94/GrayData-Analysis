@@ -73,7 +73,7 @@ if  __name__ == '__main__':
     )
 
     # compute the coherence
-    coh = conn_spec(ses.data, **kw)
+    coh = conn_spec(ses.data, **kw).astype(np.float32, keep_attrs=True)
     # reordering dimensions
     coh = coh.transpose("roi","freqs","trials","times")
     # replace trial axis for the actual values
@@ -82,12 +82,12 @@ if  __name__ == '__main__':
     #  for key in ses.data.attrs.keys():
     #      if key not in coh.attrs.keys(): coh.attrs[key] = ses.data.attrs[key]
     #  #  coh.attrs['decim'] = delta
-    #  coh.attrs['areas'] = ses.data.roi.values.astype('str')
+    coh.attrs['areas'] = ses.data.roi.values.astype('str')
     #  coh.attrs["surr_seed"] = seed
 
     coh.to_netcdf(path_st_coh)
     # To release memory
-    #  del coh
+    del coh
     
     # Create data surrogate
     if surr:
