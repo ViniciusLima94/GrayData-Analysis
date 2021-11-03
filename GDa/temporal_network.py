@@ -3,10 +3,8 @@ import xarray               as     xr
 import scipy
 
 import GDa.session
-#  from   GDa.misc.create_grids import create_stages_time_grid
 from   GDa.util              import create_stages_time_grid, filter_trial_indexes
 from   GDa.net.util          import compute_coherence_thresholds, convert_to_adjacency
-#  from   GDa.net.null_models   import randomize_edges
 
 from   scipy                 import stats
 from   tqdm                  import tqdm
@@ -29,9 +27,9 @@ class temporal_network():
     # CONSTRUCTOR
     ######################################################################################################################
 
-    def __init__(self, coh_file=None, monkey='lucy', session=1, coh_thr=None,
-                 date='150128', trial_type=None, behavioral_response=None, wt=None,
-                 drop_trials_after=True, relative=False, keep_weights=False, q=None, verbose=False):
+    def __init__(self, coh_file=None, monkey='lucy', session=1, foi=None, coh_thr=None, 
+                 sig_values=None, date='150128', trial_type=None, behavioral_response=None, 
+                 wt=None, relative=False, q=None, verbose=False):
         """
         Temporal network class, this object will have information about the session analysed and store the coherence
         networks (a.k.a. supertensor).
@@ -44,8 +42,16 @@ class temporal_network():
             Monkey name
         session: int | 1
             session number
+        foi : array_like | None
+            Extract frequencies of interest. This parameters should be an array of
+            shapes (n_freqs, 2) defining where each band of interest start and
+            finish.
         coh_thr: array_like | None
             Thresholds to use (if not passed they will be computed according to the pars relative and q)
+        sig_values: array_like | None
+            The signicance values of the coherence values with shape (n_roi, n_freqs, n_times). If passed 
+            only coherence values above the significance values for each roi, frequency and time point
+            will be kept.
         date: string | '150128'
             date of the recording session
         trial_type: int | None
@@ -54,15 +60,9 @@ class temporal_network():
             Wheter to get sucessful (1) or unsucessful (0) trials
         wt: Tuple | None 
             Trimming window will remove the wt[0] and wt[1] points in the start and end of each trial
-        drop_trials_after: bool | True
-            If True the trials that are not in trial_type are droped only after
-            computing the thresholds which mean that the thresholds will be commom for all types of trials
-            specified in trial_types.
         relative: bool | False 
             If threshold is true wheter to do it in ralative (one thr per link per band) or
             an common thr for links per band.
-        keep_weights: bool | False 
-            If True, will keep the top weights after thresholding.
         q: float | None
             Quartile value to use for thresholding.
         """
@@ -94,22 +94,30 @@ class temporal_network():
         # Load super-tensor
         self.__load_h5(wt)
 
-        # Threshold the super tensor
+        if sig_values is not None:
+            # Should be an xarray with dimensions (n_roi, n_freqs, n_times)
+            assert isinstance(sig_values, xr.DataArray)
+            cfg = self.super_tensor.attrs
+            # Removing values bellow siginificance level
+            self.super_tensor = (self.super_tensor>=sig_values) * self.super_tensor
+            # Restoring attributes
+            self.super_tensor.attrs = cfg
+
+        # If foi is passed average over bands
+        if foi is not None:
+            assert isinstance(foi, np.ndarray) and foi.ndim == 2
+            f_vec, self.super_tensor.values = _foi_average(self.super_tensor.values, self.freqs, foi)
+            # Assign coordinates to the averaged freqs dimension
+            self.super_tensor.assign_coords({"freqs":f_vec})
+            self.freqs = f_vec
+
+        # Threshold the super tensor if needed
         if isinstance(q, (int,float)) or isinstance(self.coh_thr, xr.DataArray):
-            # Drop trials before thresholding
-            if (trial_type is not None or behavioral_response is not None) and (drop_trials_after is False):
-                #  print(f'drop_trials_after={drop_trials_after}')
-                self.__filter_trials(trial_type, behavioral_response)
-            # Threshold
-            self.__compute_coherence_thresholds(q, relative, keep_weights, verbose)
-            # Drop trials after threshold
-            if (trial_type is not None or behavioral_response is not None) and (drop_trials_after is True):
-                #  print(f'drop_trials_after={drop_trials_after}')
-                self.__filter_trials(trial_type, behavioral_response)
-        else:
-            # Othrwise simply drop the trials if needed
-            if trial_type is not None or behavioral_response is not None:
-                self.__filter_trials(trial_type, behavioral_response)
+            self.__compute_coherence_thresholds(q, relative, verbose)
+
+        # At the end drop select the desired trials 
+        if trial_type is not None or behavioral_response is not None:
+            self.__filter_trials(trial_type, behavioral_response)
 
     ######################################################################################################################
     # PRIVATE METHODS
@@ -183,7 +191,7 @@ class temporal_network():
         d_eu = np.sqrt(dx**2 + dy**2)
         return d_eu
 
-    def __compute_coherence_thresholds(self, q, relative, keep_weights, verbose):
+    def __compute_coherence_thresholds(self, q, relative, verbose):
         """
         Compute coherence thresholds according to the parameters specified (see constructor).
         """
@@ -197,12 +205,7 @@ class temporal_network():
         mask        = xr.DataArray(np.empty(tmp.shape), dims=tmp.dims, coords=tmp.coords)
         mask.values = tmp.values > self.coh_thr.values[...,None]
         # Thrshold setting every element above the threshold as 1 otherwise 0
-        if not keep_weights:
-            self.super_tensor.values = mask.unstack().values
-        # Threshold by leaving the weights for above the threshold and otherwise 0
-        else:
-            tmp *= mask
-            self.super_tensor.values = tmp.unstack().values
+        self.super_tensor.values = mask.unstack().values
 
     ######################################################################################################################
     # PUBLIC METHODS
@@ -216,9 +219,9 @@ class temporal_network():
                 dims=("sources","targets","freqs","trials","times"),
                 coords={"trials":   self.super_tensor.trials.values,
                         "times":    self.super_tensor.times.values,
-                        "sources":  self.super_tensor.attrs['channels_labels'],
-                        "targets":  self.super_tensor.attrs['channels_labels']})
-
+                        "freqs":    self.freqs,
+                        "sources":  self.super_tensor.attrs['areas'],
+                        "targets":  self.super_tensor.attrs['areas']})
 
     def create_stage_masks(self, flatten=False):
         filtered_trials, filtered_trials_idx = filter_trial_indexes(self.trial_info, trial_type=self.trial_type, behavioral_response=self.behavioral_response)
@@ -337,3 +340,44 @@ class temporal_network():
     def reshape_observations(self, ):
         assert len(self.super_tensor.dims)==4
         self.super_tensor.stack(observations=('trials','times'))
+
+###################################################################################################
+###################################################################################################
+#### AUXILIARY METHODS
+###################################################################################################
+###################################################################################################
+
+# Same function from xfrites.conn_tf but adapted to be used with the temporal network class
+def _foi_average(conn, freqs, foi):
+    """Average inside frequency bands.
+    The frequency dimension should be located at -3.
+    Parameters
+    ----------
+    conn : np.ndarray
+        Array of shape (n_roi n_freqs, n_trials, n_times)
+    foi_idx : array_like
+        Array of indices describing frequency bounds of shape (n_foi, 2)
+    Returns
+    -------
+    conn_f : np.ndarray
+        Array of shape (..., n_foi, n_times)
+    """
+    # Get foi indexs (from frites.conn_io)
+    _f = xr.DataArray(np.arange(len(freqs)), dims=('freqs',),
+          coords=(freqs,))
+    foi_s = _f.sel(freqs=foi[:, 0], method='nearest').data
+    foi_e = _f.sel(freqs=foi[:, 1], method='nearest').data
+    foi_idx = np.c_[foi_s, foi_e]
+    f_vec   = freqs[foi_idx].mean(1)
+    # get the number of foi
+    n_foi   = foi_idx.shape[0]
+
+    # get input shape and replace n_freqs with the number of foi
+    sh = list(conn.shape)
+    sh[-3] = n_foi
+
+    # compute average
+    conn_f = np.zeros(sh, dtype=conn.dtype)
+    for n_f, (f_s, f_e) in enumerate(foi_idx):
+        conn_f[..., n_f, :,:] = conn[..., f_s:f_e, :,:].mean(-3)
+    return f_vec, conn_f
