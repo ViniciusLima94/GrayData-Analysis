@@ -16,10 +16,10 @@ import h5py
 _DEFAULT_TYPE = np.float32
 # Defining default paths
 _COORDS_PATH  = 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat'
-_DATA_PATH    = '../GrayLab'
-_COH_PATH     = '../Results'
-#  _DATA_PATH    = 'GrayLab/'
-#  _COH_PATH     = 'Results/'
+#  _DATA_PATH    = '../GrayLab'
+#  _COH_PATH     = '../Results'
+_DATA_PATH    = 'GrayLab/'
+_COH_PATH     = 'Results/'
 
 class temporal_network():
 
@@ -69,7 +69,7 @@ class temporal_network():
         """
 
         # Check for incorrect parameter values
-        assert monkey in ['lucy', 'ethyl'], 'monkey should be either "lucy" or "ethyl"'
+        assert monkey in ['lucy','ethyl'], 'monkey should be either "lucy" or "ethyl"'
         # Input conversion
         if trial_type is not None: trial_type = np.asarray(trial_type)
         if behavioral_response is not None: behavioral_response = np.asarray(behavioral_response)
@@ -239,13 +239,15 @@ class temporal_network():
         """
         Convert coherence tensor to adjacency.
         """
-        self.A = xr.DataArray( convert_to_adjacency(self.super_tensor.values, self.super_tensor.attrs['sources'],self.super_tensor.attrs['targets']), 
+        self.A = xr.DataArray( 
+                convert_to_adjacency(self.super_tensor.values, self.super_tensor.attrs['sources'],self.super_tensor.attrs['targets']), 
                 dims=("sources","targets","freqs","trials","times"),
                 coords={"trials":   self.super_tensor.trials.values,
                         "times":    self.super_tensor.times.values,
                         "freqs":    self.freqs,
                         "sources":  self.super_tensor.attrs['areas'],
-                        "targets":  self.super_tensor.attrs['areas']})
+                        "targets":  self.super_tensor.attrs['areas']}).astype(_DEFAULT_TYPE, keep_attrs=True
+                )
 
     def create_stage_masks(self, flatten=False):
         filtered_trials, filtered_trials_idx = filter_trial_indexes(self.trial_info, trial_type=self.trial_type, behavioral_response=self.behavioral_response)
@@ -263,6 +265,27 @@ class temporal_network():
 
         for key in self.s_mask.keys():
             self.s_mask[key] = xr.DataArray(self.s_mask[key], dims=dims)
+
+    def get_thresholded_coherence(self, q, relative, verbose):
+        """
+        The same as __compute_coherence_thresholds but instead of thresholding the coherence values
+        it returns a copy of the coherence tensor thresholded (the super_tensor should not have been
+        thresholded before, i.e., q=None and coh_thr=None). 
+
+        For information about the parameters see the constructor. Be aware because this will increase memory usage.
+        """
+
+        coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','times')).values,
+                                               q=q, relative=relative, verbose=verbose)
+        # Temporarily store the stacked super-tensor
+        tmp  = self.super_tensor.stack(observations=('trials','times'))
+        # Create the mask by applying threshold
+        mask        = xr.DataArray(np.empty(tmp.shape), dims=tmp.dims, coords=tmp.coords)
+        mask.values = tmp.values > coh_thr.values[...,None]
+        # Thrshold setting every element above the threshold as 1 otherwise 0
+        return xr.DataArray( mask.unstack().values.astype(bool), 
+                             dims=self.super_tensor.dims, coords=self.super_tensor.coords,
+                             attrs=self.super_tensor.attrs )
 
     def get_data_from(self, stage=None, pad=False):
         """
