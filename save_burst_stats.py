@@ -5,19 +5,12 @@ import GDa.stats.bursting                as     bst
 from   GDa.session                       import session
 from   GDa.temporal_network              import temporal_network
 
-import seaborn                           as       sns
 import numpy                             as       np
 import xarray                            as       xr
-import matplotlib.pyplot                 as       plt
-import scipy.signal
-import time
 import os
-import h5py
 
 from   tqdm                              import tqdm
-from   sklearn.manifold                  import TSNE
 from   config                            import *
-from   scipy                             import stats
 
 # Bands names
 band_names  = [r'$\theta$', r'$\alpha$', r'$\beta$', r'h-$\beta$', r'gamma']
@@ -34,27 +27,34 @@ stats_names = [r"$\mu$","std$_{\mu}$",r"$\mu_{tot}$","CV"]
 
 # Argument parsing
 parser = argparse.ArgumentParser()
+parser.add_argument("METRIC", help="which connectivity metric to use", 
+                    type=str)
 parser.add_argument("MODE", help="wheter to load coherence computed with morlet or multitaper", choices=["morlet","multitaper"],
                     type=str)
 parser.add_argument("IDX", help="which condition to run",
                     type=int)
-args  = parser.parse_args()
-mode  = args.MODE
-idx   = args.IDX
+args   = parser.parse_args()
+# The connectivity metric that should be used
+metric = args.METRIC
+mode   = args.MODE
+idx    = args.IDX
 
 #                 _REL   _SURR
-pars  = np.array([[False,False],
-                  [False,True],
-                  [True,False],
-                  [True,True]])
+#  pars  = np.array([[False,False],
+#                    [False,True],
+#                    [True,False],
+#                    [True,True]])
+pars = np.array([False, True])
 
 # If threshold is relative or absolute
-_REL  = pars[idx,0] 
+#  _REL  = pars[idx,0] 
+_REL  = pars[idx] 
 # If it is surrogate data or not
-_SURR = pars[idx,1] 
-_KS   = 500   # 0.5s kernel size
+#  _SURR = pars[idx,1] 
+_KS   = 0.3   # 0.3s kernel size
 
-_COH_FILE = f'super_tensor_k_{_KS}_surr_{_SURR}_{mode}.nc'
+_COH_FILE     = f'{metric}_k_{_KS}_{mode}.nc'
+_COH_FILE_SIG = f'{metric}_k_{_KS}_{mode}_surr.nc'
 
 ##################################################################################
 # Parameters to read the data (temporary)
@@ -72,17 +72,16 @@ dirs = { 'rawdata':'/home/vinicius/storage1/projects/GrayData-Analysis/GrayLab',
 
 # Path in which to save burst stats data
 path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
-path_st = os.path.join(path_st, f"bs_stats_k_{_KS}_surr_{_SURR}_rel_{_REL}_numba_{mode}.nc")
+path_st = os.path.join(path_st, f"bs_stats_k_{_KS}_rel_{_REL}_numba_{mode}.nc")
 
 ##################################################################################
 # Instantiate a dummy temp net
 ##################################################################################
 
 # Instantiating a temporal network object without thresholding the data
-net =  temporal_network(coh_file=_COH_FILE, monkey=dirs['monkey'][nmonkey], 
-                        session=1, date='150128', trial_type=[1],
-                        behavioral_response=[1], wt=(20,20), 
-                        verbose=True, q=None)
+net =  temporal_network(coh_file=_COH_FILE, coh_sig_file=_COH_FILE_SIG, 
+                        date='141017', trial_type=[1], behavioral_response=[1])
+
 
 ##################################################################################
 # Compute burstness statistics for different thresholds
@@ -96,13 +95,17 @@ bs_stats = np.zeros((len(q_list), net.super_tensor.sizes["freqs"], net.super_ten
 
 for j in tqdm( range(len(q_list)) ):
     ## Default threshold
-    kw = dict(q=q_list[j], keep_weights=False, relative=_REL)
+    #  kw  = dict(q=q_list[j], relative=_REL)
 
-    # Instantiating a temporal network object without thresholding the data
-    net =  temporal_network(coh_file=_COH_FILE, monkey=dirs['monkey'][nmonkey],
-                            session=1, date='150128', trial_type=[1],
-                            behavioral_response=[1], wt=(20,20), drop_trials_after=True,
-                            verbose=False, **kw)
+    coh = net.get_thresholded_coherence(q_list[j], _REL, True) 
+ 
+    #  net =  temporal_network(coh_file=_COH_FILE, coh_sig_file=_COH_FILE_SIG, **kw,
+    #                          date='141017', trial_type=[1], behavioral_response=[1])
+
+    #  net =  temporal_network(coh_file=_COH_FILE, monkey=dirs['monkey'][nmonkey],
+    #                          session=1, date='150128', trial_type=[1],
+    #                          behavioral_response=[1], wt=(20,20), drop_trials_after=True,
+    #                          verbose=False, **kw)
     # Creating mask for stages
     net.create_stage_masks(flatten=False)
 
@@ -114,10 +117,10 @@ for j in tqdm( range(len(q_list)) ):
     for key in net.s_mask.keys(): np_mask[key] = net.s_mask[key].values
 
     for f in range(net.super_tensor.sizes["freqs"]):
-        bs_stats[j,f] = bst.tensor_burstness_stats(net.super_tensor.isel(freqs=f).values, np_mask,
-                                                 drop_edges=True, samples=n_samp,
-                                                 dt=delta/net.super_tensor.attrs['fsample'],
-                                                 n_jobs=1)
+        bs_stats[j,f] = bst.tensor_burstness_stats(coh.isel(freqs=f).values, np_mask,
+                                                   drop_edges=True, samples=n_samp,
+                                                   dt=delta/net.super_tensor.attrs['fsample'],
+                                                   n_jobs=1)
 
 bs_stats = xr.DataArray(bs_stats, dims=("thr","freqs","roi","stages","stats"),
                         coords={"thr":q_list,

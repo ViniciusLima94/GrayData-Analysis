@@ -175,7 +175,7 @@ def _reshape_list(array, shapes, dtype):
             idx += 1
     return container
 
-def convert_to_adjacency(tensor,sources,targets):
+def convert_to_adjacency(tensor,sources,targets, dtype=np.float32):
     """
     Convert the tensor with the edge time-series to a matrix representations.
     
@@ -202,7 +202,7 @@ def convert_to_adjacency(tensor,sources,targets):
     n_channels = int(np.roots([1,-1,-2*n_pairs])[0])
 
     # Adjacency tensor
-    A = np.zeros([n_channels, n_channels, n_bands, n_trials, n_times])
+    A = np.zeros([n_channels, n_channels, n_bands, n_trials, n_times],dtype=dtype)
 
     for p in range(n_pairs):
         i, j        = sources[p], targets[p]
