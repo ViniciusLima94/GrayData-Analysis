@@ -27,8 +27,8 @@ class temporal_network():
     # CONSTRUCTOR
     ######################################################################################################################
 
-    def __init__(self, coh_file=None, monkey='lucy', session=1, foi=None, coh_thr=None, 
-                 sig_values=None, date='150128', trial_type=None, behavioral_response=None, 
+    def __init__(self, coh_file=None, coh_sig_file=None, monkey='lucy', session=1, foi=None, coh_thr=None, 
+                 date='150128', trial_type=None, behavioral_response=None, 
                  wt=None, relative=False, q=None, verbose=False):
         """
         Temporal network class, this object will have information about the session analysed and store the coherence
@@ -38,6 +38,11 @@ class temporal_network():
         ----------
         coh_file: string | None
             Name of the coherence file
+        coh_sig_file: array_like | None
+            Path to the file containing the signicance values of the coherence values 
+            with shape (n_roi, n_freqs, n_times). If provided only coherence values above 
+            the significance values for each roi, frequency and time point
+            will be kept.
         monkey: string | 'lucy'
             Monkey name
         session: int | 1
@@ -48,10 +53,6 @@ class temporal_network():
             finish.
         coh_thr: array_like | None
             Thresholds to use (if not passed they will be computed according to the pars relative and q)
-        sig_values: array_like | None
-            The signicance values of the coherence values with shape (n_roi, n_freqs, n_times). If passed 
-            only coherence values above the significance values for each roi, frequency and time point
-            will be kept.
         date: string | '150128'
             date of the recording session
         trial_type: int | None
@@ -83,25 +84,18 @@ class temporal_network():
         del info
 
         # Setting up mokey and recording info to load and save files
-        self.coh_file = coh_file
-        self.monkey   = monkey
-        self.date     = date
-        self.coh_thr  = coh_thr
-        self.session  = f'session0{session}'
+        self.coh_file     = coh_file
+        self.coh_sig_file = coh_sig_file
+        self.monkey       = monkey
+        self.date         = date
+        self.coh_thr      = coh_thr
+        self.session      = f'session0{session}'
         self.trial_type          = trial_type
         self.behavioral_response = behavioral_response
 
         # Load super-tensor
         self.__load_h5(wt)
 
-        if sig_values is not None:
-            # Should be an xarray with dimensions (n_roi, n_freqs, n_times)
-            assert isinstance(sig_values, xr.DataArray)
-            cfg = self.super_tensor.attrs
-            # Removing values bellow siginificance level
-            self.super_tensor = (self.super_tensor>=sig_values) * self.super_tensor
-            # Restoring attributes
-            self.super_tensor.attrs = cfg
 
         # If foi is passed average over bands
         if foi is not None:
@@ -123,17 +117,28 @@ class temporal_network():
     # PRIVATE METHODS
     ######################################################################################################################
 
+    def __set_path(self,):
+        """
+        Return path to the coherence tensor path
+        """
+        # Path to the file
+        return os.path.join(_COH_PATH,
+                            self.monkey,
+                            self.date,
+                            self.session,)
+
     def __load_h5(self, wt):
         """
         Load h5 file containing the coherence tensor for the sessions and monkey
         specified.
         """
         # Path to the file
-        h5_super_tensor_path = os.path.join(_COH_PATH,
-                                            self.monkey,
-                                            self.date,
-                                            self.session,
-                                            self.coh_file)
+        #  h5_super_tensor_path = os.path.join(_COH_PATH,
+        #                                      self.monkey,
+        #                                      self.date,
+        #                                      self.session,
+        #                                      self.coh_file)
+        h5_super_tensor_path = os.path.join(self.__set_path(), self.coh_file)
 
         # Try to read the file in the path specified
         try:
@@ -158,6 +163,25 @@ class temporal_network():
 
         # Get euclidean distances
         self.super_tensor.attrs['d_eu'] = self.__get_euclidean_distances()
+
+        # Correct values bellow significance level
+        if self.coh_sig_file is not None:
+            # Get full path to the file
+            sig_file_path = os.path.join(self.__set_path(), self.coh_sig_file)
+            # Try to read the file in the path specified
+            try:
+                sig_values = xr.load_dataarray(sig_file_path).astype(_DEFAULT_TYPE)
+            except:
+                raise OSError(f'File {self.coh_sig_file} not found for monkey')
+
+            # Should be an xarray with dimensions (n_roi, n_freqs, n_times)
+            assert isinstance(sig_values, xr.DataArray)
+            # Keep the attributes
+            cfg = self.super_tensor.attrs
+            # Removing values bellow siginificance level
+            self.super_tensor.values = np.clip(self.super_tensor-sig_values, 0, np.inf).astype(_DEFAULT_TYPE)
+            # Restoring attributes
+            self.super_tensor.attrs = cfg
 
     def __filter_trials(self, trial_type, behavioral_response):
         """
