@@ -47,7 +47,7 @@ def find_start_end(array, find_zeros=False):
     return np.vstack((run_starts,run_ends)).T
 
 @nb.jit(nopython=True)
-def find_activation_sequences(spike_train, dt=None):
+def find_activation_sequences(spike_train, find_zeros=False, dt=None):
     """
     Given a spike-train, it finds the length of all activations in it.
     For example, for the following spike-train: x = {0111000011000011111},
@@ -58,6 +58,8 @@ def find_activation_sequences(spike_train, dt=None):
     ----------
     spike_train: array_like
         The binary spike train.
+    find_zeros: bool | False
+        Wheter to find a sequence of zeros or ones
     dt: int | None
         If provided the returned array with the length of activations will be given in seconds.
 
@@ -71,13 +73,13 @@ def find_activation_sequences(spike_train, dt=None):
     # If no dt is specified it is set to 1
     if dt is None:
         dt = 1
-    out         = find_start_end(spike_train)
+    out         = find_start_end(spike_train, find_zeros=find_zeros)
     act_lengths = (out[:,1]-out[:,0])*dt
 
     return act_lengths
 
 @nb.jit(nopython=True)
-def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=False, pad=False):
+def masked_find_activation_sequences(spike_train, mask, dt=None, find_zeros=False, drop_edges=False, pad=False):
     """
     Similar to "find_activation_sequences" but a mask is applied to the spike_train while computing
     the size of the activation sequences.'
@@ -90,6 +92,8 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
         Binary mask applied to the spike-train.
     dt: int | None
         If provided the returned array with the length of activations will be given in seconds.
+    find_zeros: bool | False
+        Wheter to find a sequence of zeros or ones
     drop_edges: bool | False
         If True will remove the size of the last burst size in case the spike trains ends at one.
     pad: int, float | False
@@ -110,7 +114,7 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
     #mask = mask.astype(np.bool_)
 
     # Find the size of the activations lengths for the masked spike_train
-    act_lengths = find_activation_sequences(spike_train[mask], dt=dt)
+    act_lengths = find_activation_sequences(spike_train[mask], dt=dt, find_zeros=find_zeros)
     # If drop_edges is true it will check if activation at the
     # left and right edges crosses the mask limits.
     if drop_edges:
@@ -133,7 +137,7 @@ def masked_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
 
     return act_lengths
 
-def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=False, n_jobs=1):
+def tensor_find_activation_sequences(spike_train, mask, dt=None, find_zeros=False, drop_edges=False, n_jobs=1):
     """
     A wrapper from "masked_find_activation_sequences" to run for tensor data
     of shape [links, trials, time].
@@ -148,6 +152,8 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
         is provided.
     dt: int | None
         If provided the returned array with the length of activations will be given in seconds.
+    find_zeros: bool | False
+        Wheter to find a sequence of zeros or ones
     drop_edges: bool | False
         If True will remove the size of the last burst size in case the spike trains ends at one.
     n_jobs: int | 1
@@ -176,6 +182,7 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
         # For each trial
         for i in range(x.shape[0]):
             act_lengths[i,:] = masked_find_activation_sequences(x[i,...], m[i,...],
+                                                                find_zeros=find_zeros,
                                                                 drop_edges=drop_edges,
                                                                 pad=True, dt=dt)
         return act_lengths
@@ -212,7 +219,7 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None, drop_edges=Fals
 
     return act_lengths
 
-def tensor_burstness_stats(spike_train, mask, drop_edges=False, samples=None, dt=None, n_jobs=1):
+def tensor_burstness_stats(spike_train, mask, drop_edges=False, find_zeros=False, samples=None, dt=None, n_jobs=1):
     """
     Given a data tensor (links,trial,time) composed of spike trains the sequence 
     of activations of it will be determined (see tensor_find_activations_squences) and 
@@ -230,6 +237,8 @@ def tensor_burstness_stats(spike_train, mask, drop_edges=False, samples=None, dt
         is provided.
     drop_edges: bool | False
         If True will remove the size of the last burst size in case the spike trains ends at one.
+    find_zeros: bool | False
+        Wheter to find a sequence of zeros or ones
     samples: int, array_like | None
         Total number of samples for each in the spike-train for the period
         delimitated by the mask.
@@ -248,7 +257,8 @@ def tensor_burstness_stats(spike_train, mask, drop_edges=False, samples=None, dt
         dt = 1
 
     # Computing activation lengths
-    out = tensor_find_activation_sequences(spike_train, mask, dt=dt, drop_edges=drop_edges, n_jobs=n_jobs)
+    out = tensor_find_activation_sequences(spike_train, mask, dt=dt, find_zeros=find_zeros,
+                                           drop_edges=drop_edges, n_jobs=n_jobs)
 
     if isinstance(out, np.ndarray):
         # In order ot be able to use NaN
@@ -257,7 +267,7 @@ def tensor_burstness_stats(spike_train, mask, drop_edges=False, samples=None, dt
         bs_stats[:,0] = np.nanmean(out,axis=-1)
         bs_stats[:,1] = np.nanstd(out,axis=-1)
         bs_stats[:,2] = np.nansum(out,axis=-1)/(samples*dt)
-        bs_stats[:,3] = bs_stats[:,1]/bs_stats[:,0] 
+        bs_stats[:,3] = (bs_stats[:,1]-bs_stats[:,0])/(bs_stats[:,1]+bs_stats[:,0])
     elif isinstance(out, dict):
         assert len(mask)==len(samples)
         # Getting keys
@@ -267,5 +277,5 @@ def tensor_burstness_stats(spike_train, mask, drop_edges=False, samples=None, dt
             bs_stats[:,idx,0] = np.nanmean(out[key],axis=-1)
             bs_stats[:,idx,1] = np.nanstd(out[key],axis=-1)
             bs_stats[:,idx,2] = np.nansum(out[key],axis=-1)/(samples[idx]*dt)
-            bs_stats[:,idx,3] = bs_stats[:,idx,1]/bs_stats[:,idx,0] 
+            bs_stats[:,idx,3] = (bs_stats[:,idx,1]-bs_stats[:,idx,0])/(bs_stats[:,idx,1]+bs_stats[:,idx,0])
     return bs_stats

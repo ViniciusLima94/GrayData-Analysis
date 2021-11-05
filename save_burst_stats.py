@@ -68,7 +68,7 @@ dirs = { 'rawdata':'/home/vinicius/storage1/projects/GrayData-Analysis/GrayLab',
          'results':'Results/',
          'monkey' :['lucy', 'ethyl'],
          'session':'session01',
-         'date'   :[['141014', '141015', '141205', '150128', '150211', '150304'], []] }
+         'date'   :[['141014', '141015', '141205', '141017', '150128', '150211', '150304'], []] }
 
 # Path in which to save burst stats data
 path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
@@ -88,7 +88,7 @@ net =  temporal_network(coh_file=_COH_FILE, coh_sig_file=_COH_FILE_SIG,
 ##################################################################################
 
 # Define list of thresholds
-q_list  = np.arange(0.2, 1.0, 0.1)
+q_list  = np.array([0])#np.arange(0.2, 1.0, 0.1)
 
 # Store burst stats. for each link in each stage and frequency band
 bs_stats = np.zeros((len(q_list), net.super_tensor.sizes["freqs"], net.super_tensor.shape[0], len(stages), 4))
@@ -97,7 +97,8 @@ for j in tqdm( range(len(q_list)) ):
     ## Default threshold
     #  kw  = dict(q=q_list[j], relative=_REL)
 
-    coh = net.get_thresholded_coherence(q_list[j], _REL, True) 
+    #  coh = net.get_thresholded_coherence(q_list[j], _REL, True) 
+    coh = (net.super_tensor>0)
  
     #  net =  temporal_network(coh_file=_COH_FILE, coh_sig_file=_COH_FILE_SIG, **kw,
     #                          date='141017', trial_type=[1], behavioral_response=[1])
@@ -118,7 +119,7 @@ for j in tqdm( range(len(q_list)) ):
 
     for f in range(net.super_tensor.sizes["freqs"]):
         bs_stats[j,f] = bst.tensor_burstness_stats(coh.isel(freqs=f).values, np_mask,
-                                                   drop_edges=True, samples=n_samp,
+                                                   drop_edges=True, samples=n_samp, find_zeros=True,
                                                    dt=delta/net.super_tensor.attrs['fsample'],
                                                    n_jobs=1)
 
