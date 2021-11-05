@@ -72,28 +72,28 @@ dirs = { 'rawdata':'/home/vinicius/storage1/projects/GrayData-Analysis/GrayLab',
 
 # Path in which to save burst stats data
 path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
-path_st = os.path.join(path_st, f"bs_stats_k_{_KS}_rel_{_REL}_numba_{mode}.nc")
+path_st = os.path.join(path_st, f"bs_stats_k_{_KS}_numba_{mode}.nc")
 
 ##################################################################################
-# Instantiate a dummy temp net
+# Instantiate temp net
 ##################################################################################
 
 # Instantiating a temporal network object without thresholding the data
 net =  temporal_network(coh_file=_COH_FILE, coh_sig_file=_COH_FILE_SIG, 
                         date='141017', trial_type=[1], behavioral_response=[1])
 
-
 ##################################################################################
 # Compute burstness statistics for different thresholds
 ##################################################################################
 
 # Define list of thresholds
-q_list  = np.array([0])#np.arange(0.2, 1.0, 0.1)
+#  q_list  = np.array([0])#np.arange(0.2, 1.0, 0.1)
 
 # Store burst stats. for each link in each stage and frequency band
-bs_stats = np.zeros((len(q_list), net.super_tensor.sizes["freqs"], net.super_tensor.shape[0], len(stages), 4))
+#  bs_stats = np.zeros((len(q_list), net.super_tensor.sizes["freqs"], net.super_tensor.shape[0], len(stages), 4))
+bs_stats = np.zeros((2, net.super_tensor.sizes["freqs"], net.super_tensor.shape[0], len(stages), 4))
 
-for j in tqdm( range(len(q_list)) ):
+for j in range(2):#tqdm( range(len(q_list)) ):
     ## Default threshold
     #  kw  = dict(q=q_list[j], relative=_REL)
 
@@ -117,17 +117,21 @@ for j in tqdm( range(len(q_list)) ):
     np_mask = {}
     for key in net.s_mask.keys(): np_mask[key] = net.s_mask[key].values
 
+    find_zeros=False
+    if j==1: find_zeros=True
+
     for f in range(net.super_tensor.sizes["freqs"]):
         bs_stats[j,f] = bst.tensor_burstness_stats(coh.isel(freqs=f).values, np_mask,
-                                                   drop_edges=True, samples=n_samp, find_zeros=True,
+                                                   drop_edges=True, samples=n_samp, find_zeros=find_zeros,
                                                    dt=delta/net.super_tensor.attrs['fsample'],
                                                    n_jobs=1)
 
-bs_stats = xr.DataArray(bs_stats, dims=("thr","freqs","roi","stages","stats"),
-                        coords={"thr":q_list,
-                                "freqs":net.super_tensor.freqs,
-                                "roi":net.super_tensor.roi,
-                                "stages":stages,
-                                "stats":stats_names})
+bs_stats = xr.DataArray(bs_stats, dims=("zeros","freqs","roi","stages","stats"),
+                        coords={"zeros":  [0,1],
+                                "freqs":  net.super_tensor.freqs,
+                                "roi":    net.super_tensor.roi,
+                                "stages": stages,
+                                "stats":  stats_names},
+                        attrs=net.super_tensor.attrs)
 
 bs_stats.to_netcdf(path_st)
