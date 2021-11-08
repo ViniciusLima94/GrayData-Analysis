@@ -27,7 +27,7 @@ class temporal_network():
     # CONSTRUCTOR
     ######################################################################################################################
 
-    def __init__(self, coh_file=None, coh_sig_file=None, monkey='lucy', session=1, foi=None, coh_thr=None, 
+    def __init__(self, coh_file=None, coh_sig_file=None, monkey='lucy', session=1, coh_thr=None, 
                  date='150128', trial_type=None, behavioral_response=None, 
                  wt=None, relative=False, q=None, verbose=False):
         """
@@ -47,10 +47,6 @@ class temporal_network():
             Monkey name
         session: int | 1
             session number
-        foi : array_like | None
-            Extract frequencies of interest. This parameters should be an array of
-            shapes (n_freqs, 2) defining where each band of interest start and
-            finish.
         coh_thr: array_like | None
             Thresholds to use (if not passed they will be computed according to the pars relative and q)
         date: string | '150128'
@@ -96,15 +92,6 @@ class temporal_network():
         # Load super-tensor
         self.__load_h5(wt)
 
-
-        # If foi is passed average over bands
-        if foi is not None:
-            assert isinstance(foi, np.ndarray) and foi.ndim == 2
-            f_vec, self.super_tensor.values = _foi_average(self.super_tensor.values, self.freqs, foi)
-            # Assign coordinates to the averaged freqs dimension
-            self.super_tensor.assign_coords({"freqs":f_vec})
-            self.freqs = f_vec
-
         # Threshold the super tensor if needed
         if isinstance(q, (int,float)) or isinstance(self.coh_thr, xr.DataArray):
             self.__compute_coherence_thresholds(q, relative, verbose)
@@ -133,11 +120,6 @@ class temporal_network():
         specified.
         """
         # Path to the file
-        #  h5_super_tensor_path = os.path.join(_COH_PATH,
-        #                                      self.monkey,
-        #                                      self.date,
-        #                                      self.session,
-        #                                      self.coh_file)
         h5_super_tensor_path = os.path.join(self.__set_path(), self.coh_file)
 
         # Try to read the file in the path specified
@@ -387,44 +369,3 @@ class temporal_network():
     def reshape_observations(self, ):
         assert len(self.super_tensor.dims)==4
         self.super_tensor.stack(observations=('trials','times'))
-
-###################################################################################################
-###################################################################################################
-#### AUXILIARY METHODS
-###################################################################################################
-###################################################################################################
-
-# Same function from xfrites.conn_tf but adapted to be used with the temporal network class
-def _foi_average(conn, freqs, foi):
-    """Average inside frequency bands.
-    The frequency dimension should be located at -3.
-    Parameters
-    ----------
-    conn : np.ndarray
-        Array of shape (n_roi n_freqs, n_trials, n_times)
-    foi_idx : array_like
-        Array of indices describing frequency bounds of shape (n_foi, 2)
-    Returns
-    -------
-    conn_f : np.ndarray
-        Array of shape (..., n_foi, n_times)
-    """
-    # Get foi indexs (from frites.conn_io)
-    _f = xr.DataArray(np.arange(len(freqs)), dims=('freqs',),
-          coords=(freqs,))
-    foi_s = _f.sel(freqs=foi[:, 0], method='nearest').data
-    foi_e = _f.sel(freqs=foi[:, 1], method='nearest').data
-    foi_idx = np.c_[foi_s, foi_e]
-    f_vec   = freqs[foi_idx].mean(1)
-    # get the number of foi
-    n_foi   = foi_idx.shape[0]
-
-    # get input shape and replace n_freqs with the number of foi
-    sh = list(conn.shape)
-    sh[-3] = n_foi
-
-    # compute average
-    conn_f = np.zeros(sh, dtype=conn.dtype)
-    for n_f, (f_s, f_e) in enumerate(foi_idx):
-        conn_f[..., n_f, :,:] = conn[..., f_s:f_e, :,:].mean(-3)
-    return f_vec, conn_f
