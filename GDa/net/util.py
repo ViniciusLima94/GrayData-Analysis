@@ -3,8 +3,9 @@ import numpy  as np
 import numba  as nb
 import xarray as xr
 import scipy
-from   scipy  import stats
-from   tqdm   import tqdm
+from   scipy        import stats
+from   tqdm         import tqdm
+from   frites.utils import parallel_func
 
 @nb.njit
 def _is_binary(matrix): 
@@ -230,7 +231,7 @@ def instantiate_graph(A, is_weighted = False):
         g = ig.Graph.Adjacency(A.tolist(), mode=ig.ADJ_UNDIRECTED)
     return g
 
-def compute_coherence_thresholds(tensor, q=0.8, relative=False, verbose=False):
+def compute_coherence_thresholds(tensor, q=0.8, relative=False, verbose=False, n_jobs=1):
     """
     Compute the power/coherence thresholds for the data
 
@@ -248,37 +249,62 @@ def compute_coherence_thresholds(tensor, q=0.8, relative=False, verbose=False):
     coh_thr: array_like
         Threshold values, if realtive is True it will have dimensions ("links","bands","trials") otherwise ("bands","trials") (if tensor shape is 3 there is no "trials" dimension)
     """
-    if len(tensor.shape)==4: 
-        n_nodes, n_bands, n_trials, n_obs = tensor.shape[0], tensor.shape[1], tensor.shape[2], tensor.shape[3]
+    n_nodes, n_bands, n_obs = tensor.shape[0], tensor.shape[1], tensor.shape[2]
+    # To compute in parallel for each band
+    def _for_band(b):
         if relative:
-            coh_thr = np.zeros([n_nodes, n_bands, n_trials])
-            itr = range(n_trials) # Iterator
-            for t in (tqdm(itr) if verbose else itr):
-                for i in range( n_bands ):
-                    coh_thr[:,i,t] = np.squeeze( stats.mstats.mquantiles(tensor[:,i,t,:], prob=q, axis=-1) )
-            coh_thr = xr.DataArray(coh_thr, dims=("roi","freqs","trials"))
+            out = np.squeeze( stats.mstats.mquantiles(tensor[:,b,:], prob=q, axis=-1) )
         else:
-            coh_thr = np.zeros( [n_bands, n_trials] )
-            itr = range(n_trials) # Iterator
-            for t in (tqdm(itr) if verbose else itr):
-                for i in range( n_bands ):
-                    coh_thr[i,t] = stats.mstats.mquantiles(tensor[:,i,t,:].flatten(), prob=q)
-            coh_thr = xr.DataArray(coh_thr, dims=("freqs","trials"))
-    if len(tensor.shape)==3: 
-        n_nodes, n_bands, n_obs = tensor.shape[0], tensor.shape[1], tensor.shape[2]
-        if relative:
-            coh_thr = np.zeros([n_nodes, n_bands])
-            itr = range(n_bands) # Iterator
-            for i in (tqdm(itr) if verbose else itr):
-                coh_thr[:,i] = np.squeeze( stats.mstats.mquantiles(tensor[:,i,:], prob=q, axis=-1) )
-            coh_thr = xr.DataArray(coh_thr, dims=("roi","freqs"))
-        else:
-            coh_thr = np.zeros( n_bands )
-            itr = range(n_bands) # Iterator
-            for i in (tqdm(itr) if verbose else itr):
-                coh_thr[i] = stats.mstats.mquantiles(tensor[:,i,:].flatten(), prob=q)
-            coh_thr = xr.DataArray(coh_thr, dims=("freqs"))
+            out = stats.mstats.mquantiles(tensor[:,b,:].flatten(), prob=q)
+        return out
+
+    # Create containers
+    if relative: 
+        coh_thr = xr.DataArray(np.zeros([n_nodes, n_bands]), dims=("roi","freqs"))
+    else:
+        coh_thr = xr.DataArray(np.zeros(n_bands), dims=("freqs"))
+    
+    itr = range(n_bands) # Iterator
+    # define the function to compute in parallel
+    parallel, p_fun = parallel_func(
+        _for_band, n_jobs=n_jobs, verbose=verbose,
+        total=n_bands)
+    # Compute the single trial coherence
+    out = np.squeeze( parallel(p_fun(t) for t in range(n_bands)) )
+    coh_thr.values = np.stack(out, -1)
     return coh_thr
+
+    #  if len(tensor.shape)==4: 
+    #      n_nodes, n_bands, n_trials, n_obs = tensor.shape[0], tensor.shape[1], tensor.shape[2], tensor.shape[3]
+    #      if relative:
+    #          coh_thr = np.zeros([n_nodes, n_bands, n_trials])
+    #          itr = range(n_trials) # Iterator
+    #          for t in (tqdm(itr) if verbose else itr):
+    #              for i in range( n_bands ):
+    #                  coh_thr[:,i,t] = np.squeeze( stats.mstats.mquantiles(tensor[:,i,t,:], prob=q, axis=-1) )
+    #          coh_thr = xr.DataArray(coh_thr, dims=("roi","freqs","trials"))
+    #      else:
+    #          coh_thr = np.zeros( [n_bands, n_trials] )
+    #          itr = range(n_trials) # Iterator
+    #          for t in (tqdm(itr) if verbose else itr):
+    #              for i in range( n_bands ):
+    #                  coh_thr[i,t] = stats.mstats.mquantiles(tensor[:,i,t,:].flatten(), prob=q)
+    #          coh_thr = xr.DataArray(coh_thr, dims=("freqs","trials"))
+    #  if len(tensor.shape)==3: 
+    #      n_nodes, n_bands, n_obs = tensor.shape[0], tensor.shape[1], tensor.shape[2]
+    #  if relative:
+    #      coh_thr = np.zeros([n_nodes, n_bands])
+    #      itr = range(n_bands) # Iterator
+    #      for i in (tqdm(itr) if verbose else itr):
+    #          coh_thr[:,i] = np.squeeze( stats.mstats.mquantiles(tensor[:,i,:], prob=q, axis=-1) )
+    #      coh_thr = xr.DataArray(coh_thr, dims=("roi","freqs"))
+    #  else:
+    #      coh_thr = np.zeros( n_bands )
+    #      itr = range(n_bands) # Iterator
+    #      for i in (tqdm(itr) if verbose else itr):
+    #          coh_thr[i] = stats.mstats.mquantiles(tensor[:,i,:].flatten(), prob=q)
+    #      coh_thr = xr.DataArray(coh_thr, dims=("freqs"))
+    #  return coh_thr
 
 def check_symmetric(a, rtol=1e-05, atol=1e-08):
     """
