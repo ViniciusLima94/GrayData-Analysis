@@ -15,11 +15,11 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("METRIC", help="which connectivity metric to use", 
                     type=str)
-parser.add_argument("SIDX", help="index of the session to run", 
+parser.add_argument("SIDX",   help="index of the session to run", 
                     type=int)
-parser.add_argument("SURR", help="wheter to compute for surrogate data or not",
+parser.add_argument("SURR",   help="wheter to compute for surrogate data or not",
                     type=int)
-parser.add_argument("SEED", help="seed for create surrogates",
+parser.add_argument("SEED",   help="seed for create surrogates",
                     type=int)
 
 args   = parser.parse_args()
@@ -42,6 +42,12 @@ ntype   = 0
 trial_type          = 3
 align_to            = 'cue'
 behavioral_response = None 
+
+#################################################################################################
+# Method to compute the bias accordingly to Lachaux et. al. (2002)
+#################################################################################################
+def _bias_lachaux(sm_times, freqs, n_cycles):
+    return (1+2*sm_times*freqs/n_cycles)**-1
 
 if  __name__ == '__main__':
 
@@ -67,24 +73,19 @@ if  __name__ == '__main__':
     start = time.time()
 
     kw = dict(
-        freqs=freqs, times="time", roi=ses.data.roi, foi=None, n_jobs=20, pairs=None,
+        freqs=freqs, times="time", roi=ses.data.roi, foi=None, n_jobs=10, pairs=None,
         sfreq=ses.data.attrs['fsample'], mode=mode, n_cycles=n_cycles, decim=delta, metric=metric,
-        sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel, block_size=2
+        sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel, block_size=1
     )
 
     # compute the coherence
     coh = conn_spec(ses.data, **kw).astype(np.float32, keep_attrs=True)
     # reordering dimensions
     coh = coh.transpose("roi","freqs","trials","times")
-    # replace trial axis for the actual values
-    #  coh = coh.assign_coords({"trials":ses.data.trials.values}) 
-    #  copying data attributes
-    #  for key in ses.data.attrs.keys():
-    #      if key not in coh.attrs.keys(): coh.attrs[key] = ses.data.attrs[key]
-    #  #  coh.attrs['decim'] = delta
+    # Add areas as attribute
     coh.attrs['areas'] = ses.data.roi.values.astype('str')
-    #  coh.attrs["surr_seed"] = seed
-
+    coh.attrs['bias']  = _bias_lachaux(sm_times, freqs, n_cycles).tolist()
+    # Save to file
     coh.to_netcdf(path_st_coh)
     # To release memory
     del coh

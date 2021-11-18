@@ -6,9 +6,7 @@ import GDa.session
 from   GDa.util              import create_stages_time_grid, filter_trial_indexes
 from   GDa.net.util          import compute_coherence_thresholds, convert_to_adjacency
 
-from   scipy                 import stats
 from   tqdm                  import tqdm
-from   frites.utils          import parallel_func
 import os
 import h5py
 
@@ -16,10 +14,8 @@ import h5py
 _DEFAULT_TYPE = np.float32
 # Defining default paths
 _COORDS_PATH  = 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat'
-#  _DATA_PATH    = '../GrayLab'
-#  _COH_PATH     = '../Results'
-_DATA_PATH    = 'GrayLab/'
-_COH_PATH     = 'Results/'
+_DATA_PATH    = os.path.expanduser('~/storage1/projects/GrayData-Analysis/GrayLab')
+_COH_PATH     = os.path.expanduser('~/storage1/projects/GrayData-Analysis/Results')
 
 class temporal_network():
 
@@ -27,9 +23,9 @@ class temporal_network():
     # CONSTRUCTOR
     ######################################################################################################################
 
-    def __init__(self, coh_file=None, coh_sig_file=None, monkey='lucy', session=1, coh_thr=None, 
-                 date='150128', trial_type=None, behavioral_response=None, 
-                 wt=None, relative=False, q=None, verbose=False):
+    def __init__(self, coh_file=None, coh_sig_file=None, monkey='lucy', session=1, 
+                 coh_thr=None, date='150128', trial_type=None, behavioral_response=None, 
+                 wt=None, relative=False, q=None, verbose=False, n_jobs=1):
         """
         Temporal network class, this object will have information about the session analysed and store the coherence
         networks (a.k.a. supertensor).
@@ -62,6 +58,9 @@ class temporal_network():
             an common thr for links per band.
         q: float | None
             Quartile value to use for thresholding.
+        n_jobs: int | 1
+            Number of jobs to use when computing the threshold for the coherence tensor.
+            Parallelized over bands.
         """
 
         # Check for incorrect parameter values
@@ -197,14 +196,14 @@ class temporal_network():
         d_eu = np.sqrt(dx**2 + dy**2)
         return d_eu
 
-    def __compute_coherence_thresholds(self, q, relative, verbose):
+    def __compute_coherence_thresholds(self, q, relative, verbose, n_jobs):
         """
         Compute coherence thresholds according to the parameters specified (see constructor).
         """
         if not isinstance(self.coh_thr, xr.DataArray):
             if verbose: print('Computing coherence thresholds')
             self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','times')).values,
-                                                        q=q, relative=relative, verbose=verbose)
+                                                        q=q, relative=relative, verbose=verbose, n_jobs=n_jobs)
         # Temporarily store the stacked super-tensor
         tmp  = self.super_tensor.stack(observations=('trials','times'))
         # Create the mask by applying threshold
@@ -248,7 +247,7 @@ class temporal_network():
         for key in self.s_mask.keys():
             self.s_mask[key] = xr.DataArray(self.s_mask[key], dims=dims)
 
-    def get_thresholded_coherence(self, q, relative, verbose):
+    def get_thresholded_coherence(self, q, relative=False, verbose=False, n_jobs=1):
         """
         The same as __compute_coherence_thresholds but instead of thresholding the coherence values
         it returns a copy of the coherence tensor thresholded (the super_tensor should not have been
@@ -258,7 +257,7 @@ class temporal_network():
         """
 
         coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','times')).values,
-                                               q=q, relative=relative, verbose=verbose)
+                                               q=q, relative=relative, verbose=verbose, n_jobs=n_jobs)
         # Temporarily store the stacked super-tensor
         tmp  = self.super_tensor.stack(observations=('trials','times'))
         # Create the mask by applying threshold
