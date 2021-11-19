@@ -1,107 +1,114 @@
-import numpy                as     np
-import xarray               as     xr
+import numpy as np
+import xarray as xr
 import scipy
 
 import GDa.session
-from   GDa.util              import create_stages_time_grid, filter_trial_indexes
-from   GDa.net.util          import compute_coherence_thresholds, convert_to_adjacency
+from GDa.util import create_stages_time_grid, filter_trial_indexes
+from GDa.net.util import compute_coherence_thresholds, convert_to_adjacency
 
-from   tqdm                  import tqdm
 import os
-import h5py
 
 # Define default return type
 _DEFAULT_TYPE = np.float32
 # Defining default paths
-_COORDS_PATH  = 'storage1/projects/GrayData-Analysis/Brain Areas/lucy_brainsketch_xy.mat'
-_DATA_PATH    = os.path.expanduser('~/storage1/projects/GrayData-Analysis/GrayLab')
-_COH_PATH     = os.path.expanduser('~/storage1/projects/GrayData-Analysis/Results')
+_ROOT = '~/storage1/projects/GrayData-Analysis/'
+_COORDS_PATH = os.path.expanduser(_ROOT+'Brain Areas/lucy_brainsketch_xy.mat')
+_DATA_PATH = os.path.expanduser(_ROOT+'GrayLab')
+_COH_PATH = os.path.expanduser(_ROOT+'Results')
+
 
 class temporal_network():
 
-    ######################################################################################################################
+    ###########################################################################
     # CONSTRUCTOR
-    ######################################################################################################################
+    ###########################################################################
 
-    def __init__(self, coh_file=None, coh_sig_file=None, monkey='lucy', session=1, 
-                 coh_thr=None, date='150128', trial_type=None, behavioral_response=None, 
-                 wt=None, relative=False, q=None, verbose=False, n_jobs=1):
+    def __init__(self, coh_file=None, coh_sig_file=None, monkey='lucy',
+                 session=1, coh_thr=None, date='150128', trial_type=None,
+                 behavioral_response=None, wt=None, relative=False,
+                 q=None, verbose=False, n_jobs=1):
         """
-        Temporal network class, this object will have information about the session analysed and store the coherence
-        networks (a.k.a. supertensor).
+        Temporal network class, this object will have information about the
+        session analysed and store the coherence networks (a.k.a. supertensor).
 
         Parameters
         ----------
         coh_file: string | None
             Name of the coherence file
         coh_sig_file: array_like | None
-            Path to the file containing the signicance values of the coherence values 
-            with shape (n_roi, n_freqs, n_times). If provided only coherence values above 
-            the significance values for each roi, frequency and time point
-            will be kept.
+            Path to the file containing the signicance values of the coherence
+            values with shape (n_roi, n_freqs, n_times). If provided only
+            coherence values above the significance values for each roi,
+            frequency and time point will be kept.
         monkey: string | 'lucy'
             Monkey name
         session: int | 1
             session number
         coh_thr: array_like | None
-            Thresholds to use (if not passed they will be computed according to the pars relative and q)
+            Thresholds to use (if not passed they will be computed
+            according to the pars relative and q).
         date: string | '150128'
             date of the recording session
         trial_type: int | None
             the type of trial (DRT/fixation)
         behavioral_response: int | None
             Wheter to get sucessful (1) or unsucessful (0) trials
-        wt: Tuple | None 
-            Trimming window will remove the wt[0] and wt[1] points in the start and end of each trial
-        relative: bool | False 
-            If threshold is true wheter to do it in ralative (one thr per link per band) or
-            an common thr for links per band.
+        wt: Tuple | None
+            Trimming window will remove the wt[0] and wt[1] points
+            in the start and end of each trial
+        relative: bool | False
+            If threshold is true wheter to do it in ralative
+            (one thr per link per band) or an common thr for links per band.
         q: float | None
             Quartile value to use for thresholding.
         n_jobs: int | 1
-            Number of jobs to use when computing the threshold for the coherence tensor.
-            Parallelized over bands.
+            Number of jobs to use when computing the threshold
+            for the coherence tensor. Parallelized over bands.
         """
 
         # Check for incorrect parameter values
-        assert monkey in ['lucy','ethyl'], 'monkey should be either "lucy" or "ethyl"'
+        assert monkey in [
+            'lucy', 'ethyl'], 'monkey should be either "lucy" or "ethyl"'
         # Input conversion
-        if trial_type is not None: trial_type = np.asarray(trial_type)
-        if behavioral_response is not None: behavioral_response = np.asarray(behavioral_response)
+        if trial_type is not None:
+            trial_type = np.asarray(trial_type)
+        if behavioral_response is not None:
+            behavioral_response = np.asarray(behavioral_response)
 
         # Load session info
-        info                = GDa.session.session(raw_path=_DATA_PATH, monkey=monkey, date=date, session=session)
+        info = GDa.session.session(
+            raw_path=_DATA_PATH, monkey=monkey, date=date, session=session)
         # Storing recording info
         self.recording_info = info.recording_info
         # Storing trial info
-        self.trial_info     = info.trial_info
+        self.trial_info = info.trial_info
         #
         del info
 
         # Setting up mokey and recording info to load and save files
-        self.coh_file     = coh_file
+        self.coh_file = coh_file
         self.coh_sig_file = coh_sig_file
-        self.monkey       = monkey
-        self.date         = date
-        self.coh_thr      = coh_thr
-        self.session      = f'session0{session}'
-        self.trial_type          = trial_type
+        self.monkey = monkey
+        self.date = date
+        self.coh_thr = coh_thr
+        self.session = f'session0{session}'
+        self.trial_type = trial_type
         self.behavioral_response = behavioral_response
 
         # Load super-tensor
         self.__load_h5(wt)
 
         # Threshold the super tensor if needed
-        if isinstance(q, (int,float)) or isinstance(self.coh_thr, xr.DataArray):
-            self.__compute_coherence_thresholds(q, relative, verbose)
+        if isinstance(q,  float) or isinstance(self.coh_thr, xr.DataArray):
+            self.__compute_coherence_thresholds(q, relative, verbose, n_jobs)
 
-        # At the end drop select the desired trials 
+        # At the end drop select the desired trials
         if trial_type is not None or behavioral_response is not None:
             self.__filter_trials(trial_type, behavioral_response)
 
-    ######################################################################################################################
+    ###########################################################################
     # PRIVATE METHODS
-    ######################################################################################################################
+    ###########################################################################
 
     def __set_path(self,):
         """
@@ -115,8 +122,8 @@ class temporal_network():
 
     def __load_h5(self, wt):
         """
-        Load h5 file containing the coherence tensor for the sessions and monkey
-        specified.
+        Load h5 file containing the coherence tensor
+        for the sessions and monkey specified.
         """
         # Path to the file
         h5_super_tensor_path = os.path.join(self.__set_path(), self.coh_file)
@@ -124,11 +131,11 @@ class temporal_network():
         # Try to read the file in the path specified
         try:
             self.super_tensor = xr.load_dataarray(h5_super_tensor_path)
-        except:
+        except FileNotFoundError:
             raise OSError(f'File {self.coh_file} not found for monkey')
 
         # Copy axes values as class attributes
-        self.time  = self.super_tensor.times.values
+        self.time = self.super_tensor.times.values
         self.freqs = self.super_tensor.freqs.values
 
         # Copying metadata as class attributes
@@ -139,8 +146,8 @@ class temporal_network():
 
         # Crop beginning/ending of super-tensor due to edge effects
         if isinstance(wt, tuple):
-            self.time         = self.time[wt[0]:-wt[1]]
-            self.super_tensor = self.super_tensor[...,wt[0]:-wt[1]]
+            self.time = self.time[wt[0]:-wt[1]]
+            self.super_tensor = self.super_tensor[..., wt[0]:-wt[1]]
 
         # Get euclidean distances
         self.super_tensor.attrs['d_eu'] = self.__get_euclidean_distances()
@@ -151,8 +158,9 @@ class temporal_network():
             sig_file_path = os.path.join(self.__set_path(), self.coh_sig_file)
             # Try to read the file in the path specified
             try:
-                sig_values = xr.load_dataarray(sig_file_path).astype(_DEFAULT_TYPE)
-            except:
+                sig_values = xr.load_dataarray(
+                    sig_file_path).astype(_DEFAULT_TYPE)
+            except FileNotFoundError:
                 raise OSError(f'File {self.coh_sig_file} not found for monkey')
 
             # Should be an xarray with dimensions (n_roi, n_freqs, n_times)
@@ -160,7 +168,8 @@ class temporal_network():
             # Keep the attributes
             cfg = self.super_tensor.attrs
             # Removing values bellow siginificance level
-            self.super_tensor.values = np.clip(self.super_tensor-sig_values, 0, np.inf).astype(_DEFAULT_TYPE)
+            self.super_tensor.values = np.clip(
+                self.super_tensor-sig_values, 0, np.inf).astype(_DEFAULT_TYPE)
             # Restoring attributes
             self.super_tensor.attrs = cfg
 
@@ -168,7 +177,8 @@ class temporal_network():
         """
         Get only selected trials of the super_tensor and its attributes
         """
-        filtered_trials, filtered_trials_idx = filter_trial_indexes(self.trial_info, trial_type=trial_type, behavioral_response=behavioral_response)
+        filtered_trials, filtered_trials_idx = filter_trial_indexes(
+            self.trial_info, trial_type=trial_type, behavioral_response=behavioral_response)
         self.super_tensor = self.super_tensor.sel(trials=filtered_trials)
         # Filtering attributes
         for key in ['stim', 't_cue_off', 't_cue_on', 't_match_on']:
@@ -180,123 +190,142 @@ class temporal_network():
         """
         from pathlib import Path
         _path = os.path.join(Path.home(), _COORDS_PATH)
-        xy    = scipy.io.loadmat(_path)['xy']
+        xy = scipy.io.loadmat(_path)['xy']
         return xy
 
     def __get_euclidean_distances(self, ):
         """
         Get the channels euclidean distances based on their coordinates.
         """
-        xy   = self.__get_coords()
+        xy = self.__get_coords()
         d_eu = np.zeros(len(self.super_tensor.attrs['sources']))
-        c1 = self.session_info['channels_labels'].astype(int)[self.session_info['sources']]
-        c2 = self.session_info['channels_labels'].astype(int)[self.session_info['targets']]
-        dx = xy[c1-1,0] - xy[c2-1,0]
-        dy = xy[c1-1,1] - xy[c2-1,1]
+        c1 = self.session_info['channels_labels'].astype(
+            int)[self.session_info['sources']]
+        c2 = self.session_info['channels_labels'].astype(
+            int)[self.session_info['targets']]
+        dx = xy[c1-1, 0] - xy[c2-1, 0]
+        dy = xy[c1-1, 1] - xy[c2-1, 1]
         d_eu = np.sqrt(dx**2 + dy**2)
         return d_eu
 
     def __compute_coherence_thresholds(self, q, relative, verbose, n_jobs):
         """
-        Compute coherence thresholds according to the parameters specified (see constructor).
+        Compute coherence thresholds according to
+        the parameters specified (see constructor).
         """
         if not isinstance(self.coh_thr, xr.DataArray):
-            if verbose: print('Computing coherence thresholds')
-            self.coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','times')).values,
-                                                        q=q, relative=relative, verbose=verbose, n_jobs=n_jobs)
+            if verbose:
+                print('Computing coherence thresholds')
+            self.coh_thr = compute_coherence_thresholds(
+              self.super_tensor.stack(observations=('trials', 'times')).values,
+              q=q, relative=relative, verbose=verbose, n_jobs=n_jobs)
         # Temporarily store the stacked super-tensor
-        tmp  = self.super_tensor.stack(observations=('trials','times'))
+        tmp = self.super_tensor.stack(observations=('trials', 'times'))
         # Create the mask by applying threshold
-        mask        = xr.DataArray(np.empty(tmp.shape), dims=tmp.dims, coords=tmp.coords)
-        mask.values = tmp.values > self.coh_thr.values[...,None]
+        mask = xr.DataArray(np.empty(tmp.shape),
+                            dims=tmp.dims, coords=tmp.coords)
+        mask.values = tmp.values > self.coh_thr.values[..., None]
         # Thrshold setting every element above the threshold as 1 otherwise 0
         self.super_tensor.values = mask.unstack().values
 
-    ######################################################################################################################
+    ###########################################################################
     # PUBLIC METHODS
-    ######################################################################################################################
+    ###########################################################################
 
     def convert_to_adjacency(self,):
         """
         Convert coherence tensor to adjacency.
         """
-        self.A = xr.DataArray( 
-                convert_to_adjacency(self.super_tensor.values, self.super_tensor.attrs['sources'],self.super_tensor.attrs['targets']), 
-                dims=("sources","targets","freqs","trials","times"),
-                coords={"trials":   self.super_tensor.trials.values,
-                        "times":    self.super_tensor.times.values,
-                        "freqs":    self.freqs,
-                        "sources":  self.super_tensor.attrs['areas'],
-                        "targets":  self.super_tensor.attrs['areas']}).astype(_DEFAULT_TYPE, keep_attrs=True
-                )
+        self.A = xr.DataArray(
+            convert_to_adjacency(
+                self.super_tensor.values, self.super_tensor.attrs['sources'],
+                self.super_tensor.attrs['targets']),
+            dims=("sources", "targets", "freqs", "trials", "times"),
+            coords={
+                "trials":   self.super_tensor.trials.values,
+                "times":    self.super_tensor.times.values,
+                "freqs":    self.freqs,
+                "sources":  self.super_tensor.attrs['areas'],
+                "targets":  self.super_tensor.attrs['areas']}).astype(
+                    _DEFAULT_TYPE, keep_attrs=True)
 
     def create_stage_masks(self, flatten=False):
-        filtered_trials, filtered_trials_idx = filter_trial_indexes(self.trial_info, trial_type=self.trial_type, behavioral_response=self.behavioral_response)
+        filtered_trials, filtered_trials_idx = filter_trial_indexes(
+            self.trial_info, trial_type=self.trial_type,
+            behavioral_response=self.behavioral_response)
         self.s_mask = create_stages_time_grid(
-                      self.super_tensor.attrs['t_cue_on'],
-                      self.super_tensor.attrs['t_cue_off'],
-                      self.super_tensor.attrs['t_match_on'],
-                      self.super_tensor.attrs['fsample'],
-                      self.time, self.super_tensor.sizes['trials'], flatten=flatten
-                      )
+            self.super_tensor.attrs['t_cue_on'],
+            self.super_tensor.attrs['t_cue_off'],
+            self.super_tensor.attrs['t_match_on'],
+            self.super_tensor.attrs['fsample'],
+            self.time, self.super_tensor.sizes['trials'], flatten=flatten
+        )
         if flatten:
-            dims=("observations")
+            dims = ("observations")
         else:
-            dims=("trials","times")
+            dims = ("trials", "times")
 
         for key in self.s_mask.keys():
             self.s_mask[key] = xr.DataArray(self.s_mask[key], dims=dims)
 
-    def get_thresholded_coherence(self, q, relative=False, verbose=False, n_jobs=1):
+    def get_thresholded_coherence(self, q, relative=False,
+                                  verbose=False, n_jobs=1):
         """
-        The same as __compute_coherence_thresholds but instead of thresholding the coherence values
-        it returns a copy of the coherence tensor thresholded (the super_tensor should not have been
-        thresholded before, i.e., q=None and coh_thr=None). 
+        The same as __compute_coherence_thresholds but instead of
+        thresholding the coherence values it returns a copy of the
+        coherence tensor thresholded (the super_tensor should not have been
+        thresholded before, i.e., q=None and coh_thr=None).
 
-        For information about the parameters see the constructor. Be aware because this will increase memory usage.
+        For information about the parameters see the constructor.
+        Be aware because this will increase memory usage.
         """
 
-        coh_thr = compute_coherence_thresholds(self.super_tensor.stack(observations=('trials','times')).values,
-                                               q=q, relative=relative, verbose=verbose, n_jobs=n_jobs)
+        coh_thr = compute_coherence_thresholds(
+            self.super_tensor.stack(observations=('trials', 'times')).values,
+            q=q, relative=relative, verbose=verbose, n_jobs=n_jobs)
         # Temporarily store the stacked super-tensor
-        tmp  = self.super_tensor.stack(observations=('trials','times'))
+        tmp = self.super_tensor.stack(observations=('trials', 'times'))
         # Create the mask by applying threshold
-        mask        = xr.DataArray(np.empty(tmp.shape), dims=tmp.dims, coords=tmp.coords)
-        mask.values = tmp.values > coh_thr.values[...,None]
+        mask = xr.DataArray(np.empty(tmp.shape),
+                            dims=tmp.dims, coords=tmp.coords)
+        mask.values = tmp.values > coh_thr.values[..., None]
         # Thrshold setting every element above the threshold as 1 otherwise 0
-        return xr.DataArray( mask.unstack().values.astype(bool), 
-                             dims=self.super_tensor.dims, coords=self.super_tensor.coords,
-                             attrs=self.super_tensor.attrs )
+        return xr.DataArray(mask.unstack().values.astype(bool),
+                            dims=self.super_tensor.dims,
+                            coords=self.super_tensor.coords,
+                            attrs=self.super_tensor.attrs)
 
     def get_data_from(self, stage=None, pad=False):
         """
-        Return a copy of the super-tensor only for the data points correspondent for a
-        given experiment stage (baseline, cue, delay, match).
+        Return a copy of the super-tensor only for the data points
+        correspondent for a given experiment
+        stage (baseline, cue, delay, match).
 
         Parameters
         ----------
         stage: string | None
             Name of the stage from which to get data from.
         - pad: bool | False
-            If true will only zero out elements out of the specified task stage.
+            If true will only zero out elements out of
+            the specified task stage.
         Returns
         -------
             Copy of the super-tensor for the stage specified.
         """
-        assert stage in ['baseline','cue','delay','match'], "stage should be 'baseline', 'cue', 'delay' or 'match'."
-        assert pad   in [False, True], "pad should be either False or True."
+        assert stage in ['baseline', 'cue', 'delay', 'match']
+        assert pad in [False, True]
 
         # Check if the binary mask was already created
         if not hasattr(self, 's_mask'):
             self.create_stage_masks(flatten=True)
-        # If the variable exists but the dimensios are not flattened create again
-        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==2:
+        # If the variable exists but the dimensios are not flattened recreate
+        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape) == 2:
             self.create_stage_masks(flatten=True)
 
         if pad:
-            return self.super_tensor.stack(observations=("trials","times")) * self.s_mask[stage]
+            return self.super_tensor.stack(observations=("trials", "times")) * self.s_mask[stage]
         else:
-            return self.super_tensor.stack(observations=("trials","times")).isel(observations=self.s_mask[stage])
+            return self.super_tensor.stack(observations=("trials", "times")).isel(observations=self.s_mask[stage])
 
     def get_number_of_samples(self, stage=None, total=False):
         """
@@ -312,34 +341,36 @@ class temporal_network():
 
         Returns
         -------
-            Return the number of samples for the stage provided for all trials concatenated.
+            Return the number of samples for the stage provided
+            for all trials concatenated.
         """
-        assert stage in ['baseline','cue','delay','match'], "stage should be 'baseline', 'cue', 'delay' or 'match'."
+        assert stage in ['baseline', 'cue', 'delay', 'match']
 
         # Check if the binary mask was already created
         if not hasattr(self, 's_mask'):
             self.create_stage_masks(flatten=False)
-        # If the variable exists but the dimensios are not flattened create again
-        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape)==1:
+        # If the variable exists but the dimensios are not flattened recreate
+        if hasattr(self, 's_mask') and len(self.s_mask[stage].shape) == 1:
             self.create_stage_masks(flatten=False)
         if total:
-            return np.int( self.s_mask[stage].sum() )
+            return np.int(self.s_mask[stage].sum())
         else:
             return self.s_mask[stage].sum(dim='times')
 
     def get_averaged_st(self, win_delay=None):
         """
-        Get the trial averaged super-tensor, it averages togheter the trials for delays in
-        the ranges specified by win_delay.
+        Get the trial averaged super-tensor, it averages togheter the
+        trials for delays in the ranges specified by win_delay.
 
         Parameters
         ----------
         win_delay: array_like | None
                The delay durations that should be averaged together, e.g.,
                if win_delay = [[800, 1000],[1000,1200]] all the trials
-               in which the delays are between 800-1000ms will be averaged together,
-               likewise for 1000-1200ms, therefore two averaged super-tensors will be
-               returnd. If None the average is done for all trials.
+               in which the delays are between 800-1000ms will be averaged
+               together, likewise for 1000-1200ms, therefore two averaged
+               super-tensors will be returnd. If None the average
+               is done for all trials.
         Returns
         -------
             The trial averaged super-tensor.
@@ -347,24 +378,26 @@ class temporal_network():
         assert isinstance(win_delay, (type(None), list))
 
         # Delay duration for each trial
-        delay = (self.super_tensor.attrs['t_match_on']-self.super_tensor.attrs['t_cue_off'])/self.super_tensor.attrs['fsample']
-        avg_super_tensor = [] # Averaged super-tensor
-        n_obs            = [] # Number of observations for each window
+        delay = (self.super_tensor.attrs['t_match_on'] -
+                 self.super_tensor.attrs['t_cue_off'])
+        delay /= self.super_tensor.attrs['fsample']
+        avg_super_tensor = []  # Averaged super-tensor
         # If no window is provided average over all trials otherwise average
         # for each delay duration window.
         if win_delay is None:
             return self.super_tensor.mean(dim='trials')
         else:
-            for i, wd in enumerate( win_delay ):
+            for i, wd in enumerate(win_delay):
                 # Get index for delays within the window
-                idx = (delay>=wd[0])*(delay<wd[-1])
-                avg_super_tensor += [self.super_tensor.isel(trials=idx).mean(dim='trials')]
+                idx = (delay >= wd[0])*(delay < wd[-1])
+                avg_super_tensor += [self.super_tensor.isel(
+                    trials=idx).mean(dim='trials')]
             return avg_super_tensor
 
     def reshape_trials(self, ):
-        assert len(self.super_tensor.dims)==3
+        assert len(self.super_tensor.dims) == 3
         self.super_tensor.unstack()
 
     def reshape_observations(self, ):
-        assert len(self.super_tensor.dims)==4
-        self.super_tensor.stack(observations=('trials','times'))
+        assert len(self.super_tensor.dims) == 4
+        self.super_tensor.stack(observations=('trials', 'times'))
