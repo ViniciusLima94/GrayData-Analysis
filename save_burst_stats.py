@@ -43,9 +43,9 @@ idx = args.IDX
 # Parameters to read the data
 ###############################################################################
 
-_DATA_PATH = '/home/vinicius/storage1/projects/GrayData-Analysis/GrayLab'
+_ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
 # Get session number
-sessions = np.array(os.listdir("Results/lucy/"))
+sessions = np.loadtxt("GrayLab/lucy/sessions.txt", dtype=str)
 session = sessions[idx]
 _KS = 0.3   # 0.3s kernel size
 
@@ -55,8 +55,8 @@ _COH_FILE_SIG = f'{metric}_k_{_KS}_{mode}_surr.nc'
 ###############################################################################
 # Path in which to save burst stats data
 ###############################################################################
-path_st = os.path.join('Results', "monkey",
-                       _DATA_PATH, "session01")
+
+path_st = os.path.join(_ROOT, f"Results/lucy/{session}/session01")
 path_st = os.path.join(path_st, f"bs_stats_k_{_KS}_numba_{mode}.nc")
 
 ###############################################################################
