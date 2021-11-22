@@ -1,112 +1,88 @@
-import sys
 import argparse
 
-import GDa.stats.bursting                as     bst
-from   GDa.session                       import session
-from   GDa.temporal_network              import temporal_network
+import GDa.stats.bursting as bst
+from GDa.temporal_network import temporal_network
 
-import numpy                             as       np
-import xarray                            as       xr
+import numpy as np
+import xarray as xr
 import os
 
-from   tqdm                              import tqdm
-from   config                            import *
+from config import delta
 
 # Bands names
-band_names  = [r'$\theta$', r'$\alpha$', r'$\beta$', r'h-$\beta$', r'gamma']
+band_names = [r'$\theta$', r'$\alpha$', r'$\beta$', r'h-$\beta$', r'gamma']
 # Stage names
-stages      = ['baseline', 'cue', 'delay', 'match']
+stages = ['baseline', 'cue', 'delay', 'match']
 # Burst stats. names
-stats_names = [r"$\mu$","std$_{\mu}$",r"$\mu_{tot}$","CV"]
+stats_names = [r"$\mu$", r"std$_{\mu}$", r"$\mu_{tot}$", "CV"]
 
-##################################################################################
+###############################################################################
 # Config params to specify which coherence file to read
-##################################################################################
-#  mode    = sys.argv[-2]
-#  idx     = int(sys.argv[-1])
+###############################################################################
 
 # Argument parsing
 parser = argparse.ArgumentParser()
-parser.add_argument("METRIC", help="which connectivity metric to use", 
+parser.add_argument("METRIC", help="which connectivity metric to use",
                     type=str)
-parser.add_argument("MODE", help="wheter to load coherence computed with morlet or multitaper", choices=["morlet","multitaper"],
+parser.add_argument("MODE",
+                    help="wheter to load coherence computed\
+                          with morlet or multitaper",
+                    choices=["morlet", "multitaper"],
                     type=str)
-parser.add_argument("IDX", help="which condition to run",
+parser.add_argument("IDX", help="which session to run",
                     type=int)
-args   = parser.parse_args()
+args = parser.parse_args()
 # The connectivity metric that should be used
 metric = args.METRIC
-mode   = args.MODE
-idx    = args.IDX
+# Wheter it is morlet or multitaper coherence
+mode = args.MODE
+# Index of the session to be load
+idx = args.IDX
 
-#                 _REL   _SURR
-#  pars  = np.array([[False,False],
-#                    [False,True],
-#                    [True,False],
-#                    [True,True]])
-pars = np.array([False, True])
+###############################################################################
+# Parameters to read the data
+###############################################################################
 
-# If threshold is relative or absolute
-#  _REL  = pars[idx,0] 
-_REL  = pars[idx] 
-# If it is surrogate data or not
-#  _SURR = pars[idx,1] 
-_KS   = 0.3   # 0.3s kernel size
+_DATA_PATH = '/home/vinicius/storage1/projects/GrayData-Analysis/GrayLab'
+# Get session number
+sessions = np.array(os.listdir("Results/lucy/"))
+session = sessions[idx]
+_KS = 0.3   # 0.3s kernel size
 
-_COH_FILE     = f'{metric}_k_{_KS}_{mode}.nc'
+_COH_FILE = f'{metric}_k_{_KS}_{mode}.nc'
 _COH_FILE_SIG = f'{metric}_k_{_KS}_{mode}_surr.nc'
 
-##################################################################################
-# Parameters to read the data (temporary)
-##################################################################################
-idx      = 3
-nses     = 1
-nmonkey  = 0
-align_to = 'cue'
-
-dirs = { 'rawdata':'/home/vinicius/storage1/projects/GrayData-Analysis/GrayLab',
-         'results':'Results/',
-         'monkey' :['lucy', 'ethyl'],
-         'session':'session01',
-         'date'   :[['141014', '141015', '141205', '141017', '150128', '150211', '150304'], []] }
-
+###############################################################################
 # Path in which to save burst stats data
-path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(dirs['date'][nmonkey][idx]), f'session0{nses}')
+###############################################################################
+path_st = os.path.join('Results', "monkey",
+                       _DATA_PATH, "session01")
 path_st = os.path.join(path_st, f"bs_stats_k_{_KS}_numba_{mode}.nc")
 
-##################################################################################
+###############################################################################
 # Instantiate temp net
-##################################################################################
+###############################################################################
 
 # Instantiating a temporal network object without thresholding the data
-net =  temporal_network(coh_file=_COH_FILE, coh_sig_file=_COH_FILE_SIG, 
-                        date='141017', trial_type=[1], behavioral_response=[1])
+net = temporal_network(coh_file=_COH_FILE, coh_sig_file=_COH_FILE_SIG,
+                       date=session, trial_type=[1], behavioral_response=[1])
 
-##################################################################################
+###############################################################################
 # Compute burstness statistics for different thresholds
-##################################################################################
+###############################################################################
 
-# Define list of thresholds
-#  q_list  = np.array([0])#np.arange(0.2, 1.0, 0.1)
+bs_stats = np.zeros((2, net.super_tensor.sizes["freqs"],
+                     net.super_tensor.shape[0], len(stages), 4))
 
-# Store burst stats. for each link in each stage and frequency band
-#  bs_stats = np.zeros((len(q_list), net.super_tensor.sizes["freqs"], net.super_tensor.shape[0], len(stages), 4))
-bs_stats = np.zeros((2, net.super_tensor.sizes["freqs"], net.super_tensor.shape[0], len(stages), 4))
 
-for j in range(2):#tqdm( range(len(q_list)) ):
-    ## Default threshold
-    #  kw  = dict(q=q_list[j], relative=_REL)
+# Set to one all values about siginificance level
+coh = (net.super_tensor > 0)
+# Wheter to compute the burst stats for sequences of siliences
+# or activations
+find_zeros = False
 
-    #  coh = net.get_thresholded_coherence(q_list[j], _REL, True) 
-    coh = (net.super_tensor>0)
- 
-    #  net =  temporal_network(coh_file=_COH_FILE, coh_sig_file=_COH_FILE_SIG, **kw,
-    #                          date='141017', trial_type=[1], behavioral_response=[1])
+for j in range(2):
 
-    #  net =  temporal_network(coh_file=_COH_FILE, monkey=dirs['monkey'][nmonkey],
-    #                          session=1, date='150128', trial_type=[1],
-    #                          behavioral_response=[1], wt=(20,20), drop_trials_after=True,
-    #                          verbose=False, **kw)
     # Creating mask for stages
     net.create_stage_masks(flatten=False)
 
@@ -115,19 +91,22 @@ for j in range(2):#tqdm( range(len(q_list)) ):
         n_samp += [net.get_number_of_samples(stage=stage, total=True)]
 
     np_mask = {}
-    for key in net.s_mask.keys(): np_mask[key] = net.s_mask[key].values
+    for key in net.s_mask.keys():
+        np_mask[key] = net.s_mask[key].values
 
-    find_zeros=False
-    if j==1: find_zeros=True
+    if j == 1:
+        find_zeros = True
 
     for f in range(net.super_tensor.sizes["freqs"]):
-        bs_stats[j,f] = bst.tensor_burstness_stats(coh.isel(freqs=f).values, np_mask,
-                                                   drop_edges=True, samples=n_samp, find_zeros=find_zeros,
-                                                   dt=delta/net.super_tensor.attrs['fsample'],
-                                                   n_jobs=1)
+        bs_stats[j, f] = bst.tensor_burstness_stats(
+            coh.isel(freqs=f).values, np_mask,
+            drop_edges=True, samples=n_samp, find_zeros=find_zeros,
+            dt=delta/net.super_tensor.attrs['fsample'],
+            n_jobs=1)
 
-bs_stats = xr.DataArray(bs_stats, dims=("zeros","freqs","roi","stages","stats"),
-                        coords={"zeros":  [0,1],
+bs_stats = xr.DataArray(bs_stats,
+                        dims=("zeros", "freqs", "roi", "stages", "stats"),
+                        coords={"zeros":  [0, 1],
                                 "freqs":  net.super_tensor.freqs,
                                 "roi":    net.super_tensor.roi,
                                 "stages": stages,
