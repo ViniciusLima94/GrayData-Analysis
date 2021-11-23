@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from GDa.session import session
-from frites.dataset import SubjectEphy, DatasetEphy
+from frites.dataset import DatasetEphy
 from frites.workflow import WfMi
 from GDa.util import create_stages_time_grid
 from config import (sm_times, sm_kernel, sm_freqs, delta,
