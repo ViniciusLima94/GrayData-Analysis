@@ -178,11 +178,13 @@ class temporal_network():
         Get only selected trials of the super_tensor and its attributes
         """
         filtered_trials, filtered_trials_idx = filter_trial_indexes(
-            self.trial_info, trial_type=trial_type, behavioral_response=behavioral_response)
+            self.trial_info, trial_type=trial_type,
+            behavioral_response=behavioral_response)
         self.super_tensor = self.super_tensor.sel(trials=filtered_trials)
         # Filtering attributes
         for key in ['stim', 't_cue_off', 't_cue_on', 't_match_on']:
-            self.super_tensor.attrs[key] = self.super_tensor.attrs[key][filtered_trials_idx]
+            self.super_tensor.attrs[key] = \
+                self.super_tensor.attrs[key][filtered_trials_idx]
 
     def __get_coords(self,):
         """
