@@ -1,11 +1,8 @@
 import os
 import numpy as np
-from GDa.session import session
+from GDa.temporal_network import temporal_network
 from frites.dataset import DatasetEphy
 from frites.workflow import WfMi
-from config import (sm_times, sm_kernel, sm_freqs, delta,
-                    mode, freqs, n_cycles)
-from xfrites.conn.conn_tf import wavelet_spec
 import matplotlib.pyplot as plt
 import argparse
 
@@ -28,37 +25,28 @@ sessions = np.loadtxt("GrayLab/lucy/sessions.txt", dtype=str)
 s_id = sessions[idx]
 
 ###############################################################################
-# Loading session
+# Loading coherence dFC
 ###############################################################################
 
-# Instantiate class
-ses = session(raw_path='GrayLab/', monkey='lucy', date=s_id, session=1,
-              slvr_msmod=True, align_to='cue', evt_dt=[-0.65, 3.00])
+# Instantiating temporal network
+net = temporal_network(coh_file='coh_k_0.3_morlet.nc',
+                       coh_sig_file='coh_k_0.3_morlet_surr.nc',
+                       date='141017', trial_type=[1],
+                       behavioral_response=[1])
 
-# Read data from .mat files
-ses.read_from_mat()
+net.super_tensor \
+    = net.super_tensor.transpose("trials", "roi", "freqs", "times")
 
-# Filtering by trials
-data = ses.filter_trials(trial_type=[1], behavioral_response=[1])
-
-###############################################################################
-# Compute power spectra
-###############################################################################
-
-sxx = wavelet_spec(data, freqs=freqs, roi=data.roi, times="time",
-                   sfreq=data.attrs["fsample"], foi=None, sm_times=sm_times,
-                   sm_freqs=sm_freqs, sm_kernel=sm_kernel, mode=mode,
-                   n_cycles=n_cycles, mt_bandwidth=None,
-                   decim=delta, kw_cwt={}, kw_mt={}, block_size=1,
-                   n_jobs=20, verbose=None)
 
 ###############################################################################
 # MI Workflow
 ###############################################################################
 
 # Convert to DatasetEphy
-dt = DatasetEphy([sxx], y=[sxx.attrs["stim"].astype(int)], times="times",
-                 roi=None, agg_ch=False)
+dt = DatasetEphy([net.super_tensor],
+                 y=[net.super_tensor.attrs["stim"].astype(int)],
+                 times="times",
+                 roi="roi", agg_ch=True)
 
 mi_type = 'cd'
 inference = 'ffx'
@@ -66,13 +54,6 @@ kernel = np.hanning(1)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel)
 
 kw = dict(n_jobs=20, n_perm=200)
-"""
-The `cluster_th` input parameter specifies how the threshold is defined.
-Use either :
-* a float for a manual threshold
-* None and it will be infered using the distribution of permutations
-* 'tfce' for a TFCE threshold
-"""
 cluster_th = None  # {float, None, 'tfce'}
 
 mi, pvalues = wf.fit(dt, mcp="cluster", cluster_th=cluster_th, **kw)
@@ -86,8 +67,8 @@ pvalues = pvalues.assign_coords({"roi": data.roi.values})
 ###############################################################################
 
 path_st = os.path.join(_ROOT, f"Results/lucy/{s_id}/session01")
-path_mi = os.path.join(path_st, "power_mi_values.nc")
-path_pval = os.path.join(path_st, "power_p_values.nc")
+path_mi = os.path.join(path_st, "coh_mi_values.nc")
+path_pval = os.path.join(path_st, "coh_p_values.nc")
 
 # Not storing for storage issues
 # mi.to_netcdf(path_mi)
@@ -101,8 +82,9 @@ out = mi * (pvalues <= 0.05)
 plt.figure(figsize=(20, 6))
 for i in range(10):
     plt.subplot(2, 5, i+1)
-    idx = out.isel(freqs=i).sum("times") > 0
-    out.isel(freqs=i, roi=idx).plot(x="times", hue="roi")
+    # idx = out.isel(freqs=i).sum("times") > 0
+    out.isel(freqs=i).plot(x="times", hue="roi")
+    plt.legend([])
 plt.tight_layout()
 
-plt.savefig(f"figures/mi_power/mi_power_{s_id}.png", dpi=150)
+plt.savefig(f"figures/mi_coh/mi_coh_{s_id}.png", dpi=150)
