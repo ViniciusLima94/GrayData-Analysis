@@ -1,111 +1,74 @@
 import os
+import xarray as xr
 import numpy as np
-from GDa.session import session
 from frites.dataset import DatasetEphy
 from frites.workflow import WfMi
-from config import (sm_times, sm_kernel, sm_freqs, delta,
-                    mode, freqs, n_cycles)
-from xfrites.conn.conn_tf import wavelet_spec
 import matplotlib.pyplot as plt
-import argparse
-
-###############################################################################
-# Argument parsing
-###############################################################################
-
-parser = argparse.ArgumentParser()
-parser.add_argument("SIDX",   help="index of the session to run",
-                    type=int)
-
-args = parser.parse_args()
-
-# Index of the session to be load
-idx = args.SIDX
 
 _ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
 # Get session number
 sessions = np.loadtxt("GrayLab/lucy/sessions.txt", dtype=str)
-s_id = sessions[idx]
 
 ###############################################################################
-# Loading session
+# Iterate over all sessions and concatenate power
 ###############################################################################
 
-# Instantiate class
-ses = session(raw_path='GrayLab/', monkey='lucy', date=s_id, session=1,
-              slvr_msmod=True, align_to='cue', evt_dt=[-0.65, 3.00])
+sxx = []
+stim = []
+for s_id in sessions[:10]:
+    path_pow = os.path.join(_ROOT, f"Results/lucy/{s_id}/session01/power.nc")
+    out = xr.load_dataarray(path_pow)
+    sxx += [out.isel(roi=[r]) for r in range(len(out['roi']))]
+    stim += [out.attrs["stim"].astype(int)]*len(out['roi'])
 
-# Read data from .mat files
-ses.read_from_mat()
-
-# Filtering by trials
-data = ses.filter_trials(trial_type=[1], behavioral_response=[1])
-
-###############################################################################
-# Compute power spectra
-###############################################################################
-
-sxx = wavelet_spec(data, freqs=freqs, roi=data.roi, times="time",
-                   sfreq=data.attrs["fsample"], foi=None, sm_times=sm_times,
-                   sm_freqs=sm_freqs, sm_kernel=sm_kernel, mode=mode,
-                   n_cycles=n_cycles, mt_bandwidth=None,
-                   decim=delta, kw_cwt={}, kw_mt={}, block_size=1,
-                   n_jobs=20, verbose=None)
 
 ###############################################################################
 # MI Workflow
 ###############################################################################
 
 # Convert to DatasetEphy
-dt = DatasetEphy([sxx], y=[sxx.attrs["stim"].astype(int)], times="times",
-                 roi=None, agg_ch=False)
+dt = DatasetEphy(sxx, y=stim,
+                 times="times", roi="roi")
 
 mi_type = 'cd'
-inference = 'ffx'
+inference = 'rfx'
 kernel = np.hanning(1)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel)
 
 kw = dict(n_jobs=20, n_perm=200)
-"""
-The `cluster_th` input parameter specifies how the threshold is defined.
-Use either :
-* a float for a manual threshold
-* None and it will be infered using the distribution of permutations
-* 'tfce' for a TFCE threshold
-"""
 cluster_th = None  # {float, None, 'tfce'}
 
 mi, pvalues = wf.fit(dt, mcp="cluster", cluster_th=cluster_th, **kw)
 
-# Setting roi names for mi and pvalues
-mi = mi.assign_coords({"roi": data.roi.values})
-pvalues = pvalues.assign_coords({"roi": data.roi.values})
+# # Setting roi names for mi and pvalues
+# mi = mi.assign_coords({"roi": data.roi.values})
+# pvalues = pvalues.assign_coords({"roi": data.roi.values})
 
 ###############################################################################
 # Saving data
 ###############################################################################
 
-path_st = os.path.join(_ROOT, f"Results/lucy/{s_id}/session01")
-path_mi = os.path.join(path_st, "power_mi_values.nc")
-path_pval = os.path.join(path_st, "power_p_values.nc")
+# path_st = os.path.join(_ROOT, f"Results/lucy/{s_id}/session01")
+# path_mi = os.path.join(path_st, "power_mi_values.nc")
+# path_pval = os.path.join(path_st, "power_p_values.nc")
 
 # Not storing for storage issues
 # mi.to_netcdf(path_mi)
 # pvalues.to_netcdf(path_pval)
 
-p_values_thr = pvalues <= 0.05
-p_values_thr.to_netcdf(path_pval)
+# p_values_thr = pvalues <= 0.05
+# p_values_thr.to_netcdf(path_pval)
 
 ###############################################################################
 # Plotting values with p<=0.05
 ###############################################################################
-out = mi * p_values_thr
+# out = mi * p_values_thr
 
-plt.figure(figsize=(20, 6))
-for i in range(10):
-    plt.subplot(2, 5, i+1)
-    idx = out.isel(freqs=i).sum("times") > 0
-    out.isel(freqs=i, roi=idx).plot(x="times", hue="roi")
-plt.tight_layout()
+# plt.figure(figsize=(20, 6))
+# for i in range(10):
+    # plt.subplot(2, 5, i+1)
+    # idx = out.isel(freqs=i).sum("times") > 0
+    # out.isel(freqs=i, roi=idx).plot(x="times", hue="roi")
+# plt.tight_layout()
 
-plt.savefig(f"figures/mi_power/mi_power_{s_id}.png", dpi=150)
+# plt.savefig(f"figures/mi_power/mi_power_{s_id}.png", dpi=150)
