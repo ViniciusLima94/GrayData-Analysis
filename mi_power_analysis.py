@@ -93,10 +93,13 @@ path_pval = os.path.join(path_st, "power_p_values.nc")
 # mi.to_netcdf(path_mi)
 # pvalues.to_netcdf(path_pval)
 
+p_values_thr = pvalues <= 0.05
+p_values_thr.to_netcdf(path_pval)
+
 ###############################################################################
 # Plotting values with p<=0.05
 ###############################################################################
-out = mi * (pvalues <= 0.05)
+out = mi * p_values_thr
 
 plt.figure(figsize=(20, 6))
 for i in range(10):
