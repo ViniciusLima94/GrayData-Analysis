@@ -31,12 +31,11 @@ s_id = sessions[idx]
 # Instantiating temporal network
 net = temporal_network(coh_file='coh_k_0.3_morlet.nc',
                        coh_sig_file='coh_k_0.3_morlet_surr.nc',
-                       date='141017', trial_type=[1],
+                       date=s_id, trial_type=[1],
                        behavioral_response=[1])
 
 net.super_tensor \
     = net.super_tensor.transpose("trials", "roi", "freqs", "times")
-
 
 ###############################################################################
 # MI Workflow
@@ -59,8 +58,8 @@ cluster_th = None  # {float, None, 'tfce'}
 mi, pvalues = wf.fit(dt, mcp="cluster", cluster_th=cluster_th, **kw)
 
 # Setting roi names for mi and pvalues
-mi = mi.assign_coords({"roi": data.roi.values})
-pvalues = pvalues.assign_coords({"roi": data.roi.values})
+# mi = mi.assign_coords({"roi": net.super_tensor.roi.values})
+# pvalues = pvalues.assign_coords({"roi": net.super_tensor.roi.values})
 
 ###############################################################################
 # Saving data
@@ -74,17 +73,23 @@ path_pval = os.path.join(path_st, "coh_p_values.nc")
 # mi.to_netcdf(path_mi)
 # pvalues.to_netcdf(path_pval)
 
+# Thresholded p-values
+p_values_thr = pvalues <= 0.05
+
+p_values_thr.to_netcdf(path_pval)
+
 ###############################################################################
 # Plotting values with p<=0.05
 ###############################################################################
-out = mi * (pvalues <= 0.05)
 
-plt.figure(figsize=(20, 6))
-for i in range(10):
-    plt.subplot(2, 5, i+1)
-    # idx = out.isel(freqs=i).sum("times") > 0
-    out.isel(freqs=i).plot(x="times", hue="roi")
-    plt.legend([])
-plt.tight_layout()
+# out = mi * p_values_thr
 
-plt.savefig(f"figures/mi_coh/mi_coh_{s_id}.png", dpi=150)
+# plt.figure(figsize=(20, 6))
+# for i in range(10):
+    # plt.subplot(2, 5, i+1)
+    # plt.imshow(out.isel(freqs=i), aspect="auto", origin="lower",
+               # cmap="turbo")
+    # plt.colorbar()
+# plt.tight_layout()
+
+# plt.savefig(f"figures/mi_coh/mi_coh_{s_id}.png", dpi=150)
