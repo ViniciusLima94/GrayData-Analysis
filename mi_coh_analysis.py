@@ -3,7 +3,7 @@ import numpy as np
 from GDa.temporal_network import temporal_network
 from frites.dataset import DatasetEphy
 from frites.workflow import WfMi
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import argparse
 
 ###############################################################################
@@ -38,17 +38,25 @@ net.super_tensor \
     = net.super_tensor.transpose("trials", "roi", "freqs", "times")
 
 ###############################################################################
+# Iterate over all sessions and concatenate power
+###############################################################################
+
+coh = [net.super_tensor.isel(roi=[r])
+       for r in range(len(net.super_tensor['roi']))]
+stim = [net.super_tensor.attrs["stim"].astype(int)] \
+        * len(net.super_tensor['roi'])
+
+
+###############################################################################
 # MI Workflow
 ###############################################################################
 
 # Convert to DatasetEphy
-dt = DatasetEphy([net.super_tensor],
-                 y=[net.super_tensor.attrs["stim"].astype(int)],
-                 times="times",
-                 roi="roi", agg_ch=True)
+dt = DatasetEphy([coh], y=stim, nb_min_suj=2,
+                 times="times", roi="roi")
 
 mi_type = 'cd'
-inference = 'ffx'
+inference = 'rfx'
 kernel = np.hanning(1)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel)
 
@@ -74,9 +82,9 @@ path_pval = os.path.join(path_st, "coh_p_values.nc")
 # pvalues.to_netcdf(path_pval)
 
 # Thresholded p-values
-p_values_thr = pvalues <= 0.05
+# p_values_thr = pvalues <= 0.05
 
-p_values_thr.to_netcdf(path_pval)
+# p_values_thr.to_netcdf(path_pval)
 
 ###############################################################################
 # Plotting values with p<=0.05
