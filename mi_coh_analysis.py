@@ -14,7 +14,7 @@ sessions = np.loadtxt("GrayLab/lucy/sessions.txt", dtype=str)
 
 coh = []
 stim = []
-for s_id in sessions[:2]:
+for s_id in sessions[:10]:
     # Instantiating temporal network
     net = temporal_network(coh_file='coh_k_0.3_morlet.nc',
                            # coh_sig_file='coh_k_0.3_morlet_surr.nc',

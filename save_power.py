@@ -13,11 +13,17 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("SIDX",   help="index of the session to run",
                     type=int)
+parser.add_argument("TT",   help="type of the trial",
+                    type=int)
+parser.add_argument("BR",   help="behavioral response",
+                    type=int)
 
 args = parser.parse_args()
 
 # Index of the session to be load
 idx = args.SIDX
+tt = args.TT
+br = args.BR
 
 _ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
 # Get session number
@@ -36,7 +42,8 @@ ses = session(raw_path='GrayLab/', monkey='lucy', date=s_id, session=1,
 ses.read_from_mat()
 
 # Filtering by trials
-data = ses.filter_trials(trial_type=[1], behavioral_response=[1])
+data = ses.filter_trials(trial_type=[tt],
+                         behavioral_response=[br])
 
 ###############################################################################
 # Compute power spectra
@@ -49,10 +56,19 @@ sxx = wavelet_spec(data, freqs=freqs, roi=data.roi, times="time",
                    decim=delta, kw_cwt={}, kw_mt={}, block_size=1,
                    n_jobs=20, verbose=None)
 
-# Convert to format that should be used in xfrites
-# sxx = [sxx.isel(roi=[r]) for r in range(len(sxx['roi']))]
+###############################################################################
+# Saves file
+###############################################################################
 
-path_pow = os.path.join(_ROOT, f"Results/lucy/{s_id}/session01/power.nc")
+results_path = f"Results/lucy/{s_id}/session01"
+
+# Create results path in case it does not exist
+if not os.path.exists(results_path):
+    os.makedirs(results_path)
+
+file_name = f"power_tt_{tt}_br_{br}.nc"
+path_pow = os.path.join(_ROOT, results_path,
+                        file_name)
 
 del sxx.attrs["mt_bandwidth"]
 sxx.to_netcdf(path_pow)
