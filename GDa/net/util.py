@@ -186,7 +186,7 @@ def _reshape_list(array, shapes, dtype):
 def convert_to_adjacency(tensor, sources, targets, dtype=np.float32):
     """
     Convert the tensor with the edge time-series to a matrix representations.
-    
+
     Parameters
     ----------
     tensor: array_like
@@ -222,7 +222,7 @@ def convert_to_adjacency(tensor, sources, targets, dtype=np.float32):
 def instantiate_graph(A, is_weighted=False):
     """
     Convert a numpy array adjacency matrix into a igraph object
-    
+
     Parameters
     ----------
     A: array_like
