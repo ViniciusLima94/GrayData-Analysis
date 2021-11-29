@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from tqdm import tqdm
 from GDa.temporal_network import temporal_network
 from frites.dataset import DatasetEphy
 from frites.workflow import WfMi
@@ -14,21 +15,31 @@ sessions = np.loadtxt("GrayLab/lucy/sessions.txt", dtype=str)
 
 coh = []
 stim = []
-for s_id in sessions[:10]:
+for s_id in tqdm(sessions[:10]):
     # Instantiating temporal network
     net = temporal_network(coh_file='coh_k_0.3_morlet.nc',
                            # coh_sig_file='coh_k_0.3_morlet_surr.nc',
                            date=s_id, trial_type=[1],
                            behavioral_response=[1])
 
-    net.super_tensor \
-        = net.super_tensor.transpose("trials", "roi", "freqs", "times")
+    # Convert to degree
+    net.convert_to_adjacency()
 
-    coh += [net.super_tensor.isel(roi=[r])
-            for r in range(len(net.super_tensor['roi']))]
+    degree = net.A.sum("sources")
+
+    del net.A
+
+    degree = degree.rename({"targets": "roi"})
+
+    degree \
+        = degree.transpose("trials", "roi", "freqs", "times")
+
+    coh += [degree.isel(roi=[r])
+            for r in range(len(degree['roi']))]
     stim += [net.super_tensor.attrs["stim"].astype(int)] \
-        * len(net.super_tensor['roi'])
+        * len(degree['roi'])
 
+del net
 
 ###############################################################################
 # MI Workflow
@@ -53,3 +64,11 @@ path_pv = os.path.join(_ROOT, "Results/lucy/mi_power_rfx/pval_coh.nc")
 
 mi.to_netcdf(path_mi)
 pvalues.to_netcdf(path_pv)
+
+for i in range(10):
+    plt.subplot(2,5,i+1)
+    idx = mi_sig.isel(freqs=i).sum("times")>0
+    try:
+        mi_sig.isel(freqs=i,roi=idx).plot(x="times", hue="roi")
+    except AttributeError:
+        continue

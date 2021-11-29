@@ -1,7 +1,8 @@
 import os
 import time
 import numpy as np
-from config import *
+from config import (sm_times, sm_kernel, sm_freqs, delta,
+                    mode, freqs, n_cycles, dates)
 from GDa.session import session
 from xfrites.conn.conn_spec import conn_spec
 from GDa.signal.surrogates import trial_swap_surrogates
@@ -28,17 +29,6 @@ surr = bool(args.SURR)
 # Wheter to use surrogate or not
 seed = args.SEED
 
-nmonkey = 0
-nses = 1
-ntype = 0
-
-###############################################################################
-# Which trial type, alignment and behav. response to use
-###############################################################################
-trial_type = 3
-align_to = 'cue'
-behavioral_response = None
-
 ###############################################################################
 # Method to compute the bias accordingly to Lachaux et. al. (2002)
 ###############################################################################
@@ -51,8 +41,7 @@ def _bias_lachaux(sm_times, freqs, n_cycles):
 if __name__ == '__main__':
 
     # Path in which to save coherence data
-    path_st = os.path.join('Results', str(dirs['monkey'][nmonkey]), str(
-        dirs['date'][nmonkey][idx]), f'session0{nses}')
+    path_st = os.path.join('Results', 'lucy', dates[idx], 'session01')
     # Check if path existis, if not it will be created
     if not os.path.exists(path_st):
         os.makedirs(path_st)
@@ -65,11 +54,11 @@ if __name__ == '__main__':
         os.system(f'rm {path_st_coh}')
 
     #  Instantiating session
-    ses = session(raw_path=dirs['rawdata'],
-                  monkey=dirs['monkey'][nmonkey],
-                  date=dirs['date'][nmonkey][idx],
-                  session=nses, slvr_msmod=True,
-                  align_to=align_to, evt_dt=[-0.65, 3.00])
+    ses = session(raw_path="GrayLab/",
+                  monkey="lucy",
+                  date=dates[idx],
+                  session=1, slvr_msmod=True,
+                  align_to="cue", evt_dt=[-0.65, 3.00])
     # Load data
     ses.read_from_mat()
 
@@ -79,7 +68,7 @@ if __name__ == '__main__':
         freqs=freqs, times="time", roi=ses.data.roi, foi=None,
         n_jobs=10, pairs=None, sfreq=ses.data.attrs['fsample'],
         mode=mode, n_cycles=n_cycles, decim=delta, metric=metric,
-        sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel, block_size=1
+        sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel, block_size=4
     )
 
     # compute the coherence

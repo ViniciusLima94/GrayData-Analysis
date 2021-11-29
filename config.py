@@ -28,7 +28,7 @@ sm_kernel = "square"
 
 # Defining parameters
 delta = 20       # Downsampling factor
-mode = 'morlet'  # ("morlet", "mt_1", "mt_2")
+mode = 'multitaper'  # ("morlet", "mt_1", "mt_2")
 foi = np.array([
         [0, 6.],
         [6., 14.],
