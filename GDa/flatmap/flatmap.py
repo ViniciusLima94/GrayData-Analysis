@@ -13,7 +13,7 @@ def plot_flatmap(ax):
     """
     Auxiliary function to read flatmap image in jpeg.
     """
-    png = plt.imread('Flatmap_outlines.jpg')
+    png = plt.imread(os.path.join(_ROOT, 'Flatmap_outlines.jpg'))
     plt.sca(ax)
     plt.imshow(png, interpolation='none')
     plt.axis('off')
@@ -64,10 +64,13 @@ class flatmap():
         self.values = values
         self.areas = areas
 
-    def plot(self, colormap="viridis", alpha=0.2, colorbar=False,
+    def plot(self, fig=None, colormap="viridis", alpha=0.2, colorbar=False,
              vmin=None, vmax=None, extend=None, cbar_title=None,
              figsize=None, dpi=None):
         """
+        fig: pyplot.figure | None
+            Figure container in which the image
+            should be plotted.
         colormap: string | viridis
             Colormap to use when plotting.
         alpha: float | 0.2
@@ -88,14 +91,21 @@ class flatmap():
         dpi : int, float | None
             Density of pixel in the plot.
         """
+        if vmin is None:
+            vmin = np.min(self.values)
+        if vmax is None:
+            vmax = np.max(self.values)
+        norm = matplotlib.colors.Normalize(vmin=vmin,
+                                           vmax=vmax)
         # Get colormap
         cmap = matplotlib.cm.get_cmap(colormap)
-        colors = [cmap(val) for val in self.values]
+        colors = [cmap(norm(val)) for val in self.values]
 
         ####################################################################
         # Create gridspec to plot on
         ####################################################################
-        fig = plt.figure(figsize=figsize, dpi=dpi)
+        if fig is None:
+            fig = plt.figure(figsize=figsize, dpi=dpi)
         # Checks if needs colorbar
         width_ratios = None
         ncols = 1
@@ -103,7 +113,7 @@ class flatmap():
             width_ratios = (1, 0.1)
             ncols = 2
         gs1 = fig.add_gridspec(nrows=1, ncols=ncols, width_ratios=width_ratios,
-                               left=0.05, right=0.95, bottom=0.05, top=0.95)
+                               left=0.05, right=0.88, bottom=0.05, top=0.95)
         ax1 = plt.subplot(gs1[0])
         if colorbar:
             ax2 = plt.subplot(gs1[1])
@@ -123,16 +133,10 @@ class flatmap():
         ####################################################################
         # Plot colorbar if needed
         ####################################################################
-        if vmin is None:
-            vmin = np.min(self.values)
-        if vmax is None:
-            vmax = np.max(self.values)
 
         if colorbar:
-            norm = matplotlib.colors.Normalize(vmin=vmin,
-                                               vmax=vmax)
             cbar = plt.colorbar(
-                mappable=plt.cm.ScalarMappable(cmap=colormap, norm=norm),
+                mappable=plt.cm.ScalarMappable(cmap=cmap, norm=norm),
                 cax=ax2, extend=extend)
             cbar.ax.set_ylabel(cbar_title, rotation='vertical')
 
@@ -152,7 +156,7 @@ class flatmap():
             flatmap.
         """
 
-        assert area in self._AREAS, "Area not found!"
+        assert area in self._AREAS, f"Area {area} not found!"
 
         # Return x and y coordinates
         return self.__FILE[area][:, 0], self.__FILE[area][:, 1]
