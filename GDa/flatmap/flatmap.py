@@ -4,6 +4,10 @@ import matplotlib
 import scipy.io
 import os
 
+# Root path containing the coordinates file
+_ROOT = os.path.expanduser(
+    "~/storage1/projects/GrayData-Analysis/GDa/flatmap")
+
 
 def plot_flatmap(ax):
     """
@@ -22,11 +26,14 @@ class flatmap():
 
     # Name of the file with the areas' coordinates
     try:
-        _ROOT = os.path.expanduser(
-            "~/storage1/projects/GrayData-Analysis/GDa/flatmap")
         _FILE_NAME = "all_flatmap_areas.mat"
         _FILE_NAME = os.path.join(_ROOT, _FILE_NAME)
         __FILE = scipy.io.loadmat(_FILE_NAME)
+        # Convert all keys to lowercase to avoid problems
+        __FILE = {k.lower(): v for k, v in __FILE.items()}
+        # Replace / by _ for some areas name is needed to avoid
+        # errors
+        __FILE = {k.replace("_", "/"): v for k, v in __FILE.items()}
     except FileNotFoundError:
         raise FileNotFoundError("File with coordinates of areas not found.")
 
