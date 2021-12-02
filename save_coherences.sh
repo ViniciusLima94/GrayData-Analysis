@@ -7,4 +7,4 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --array=0-64
 
-python -O save_coherences.py "coh" $SLURM_ARRAY_TASK_ID 1 0
+python -O save_coherences.py "coh" $SLURM_ARRAY_TASK_ID 0 0
