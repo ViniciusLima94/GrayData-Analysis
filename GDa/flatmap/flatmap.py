@@ -17,9 +17,6 @@ def plot_flatmap(ax):
     plt.sca(ax)
     plt.imshow(png, interpolation='none')
     plt.axis('off')
-    pad = 10
-    plt.xlim(-pad, png.shape[1]+pad)
-    plt.ylim(png.shape[0]+pad, -pad)
 
 
 class flatmap():
@@ -64,19 +61,19 @@ class flatmap():
         self.values = values
         self.areas = areas
 
-    def plot(self, fig=None, colormap="viridis", alpha=0.2, colorbar=False,
+    def plot(self, ax, ax_colorbar=None, colormap="viridis", alpha=0.2,
              vmin=None, vmax=None, extend=None, cbar_title=None,
              figsize=None, dpi=None):
         """
-        fig: pyplot.figure | None
-            Figure container in which the image
-            should be plotted.
+        ax: pyplot.axis | None
+            Axis in which to plot the flatmap.
+        ax_colorbar: pyplot.axis | None
+            Axis in which to plot the colorbar,
+            if None no colorbar is ploted.
         colormap: string | viridis
             Colormap to use when plotting.
         alpha: float | 0.2
             Transparency of the colored area.
-        colorbar: bool | False
-            Wheter to display or not the colorbar.
         vmin: float | None
             Minimum value for the colorbar.
         vmax: float | None
@@ -102,26 +99,9 @@ class flatmap():
         colors = [cmap(norm(val)) for val in self.values]
 
         ####################################################################
-        # Create gridspec to plot on
-        ####################################################################
-        if fig is None:
-            fig = plt.figure(figsize=figsize, dpi=dpi)
-        # Checks if needs colorbar
-        width_ratios = None
-        ncols = 1
-        if colorbar:
-            width_ratios = (1, 0.1)
-            ncols = 2
-        gs1 = fig.add_gridspec(nrows=1, ncols=ncols, width_ratios=width_ratios,
-                               left=0.05, right=0.88, bottom=0.05, top=0.95)
-        ax1 = plt.subplot(gs1[0])
-        if colorbar:
-            ax2 = plt.subplot(gs1[1])
-
-        ####################################################################
         # Plot flatmap and colors
         ####################################################################
-        plot_flatmap(ax1)
+        plot_flatmap(ax)
         # For each pair (value, area) plot in the brain map
         for i, (val, loc) in enumerate(zip(self.values, self.areas)):
             # Get color for region
@@ -134,10 +114,10 @@ class flatmap():
         # Plot colorbar if needed
         ####################################################################
 
-        if colorbar:
+        if ax_colorbar is not None:
             cbar = plt.colorbar(
                 mappable=plt.cm.ScalarMappable(cmap=cmap, norm=norm),
-                cax=ax2, extend=extend)
+                cax=ax_colorbar, extend=extend)
             cbar.ax.set_ylabel(cbar_title, rotation='vertical')
 
     def get_flatmap_coordinates(self, area):
