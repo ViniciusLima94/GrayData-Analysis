@@ -1,5 +1,9 @@
+#  Convert multiple png to gif
 library(gtools)
 library(gifski)
-png_files <- list.files(".", pattern = "flatmap_cue_t*", full.names = TRUE)
+
+#png_files <- list.files(".", pattern = "flatmap_cue_t*", full.names = TRUE)
+png_files <- list.files(".", pattern = "flatmap_match_t*", full.names = TRUE)
 png_files <- mixedsort(png_files)
-gifski(png_files, gif_file = "flatmap_MI_movie_cue", width = 800, height = 400, delay = 0.3)
+#gifski(png_files, gif_file = "flatmap_MI_movie_cue", width = 800, height = 400, delay = 0.3)
+gifski(png_files, gif_file = "flatmap_MI_movie_match", width = 800, height = 400, delay = 0.3)
