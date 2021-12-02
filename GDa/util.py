@@ -3,7 +3,7 @@ import pandas as pd
 
 
 def create_stages_time_grid(t_cue_on, t_cue_off, t_match_on, fsample, tarray,
-                            ntrials, flatten=False):
+                            ntrials, align_to="cue", flatten=False):
     """
     Create grids to keep track of different stages of the experiment
 
@@ -29,15 +29,41 @@ def create_stages_time_grid(t_cue_on, t_cue_off, t_match_on, fsample, tarray,
     Dictionary with boolean masks to acess each stage of the
     experiment for each trial
     """
+    # Get the reference time
+    if align_to == "cue":
+        t_ref = t_cue_on
+    else:
+        t_ref = t_match_on
 
-    t_cue_off = (t_cue_off-t_cue_on)/fsample
-    t_match_on = (t_match_on-t_cue_on)/fsample
+    # Get starting and ending time of each period
+    # according to the reference.
+    # Divides by fsample to get it in seconds
+    t_cue_on = (t_cue_on - t_ref)/fsample
+    t_cue_off = (t_cue_off - t_ref)/fsample
+    t_match_on = (t_match_on - t_ref)/fsample
+    # Convert to column vector for operations
+    t_cue_on = t_cue_on[:, None]
+    t_cue_off = t_cue_off[:, None]
+    t_match_on = t_match_on[:, None]
+
+    # Tile time array to get mask for each trial
     tt = np.tile(tarray, (ntrials, 1))
-    #  Create grids with starting and ending times of each stage for each trial
-    t_baseline = ((tt < 0))
-    t_cue = ((tt >= 0)*(tt < t_cue_off[:, None]))
-    t_delay = ((tt >= t_cue_off[:, None])*(tt < t_match_on[:, None]))
-    t_match = ((tt >= t_match_on[:, None]))
+
+    # Get the mask for each stage
+    t_baseline = tt < t_cue_on
+    t_cue = ((tt >= t_cue_on)*(tt < t_cue_off))
+    t_delay = ((tt >= t_cue_off)*(tt < t_match_on))
+    t_match = ((tt >= t_match_on))
+
+    # Duration of cue for each trial
+    # t_cue_off = (t_cue_off-t_cue_on)/fsample
+    # t_match_on = (t_match_on-t_cue_on)/fsample
+    # tt = np.tile(tarray, (ntrials, 1))
+    # #  Create grids with starting and ending times of each stage for each trial
+    # t_baseline = ((tt < 0))
+    # t_cue = ((tt >= 0)*(tt < t_cue_off[:, None]))
+    # t_delay = ((tt >= t_cue_off[:, None])*(tt < t_match_on[:, None]))
+    # t_match = ((tt >= t_match_on[:, None]))
     # Stage masks
     if flatten is False:
         s_mask = {'baseline': t_baseline,

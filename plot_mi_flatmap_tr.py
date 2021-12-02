@@ -1,11 +1,12 @@
 """
-Plot the flatmaps of MI for the MIs estimated for the average power
+Plot the flatmaps of MI for the MIs estimated for the time-series of power
 over task stages
 """
 import os
 import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 from GDa.flatmap.flatmap import flatmap
 import argparse
 
@@ -26,9 +27,9 @@ at = args.ALIGN
 ###########################################################################
 # Define paths to read the files
 _ROOT = "Results/lucy/mi_pow_rfx"
-_MI = os.path.join(_ROOT, f"mi_pow_tt_1_br_1_aligned_{at}_avg_1.nc")
-_PV = os.path.join(_ROOT, f"pval_pow_1_br_1_aligned_{at}_avg_1.nc")
-_TV = os.path.join(_ROOT, f"tval_pow_1_br_1_aligned_{at}_avg_1.nc")
+_MI = os.path.join(_ROOT, f"mi_pow_tt_1_br_1_aligned_{at}_avg_0.nc")
+_PV = os.path.join(_ROOT, f"pval_pow_1_br_1_aligned_{at}_avg_0.nc")
+_TV = os.path.join(_ROOT, f"tval_pow_1_br_1_aligned_{at}_avg_0.nc")
 
 mi = xr.load_dataarray(_MI)
 p = xr.load_dataarray(_PV)
@@ -57,20 +58,28 @@ n_times = len(times)
 # Name of each stage to use in plot titles
 stage = ['baseline', 'cue', 'delay', 'match']
 
-# Create canvas in which the flatmaps will be drawn
-fig = plt.figure(figsize=(8, 15), dpi=600)
-gs1 = fig.add_gridspec(nrows=n_freqs, ncols=n_times,
-                       left=0.05, right=0.87, bottom=0.05, top=0.95)
-gs2 = fig.add_gridspec(nrows=n_freqs, ncols=1,
-                       left=0.89, right=0.91, bottom=0.05, top=0.95)
 
-# Will store the axes of the figure
-ax, ax_cbar = [], []
+def create_canvas():
+    """
+    Create canvas in which the flatmaps will be drawn
+    """
+    fig = plt.figure(figsize=(8, 3), dpi=300)
+    gs1 = fig.add_gridspec(nrows=2, ncols=int(n_freqs/2),
+                           left=0.05, right=0.95, bottom=0.05, top=0.87)
+    # gs2 = fig.add_gridspec(nrows=n_freqs, ncols=1,
+                           # left=0.89, right=0.91, bottom=0.05, top=0.95)
+    return fig, gs1#, gs2
+
+
 # Plot flatmap for different freuquencies and times
-for f_i, f in enumerate(range(n_freqs)):
-    ax_cbar += [plt.subplot(gs2[f_i])]  # Colorbar axis
-    for t_i, t in enumerate(range(n_times)):
-        ax += [plt.subplot(gs1[t_i+n_times*f_i])]  # Flatmap axis
+for t in tqdm(range(n_times)):
+    # One canvas per time stamp
+    fig, gs1 = create_canvas()
+    # Will store the axes of the figure
+    ax, ax_cbar = [], []
+    for f in range(n_freqs):
+        ax += [plt.subplot(gs1[f])]  # Flatmap axis
+        # ax_cbar += [plt.subplot(gs2[f_i])]  # Colorbar axis
         # Get values to plot in the flatmap
         values = mi_sig.isel(times=t)
         values = values.isel(freqs=f).data
@@ -79,16 +88,11 @@ for f_i, f in enumerate(range(n_freqs)):
         # Instantiate flatmap
         fmap = flatmap(values, _areas_nosca)
         # Only plot colorbar for last column
-        if t == 3:
-            fmap.plot(ax[t_i+n_times*f_i], ax_colorbar=ax_cbar[f_i],
-                      cbar_title="MI [bits]",
-                      colormap="hot_r", vmax=0.02)
-        else:
-            fmap.plot(ax[t_i+n_times*f_i], ax_colorbar=None,
-                      cbar_title="MI [bits]",
-                      colormap="hot_r", vmax=0.02)
+        fmap.plot(ax[f], #ax_colorbar=ax_cbar[f_i],
+                  cbar_title="MI [bits]",
+                  colormap="hot_r", vmax=0.02)
         # Place titles
-        if f == 0:
-            plt.title(stage[t], fontsize=12)
-plt.savefig(f"figures/flatmap_{at}.png")
-plt.close()
+        plt.title(f"f={freqs[f]} Hz", fontsize=8)
+    plt.suptitle(f"t = {np.round(times[t],3)} s", fontsize=10)
+    plt.savefig(f"figures/flatmaps/flatmap_{at}_t_{t}.png")
+    plt.close()
