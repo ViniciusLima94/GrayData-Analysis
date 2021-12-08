@@ -90,9 +90,6 @@ if __name__ == '__main__':
         coh_surr = conn_spec(data_surr, **kw)
         #  Estimate significance level from 95% percentile over trials
         coh_surr = coh_surr.quantile(0.95, dim="trials")
-        # Apply threshold
-        #  coh       = (coh>=coh_surr)*coh
-
         # Add name of the coherence file
         path_st_surr = os.path.join(
             path_st, f'{metric}_k_{sm_times}_{mode}_surr.nc')

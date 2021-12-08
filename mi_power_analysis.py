@@ -82,7 +82,6 @@ def average_stages(power, avg):
 ###############################################################################
 sxx = []
 stim = []
-count = 0
 for s_id in tqdm(sessions[:60]):
     _FILE_NAME = f"power_tt_{tt}_br_{br}_aligned_{at}.nc"
     path_pow = \
@@ -95,7 +94,6 @@ for s_id in tqdm(sessions[:60]):
 
     sxx += [out.isel(roi=[r]) for r in range(len(out['roi']))]
     stim += [out.attrs["stim"].astype(int)]*len(out['roi'])
-    count += 1
 
 
 ###############################################################################
