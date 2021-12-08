@@ -64,8 +64,9 @@ path_st = os.path.join(path_st, f"bs_stats_k_{_KS}_numba_{mode}.nc")
 ###############################################################################
 
 # Instantiating a temporal network object without thresholding the data
-net = temporal_network(coh_file=_COH_FILE, coh_sig_file=_COH_FILE_SIG,
-                       date=session, trial_type=[1], behavioral_response=[1])
+net = temporal_network(coh_file=_COH_FILE, #  coh_sig_file=_COH_FILE_SIG,
+                       date=session, trial_type=[1], behavioral_response=[1],
+                       q=0.95, relative=False)
 
 ###############################################################################
 # Compute burstness statistics for different thresholds
@@ -76,7 +77,8 @@ bs_stats = np.zeros((2, net.super_tensor.sizes["freqs"],
 
 
 # Set to one all values about siginificance level
-coh = (net.super_tensor > 0)
+# coh = (net.super_tensor > 0)
+coh = net.super_tensor
 # Wheter to compute the burst stats for sequences of siliences
 # or activations
 find_zeros = False
