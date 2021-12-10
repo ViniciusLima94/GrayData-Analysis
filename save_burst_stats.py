@@ -14,7 +14,7 @@ band_names = [r'$\theta$', r'$\alpha$', r'$\beta$', r'h-$\beta$', r'gamma']
 # Stage names
 stages = ['baseline', 'cue', 'delay', 'match']
 # Burst stats. names
-stats_names = [r"$\mu$", r"std$_{\mu}$", r"$\mu_{tot}$", "CV"]
+stats_names = ["mu", "std", "muT", "cv"]
 
 ###############################################################################
 # Config params to specify which coherence file to read
@@ -64,21 +64,25 @@ path_st = os.path.join(path_st, f"bs_stats_k_{_KS}_numba_{mode}.nc")
 ###############################################################################
 
 # Instantiating a temporal network object without thresholding the data
-net = temporal_network(coh_file=_COH_FILE, #  coh_sig_file=_COH_FILE_SIG,
+net = temporal_network(coh_file=_COH_FILE, coh_sig_file=_COH_FILE_SIG,
                        date=session, trial_type=[1], behavioral_response=[1],
-                       q=0.95, relative=False)
+                       q=None, relative=False)
+
+n_trials, n_times = net.super_tensor.sizes["trials"], net.super_tensor.sizes["times"]
 
 ###############################################################################
 # Compute burstness statistics for different thresholds
 ###############################################################################
 
+# bs_stats = np.zeros((2, net.super_tensor.sizes["freqs"],
+                     # net.super_tensor.shape[0], len(stages), 4))
 bs_stats = np.zeros((2, net.super_tensor.sizes["freqs"],
-                     net.super_tensor.shape[0], len(stages), 4))
+                     net.super_tensor.shape[0], 4))
 
 
 # Set to one all values about siginificance level
-# coh = (net.super_tensor > 0)
-coh = net.super_tensor
+net.super_tensor.values = (net.super_tensor.values > 0)
+# coh = net.super_tensor
 # Wheter to compute the burst stats for sequences of siliences
 # or activations
 find_zeros = False
@@ -101,17 +105,26 @@ for j in range(2):
 
     for f in range(net.super_tensor.sizes["freqs"]):
         bs_stats[j, f] = bst.tensor_burstness_stats(
-            coh.isel(freqs=f).values, np_mask,
-            drop_edges=True, samples=n_samp, find_zeros=find_zeros,
+            net.super_tensor.isel(freqs=f).values,
+            np.ones((n_trials, n_times)).astype(bool),
+            drop_edges=True, samples=n_times, find_zeros=find_zeros,
             dt=delta/net.super_tensor.attrs['fsample'],
             n_jobs=1)
 
+# bs_stats = xr.DataArray(bs_stats,
+                        # dims=("zeros", "freqs", "roi", "stages", "stats"),
+                        # coords={"zeros":  [0, 1],
+                                # "freqs":  net.super_tensor.freqs,
+                                # "roi":    net.super_tensor.roi,
+                                # "stages": stages,
+                                # "stats":  stats_names},
+                        # attrs=net.super_tensor.attrs)
+
 bs_stats = xr.DataArray(bs_stats,
-                        dims=("zeros", "freqs", "roi", "stages", "stats"),
+                        dims=("zeros", "freqs", "roi", "stats"),
                         coords={"zeros":  [0, 1],
                                 "freqs":  net.super_tensor.freqs,
                                 "roi":    net.super_tensor.roi,
-                                "stages": stages,
                                 "stats":  stats_names},
                         attrs=net.super_tensor.attrs)
 
