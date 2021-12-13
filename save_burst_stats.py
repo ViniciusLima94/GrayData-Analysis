@@ -68,16 +68,12 @@ net = temporal_network(coh_file=_COH_FILE, coh_sig_file=_COH_FILE_SIG,
                        date=session, trial_type=[1], behavioral_response=[1],
                        q=None, relative=False)
 
-n_trials, n_times = net.super_tensor.sizes["trials"], net.super_tensor.sizes["times"]
-
 ###############################################################################
 # Compute burstness statistics for different thresholds
 ###############################################################################
 
-# bs_stats = np.zeros((2, net.super_tensor.sizes["freqs"],
-                     # net.super_tensor.shape[0], len(stages), 4))
 bs_stats = np.zeros((2, net.super_tensor.sizes["freqs"],
-                     net.super_tensor.shape[0], 4))
+                     net.super_tensor.shape[0], len(stages), 4))
 
 
 # Set to one all values about siginificance level
@@ -106,26 +102,19 @@ for j in range(2):
     for f in range(net.super_tensor.sizes["freqs"]):
         bs_stats[j, f] = bst.tensor_burstness_stats(
             net.super_tensor.isel(freqs=f).values,
-            np.ones((n_trials, n_times)).astype(bool),
-            drop_edges=True, samples=n_times, find_zeros=find_zeros,
+            np_mask,
+            drop_edges=True, samples=n_samp, find_zeros=find_zeros,
             dt=delta/net.super_tensor.attrs['fsample'],
             n_jobs=1)
 
-# bs_stats = xr.DataArray(bs_stats,
-                        # dims=("zeros", "freqs", "roi", "stages", "stats"),
-                        # coords={"zeros":  [0, 1],
-                                # "freqs":  net.super_tensor.freqs,
-                                # "roi":    net.super_tensor.roi,
-                                # "stages": stages,
-                                # "stats":  stats_names},
-                        # attrs=net.super_tensor.attrs)
-
 bs_stats = xr.DataArray(bs_stats,
-                        dims=("zeros", "freqs", "roi", "stats"),
-                        coords={"zeros":  [0, 1],
+                        dims=("zeros", "freqs", "roi", "stages", "stats"),
+                        coords={"zeros":  ["ict", "al"],
                                 "freqs":  net.super_tensor.freqs,
                                 "roi":    net.super_tensor.roi,
+                                "stages": stages,
                                 "stats":  stats_names},
                         attrs=net.super_tensor.attrs)
+
 
 bs_stats.to_netcdf(path_st)
