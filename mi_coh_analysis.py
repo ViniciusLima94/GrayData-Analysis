@@ -30,7 +30,7 @@ sessions = np.loadtxt("GrayLab/lucy/sessions.txt", dtype=str)
 ###############################################################################
 
 
-def average_stages(net, avg):
+def average_stages(degrees, mask, avg):
     """
     Loads the temporal network and average it for each task
     stage if needed (avg=1) otherwise return the power itself
@@ -38,40 +38,45 @@ def average_stages(net, avg):
     """
     if avg == 1:
         out = []
-        # Creates stage mask
-        net.create_stage_masks(flatten=False)
-        mask = net.s_mask
 
         for stage in mask.keys():
             # Number of observation in the specific stage
             n_obs = xr.DataArray(mask[stage].mean("times"), dims="trials",
                                  coords={
-                                     "trials": net.super_tensor.trials.data
+                                     "trials": degrees.trials.data
                                  })
-            out += [net.get_data_from(stage=stage,
-                                      pad=True).unstack().sum("times")/n_obs]
+            out += [(degrees * mask[stage]).sum("times")/n_obs]
 
         out = xr.concat(out, "times")
         out = out.transpose("trials", "roi", "freqs", "times")
-        out.attrs = net.super_tensor.attrs
+        out.attrs = degrees.attrs
     else:
-        out = net.super_tensor.transpose("trials", "roi", "freqs", "times")
+        out = degrees.transpose("trials", "roi", "freqs", "times")
 
     return out
 
 
 coh = []
 stim = []
-for s_id in tqdm(sessions[:10]):
+for s_id in [sessions[14]]:#tqdm(sessions[:30]):
     # Instantiating temporal network
     net = temporal_network(coh_file=f'coh_k_0.3_{mode}.nc',
-                           # coh_sig_file='coh_k_0.3_morlet_surr.nc',
+                           coh_sig_file=f'coh_k_0.3_{mode}.nc',
                            date=s_id, trial_type=[1],
                            behavioral_response=[1])
-
-    out = average_stages(net, avg)
-
+    # Create adjacency matrix
+    net.convert_to_adjacency()
+    # Create masks
+    net.create_stage_masks()
+    s_mask = net.s_mask
+    # Compute degrees
+    degrees = net.A.sum("targets")
+    degrees = degrees.rename({"sources": "roi"})
+    degrees.attrs = net.super_tensor.attrs
     del net
+
+    out = average_stages(degrees, s_mask, avg)
+    del degrees
 
     coh += [out.isel(roi=[r])
             for r in range(len(out['roi']))]
