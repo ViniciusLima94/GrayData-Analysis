@@ -1,7 +1,6 @@
 import numpy as np
 import numba as nb
 from frites.utils import parallel_func
-from frites.conn import  define_windows
 
 @nb.jit(nopython=True)
 def _nan_pad(x, new_size, pad_value):
@@ -207,10 +206,12 @@ def tensor_find_activation_sequences(spike_train, mask, dt=None,
         act_lengths = np.empty((x.shape[0], _new_size))
         # For each trial
         for i in range(x.shape[0]):
-            act_lengths[i, :] = masked_find_activation_sequences(x[i, ...], m[i, ...],
-                                                                 find_zeros=find_zeros,
-                                                                 drop_edges=drop_edges,
-                                                                 pad=True, dt=dt)
+            act_lengths[i, :] = masked_find_activation_sequences(
+                x[i, ...],
+                m[i, ...],
+                find_zeros=find_zeros,
+                drop_edges=drop_edges,
+                pad=True, dt=dt)
         return act_lengths
 
     # Computed in parallel for each edge
