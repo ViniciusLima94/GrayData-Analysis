@@ -207,7 +207,7 @@ def convert_to_adjacency(tensor, sources, targets, dtype=np.float32):
     # Number of pairs
     n_pairs, n_bands, n_trials, n_times = tensor.shape[:]
     # Number of channels
-    n_channels = int(np.roots([1, -1, -2*n_pairs])[0])
+    n_channels = np.max(np.stack((sources, targets))) + 1
 
     # Adjacency tensor
     A = np.zeros([n_channels, n_channels, n_bands,
