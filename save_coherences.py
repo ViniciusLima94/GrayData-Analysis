@@ -49,7 +49,7 @@ def _bias_lachaux(sm_times, freqs, n_cycles):
 if __name__ == '__main__':
 
     # Path in which to save coherence data
-    path_st = os.path.join('Results', 'lucy', dates[idx], 'session01')
+    path_st = os.path.join('Results', 'lucy', sessions[idx], 'session01')
     # Check if path existis, if not it will be created
     if not os.path.exists(path_st):
         os.makedirs(path_st)
@@ -65,7 +65,7 @@ if __name__ == '__main__':
     #  Instantiating session
     ses = session(raw_path="GrayLab/",
                   monkey="lucy",
-                  date=dates[idx],
+                  date=sessions[idx],
                   session=1, slvr_msmod=True,
                   align_to=at, evt_dt=evt_dt)
     # Load data
@@ -74,9 +74,9 @@ if __name__ == '__main__':
     start = time.time()
 
     kw = dict(
-        freqs=freqs, times="time", roi=ses.data.roi, foi=None,
+        freqs=freqs, times="time", roi="roi", foi=None,
         n_jobs=10, pairs=None, sfreq=ses.data.attrs['fsample'],
-        mode=mode, n_cycles=n_cycles, decim=delta, metric=metric,
+        mode=mode, n_cycles=n_cycles, decim=decim, metric="coh",
         sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel, block_size=4
     )
 
