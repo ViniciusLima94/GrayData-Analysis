@@ -60,5 +60,3 @@
 150528
 150529
 150608
-sessions.txt
-unique_recordings.mat

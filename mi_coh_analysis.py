@@ -58,7 +58,7 @@ def average_stages(degrees, mask, avg):
 
 coh = []
 stim = []
-for s_id in [sessions[14]]:#tqdm(sessions[:30]):
+for s_id in tqdm(sessions[:60]):
     # Instantiating temporal network
     net = temporal_network(coh_file=f'coh_k_0.3_{mode}.nc',
                            coh_sig_file=f'coh_k_0.3_{mode}.nc',
@@ -97,10 +97,10 @@ inference = 'rfx'
 kernel = np.hanning(1)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel)
 
-kw = dict(n_jobs=20, n_perm=200)
+kw = dict(n_jobs=20, n_perm=100)
 cluster_th = None  # {float, None, 'tfce'}
 
-mi, pvalues = wf.fit(dt, mcp="fdr", cluster_th=cluster_th, **kw)
+mi, pvalues = wf.fit(dt, mcp="cluster", cluster_th=cluster_th, **kw)
 
 path_mi = os.path.join(_ROOT,
                        f"Results/lucy/mi_pow_rfx/mi_coh_avg_{avg}.nc")

@@ -27,13 +27,15 @@ at = args.ALIGN
 ###########################################################################
 # Define paths to read the files
 _ROOT = "Results/lucy/mi_pow_rfx"
-_MI = os.path.join(_ROOT, f"mi_pow_tt_1_br_1_aligned_{at}_avg_0.nc")
-_PV = os.path.join(_ROOT, f"pval_pow_1_br_1_aligned_{at}_avg_0.nc")
-_TV = os.path.join(_ROOT, f"tval_pow_1_br_1_aligned_{at}_avg_0.nc")
+# _MI = os.path.join(_ROOT, f"mi_pow_tt_1_br_1_aligned_{at}_avg_0.nc")
+# _PV = os.path.join(_ROOT, f"pval_pow_1_br_1_aligned_{at}_avg_0.nc")
+# _TV = os.path.join(_ROOT, f"tval_pow_1_br_1_aligned_{at}_avg_0.nc")
+_MI = os.path.join(_ROOT, "mi_coh_avg_0.nc")
+_PV = os.path.join(_ROOT, "pval_coh_avg_0.nc")
 
 mi = xr.load_dataarray(_MI)
 p = xr.load_dataarray(_PV)
-tv = xr.load_dataarray(_TV)
+# tv = xr.load_dataarray(_TV)
 # Compute siginificant MI values
 mi_sig = mi * (p <= 0.05)
 
@@ -90,7 +92,7 @@ for t in tqdm(range(n_times)):
         # Only plot colorbar for last column
         fmap.plot(ax[f], #ax_colorbar=ax_cbar[f_i],
                   cbar_title="MI [bits]",
-                  colormap="hot_r", vmax=0.02)
+                  colormap="hot_r", vmax=0.01)
         # Place titles
         plt.title(f"f={freqs[f]} Hz", fontsize=8)
     plt.suptitle(f"t = {np.round(times[t],3)} s", fontsize=10)

@@ -4,9 +4,19 @@
 import numpy as np
 
 ###############################################################################
-# Directories
+# Set up directories to read the data
 ###############################################################################
-dates = np.loadtxt('GrayLab/lucy/sessions.txt', dtype=str)
+sessions = np.array( 
+['141017', '141014', '141015', '141016', '141023', '141024', '141029',
+'141103', '141112', '141113', '141125', '141126', '141127', '141128',
+'141202', '141203', '141205', '141208', '141209', '141211', '141212',
+'141215', '141216', '141217', '141218', '150114', '150126', '150128',
+'150129', '150205', '150210', '150211', '150212', '150213', '150217',
+'150219', '150223', '150224', '150226', '150227', '150302', '150303',
+'150304', '150305', '150403', '150407', '150408', '150413', '150414',
+'150415', '150416', '150427', '150428', '150429', '150430', '150504',
+'150511', '150512', '150527', '150528', '150529', '150608']
+)
 
 # Directories
 dirs = {
@@ -14,39 +24,32 @@ dirs = {
         'results': 'Results/',
         'monkey': ['lucy', 'ethyl'],
         'session': 'session01',
-        'date': [dates, []]
+        'date': [sessions, []]
         }
 
 ###############################################################################
-# Spectral analysis
+# Spectral analysis parameters
 ###############################################################################
 
 # Smoothing windows
-sm_times = 0.3  # In seconds
+sm_times = 0.3 # In seconds
 sm_freqs = 1
 sm_kernel = "square"
 
 # Defining parameters
-delta = 20       # Downsampling factor
-mode = 'multitaper'  # ("morlet", "mt_1", "mt_2")
-foi = np.array([
-        [0, 6.],
-        [6., 14.],
-        [14., 26.],
-        [26., 42.],
-        [42., 80.]
-            ])
+decim = 20 # Downsampling factor
+mode = 'multitaper' # Wheter to use Morlet or Multitaper
 
-# if mode in ["morlet", "mt_1"]:
-#  n_freqs = 15
-freqs = np.linspace(3, 75, 10)
-# Frequency resolution
-#  s_f   = (foi[:,1]-foi[:,0])/4
-n_cycles = freqs/4
+n_freqs = 10 # How many frequencies to use
+freqs = np.linspace(3, 75, n_freqs) # Frequency array
+n_cycles = freqs/4 # Number of cycles
 mt_bandwidth = None
-# elif mode == "multitaper":
-# freqs = foi.mean(axis=1)
-# W     = np.ceil( foi[:,1]-foi[:,0] ) # Bandwidth
-# foi   = None
-# n_cycles     = np.array([3, 5, 9, 12, 16])
-# mt_bandwidth = np.array([2, 4, 4.28, 5.647, 9.65])
+
+def return_evt_dt(align_at):
+    """ Return the window in which the data will be loaded
+    depending on the alignment """
+    assert align_at in ["cue", "match"]
+    if align_at == "cue":
+        return [-0.65, 3.00]
+    else:
+        return [-2.2, 0.65]
