@@ -16,23 +16,30 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("ALIGN", help="wheter to align data to cue or match",
                     type=str)
+parser.add_argument("METRIC", help="wheter to plot power or coherence MI",
+                    type=str)
 args = parser.parse_args()
 
 # Wheter to align to cue or match
 at = args.ALIGN
+metric = args.METRIC
 
 ###########################################################################
 # Load MI files
 ###########################################################################
 # Define paths to read the files
 _ROOT = "Results/lucy/mi_pow_rfx"
-_MI = os.path.join(_ROOT, f"mi_pow_tt_1_br_1_aligned_{at}_avg_1.nc")
-_PV = os.path.join(_ROOT, f"pval_pow_1_br_1_aligned_{at}_avg_1.nc")
-_TV = os.path.join(_ROOT, f"tval_pow_1_br_1_aligned_{at}_avg_1.nc")
+if metric == "power":
+    _MI = os.path.join(_ROOT, f"mi_pow_tt_1_br_1_aligned_{at}_avg_1.nc")
+    _PV = os.path.join(_ROOT, f"pval_pow_1_br_1_aligned_{at}_avg_1.nc")
+    # _TV = os.path.join(_ROOT, f"tval_pow_1_br_1_aligned_{at}_avg_1.nc")
+else:
+    _MI = os.path.join(_ROOT, "mi_coh_avg_1.nc")
+    _PV = os.path.join(_ROOT, "pval_coh_avg_1.nc")
 
 mi = xr.load_dataarray(_MI)
 p = xr.load_dataarray(_PV)
-tv = xr.load_dataarray(_TV)
+# tv = xr.load_dataarray(_TV)
 # Compute siginificant MI values
 mi_sig = mi * (p <= 0.05)
 
@@ -90,5 +97,5 @@ for f_i, f in enumerate(range(n_freqs)):
         # Place titles
         if f == 0:
             plt.title(stage[t], fontsize=12)
-plt.savefig(f"figures/flatmap_{at}.png")
+plt.savefig(f"figures/flatmap_{metric}_{at}.png")
 plt.close()

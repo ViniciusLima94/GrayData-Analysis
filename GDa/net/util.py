@@ -40,11 +40,8 @@ def _convert_to_affiliation_vector(n_nodes, partitions):
         Affiliation vector.
     """
     # Extact list of partitions
-    #  partitions = partitions.values[0]
-    # Number of time points
-    n_times = len(partitions)
-    # Affiliation vector
-    av = np.zeros((n_nodes, n_times))
+    n_times = len(partitions)  # Number of time points
+    av = np.zeros((n_nodes, n_times))  # Affiliation vector
     for t in range(n_times):
         for comm_i, comm in enumerate(partitions[t]):
             av[comm, t] = comm_i
@@ -79,7 +76,6 @@ def MODquality(A, av, gamma=1):
     n_edges = np.sum(d)
     # Initial modularity matrix
     B = A - gamma * np.outer(d, d) / n_edges
-    #  B       = B[av][:, av]
     # Tile affiliation vector
     s = av.repeat(n_nodes).reshape((-1, n_nodes))
     return np.sum(np.logical_not(s - s.T) * B / n_edges)
@@ -131,7 +127,7 @@ def _check_inputs(array, dims):
     """
     assert isinstance(dims, int)
     assert isinstance(array, (np.ndarray, xr.DataArray))
-    assert len(array.shape) == dims, f"The adjacency tensor should be {dims}D."
+    assert len(array.shape) == dims
 
 
 def _unwrap_inputs(array, concat_trials=False):
@@ -152,10 +148,10 @@ def _unwrap_inputs(array, concat_trials=False):
     if isinstance(array, xr.DataArray):
         # Concatenate trials and time axis
         try:
-            roi = array.roi_1.values
+            roi = array.sources.values
             trials = array.trials.values
             time = array.time.values
-        except:
+        except AttributeError:
             roi = np.arange(0, array.shape[0])
             trials = np.arange(0, array.shape[2])
             time = np.arange(0, array.shape[3])
@@ -283,7 +279,6 @@ def compute_coherence_thresholds(tensor, q=0.8, relative=False, verbose=False,
     else:
         coh_thr = xr.DataArray(np.zeros(n_bands), dims=("freqs"))
 
-    # itr = range(n_bands)  # Iterator
     # define the function to compute in parallel
     parallel, p_fun = parallel_func(
         _for_band, n_jobs=n_jobs, verbose=verbose,

@@ -1,7 +1,8 @@
 import os
 import numpy as np
 from GDa.session import session
-from config import (delta, mode, freqs, n_cycles)
+from config import (decim, mode, freqs, n_cycles,
+                    sessions, return_evt_dt)
 from xfrites.conn.conn_tf import wavelet_spec
 import argparse
 
@@ -27,22 +28,17 @@ tt = args.TT
 br = args.BR
 at = args.ALIGN
 
+# Root directory
 _ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
 # Get session number
-sessions = np.loadtxt("GrayLab/lucy/sessions.txt", dtype=str)
 s_id = sessions[idx]
 
 ###############################################################################
 # Loading session
 ###############################################################################
 
-evt_dt = None
-if at == "cue":
-    evt_dt = [-0.65, 3.00]
-elif at == "match":
-    evt_dt = [-2.2, 0.65]
-else:
-    assert at in ['cue', 'match']
+# Window in which the data will be read
+evt_dt = return_evt_dt(at)
 
 # Instantiate class
 ses = session(raw_path='GrayLab/', monkey='lucy', date=s_id, session=1,
@@ -63,7 +59,7 @@ sxx = wavelet_spec(data, freqs=freqs, roi=data.roi, times="time",
                    sfreq=data.attrs["fsample"], foi=None, sm_times=0,
                    sm_freqs=0, sm_kernel="square", mode=mode,
                    n_cycles=n_cycles, mt_bandwidth=None,
-                   decim=delta, kw_cwt={}, kw_mt={}, block_size=1,
+                   decim=decim, kw_cwt={}, kw_mt={}, block_size=1,
                    n_jobs=20, verbose=None)
 
 
@@ -77,7 +73,7 @@ results_path = f"Results/lucy/{s_id}/session01"
 if not os.path.exists(results_path):
     os.makedirs(results_path)
 
-file_name = f"power_tt_{tt}_br_{br}_aligned_{at}.nc"
+file_name = f"power_tt_{tt}_br_{br}_at_{at}.nc"
 path_pow = os.path.join(_ROOT, results_path,
                         file_name)
 

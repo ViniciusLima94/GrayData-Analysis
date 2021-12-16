@@ -109,10 +109,10 @@ inference = 'rfx'
 kernel = None
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel)
 
-kw = dict(n_jobs=20, n_perm=200)
+kw = dict(n_jobs=20, n_perm=100)
 cluster_th = None  # {float, None, 'tfce'}
 
-mi, pvalues = wf.fit(dt, mcp="fdr", cluster_th=cluster_th, **kw)
+mi, pvalues = wf.fit(dt, mcp="cluster", cluster_th=cluster_th, **kw)
 
 # Path to results foldeer
 _RESULTS = "Results/lucy/mi_pow_rfx"

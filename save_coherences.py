@@ -1,16 +1,19 @@
 import os
 import time
 import numpy as np
-from config import (sm_times, sm_kernel, sm_freqs, delta,
-                    mode, freqs, n_cycles, dates)
+from config import (sm_times, sm_kernel, sm_freqs, decim,
+                    mode, freqs, n_cycles, sessions,
+                    return_evt_dt)
 from GDa.session import session
-from xfrites.conn.conn_spec import conn_spec
+from frites.conn.conn_spec import conn_spec
 from GDa.signal.surrogates import trial_swap_surrogates
 import argparse
 
 # Argument parsing
 parser = argparse.ArgumentParser()
 parser.add_argument("METRIC", help="which connectivity metric to use",
+                    type=str)
+parser.add_argument("ALIGNED", help="wheter to align data to cue or match",
                     type=str)
 parser.add_argument("SIDX", help="index of the session to run",
                     type=int)
@@ -22,12 +25,17 @@ parser.add_argument("SEED", help="seed for create surrogates",
 args = parser.parse_args()
 # The connectivity metric that should be used
 metric = args.METRIC
+# Wheter to align data to cue or match
+at = args.ALIGNED
 # The index of the session to use
 idx = args.SIDX
 # Wheter to use surrogate or not
 surr = bool(args.SURR)
 # Wheter to use surrogate or not
 seed = args.SEED
+
+# Window in which the data will be read
+evt_dt = return_evt_dt(at)
 
 ###############################################################################
 # Method to compute the bias accordingly to Lachaux et. al. (2002)
@@ -47,7 +55,8 @@ if __name__ == '__main__':
         os.makedirs(path_st)
 
     # Add name of the coherence file
-    path_st_coh = os.path.join(path_st, f'{metric}_k_{sm_times}_{mode}.nc')
+    path_st_coh = os.path.join(path_st,
+                               f'{metric}_k_{sm_times}_{mode}_at_{at}.nc')
 
     # Remove file if it was already created
     if os.path.isfile(path_st_coh):
@@ -58,7 +67,7 @@ if __name__ == '__main__':
                   monkey="lucy",
                   date=dates[idx],
                   session=1, slvr_msmod=True,
-                  align_to="cue", evt_dt=[-0.65, 3.00])
+                  align_to=at, evt_dt=evt_dt)
     # Load data
     ses.read_from_mat()
 
