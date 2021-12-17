@@ -1,11 +1,13 @@
 import os
 import xarray as xr
 import numpy as np
+import argparse
+
+from config import sessions
 from frites.dataset import DatasetEphy
 from frites.workflow import WfMi
 from GDa.util import create_stages_time_grid
 from tqdm import tqdm
-import argparse
 
 ###############################################################################
 # Argument parsing
@@ -30,12 +32,10 @@ at = args.ALIGN
 avg = args.AVERAGED
 
 ##############################################################################
-# Get root path and session names
+# Get root path
 ###############################################################################
 
 _ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
-# Get session number
-sessions = np.loadtxt("GrayLab/lucy/sessions.txt", dtype=str)
 
 ###############################################################################
 # Iterate over all sessions and concatenate power
@@ -82,8 +82,8 @@ def average_stages(power, avg):
 ###############################################################################
 sxx = []
 stim = []
-for s_id in tqdm(sessions[:60]):
-    _FILE_NAME = f"power_tt_{tt}_br_{br}_aligned_{at}.nc"
+for s_id in tqdm(sessions):
+    _FILE_NAME = f"power_tt_{tt}_br_{br}_at_{at}.nc"
     path_pow = \
         os.path.join(_ROOT,
                      f"Results/lucy/{s_id}/session01",
@@ -101,7 +101,7 @@ for s_id in tqdm(sessions[:60]):
 ###############################################################################
 
 # Convert to DatasetEphy
-dt = DatasetEphy(sxx, y=stim, nb_min_suj=2,
+dt = DatasetEphy(sxx, y=stim, nb_min_suj=10,
                  times="times", roi="roi")
 
 mi_type = 'cd'
@@ -114,8 +114,12 @@ cluster_th = None  # {float, None, 'tfce'}
 
 mi, pvalues = wf.fit(dt, mcp="cluster", cluster_th=cluster_th, **kw)
 
-# Path to results foldeer
-_RESULTS = "Results/lucy/mi_pow_rfx"
+###############################################################################
+# Saving results 
+###############################################################################
+
+# Path to results folder
+_RESULTS = "Results/lucy/mi_data"
 
 path_mi = os.path.join(_ROOT,
                        _RESULTS,

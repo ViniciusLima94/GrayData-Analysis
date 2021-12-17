@@ -78,8 +78,6 @@ class temporal_network():
         # Load session info
         info = GDa.session.session(
             raw_path=_DATA_PATH, monkey=monkey, date=date, session=session)
-        # Storing recording info
-        self.recording_info = info.recording_info
         # Storing trial info
         self.trial_info = info.trial_info
         #
