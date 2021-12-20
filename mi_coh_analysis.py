@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import xarray as xr
 import argparse
 
@@ -66,7 +65,7 @@ stim = []
 for s_id in tqdm(sessions):
     # Instantiating temporal network
     net = temporal_network(coh_file=f'coh_k_0.3_{mode}_at_{at}.nc',
-                           # coh_sig_file=f'coh_k_0.3_{mode}.nc',
+                           coh_sig_file=f'coh_k_0.3_{mode}_at_{at}.nc',
                            date=s_id, trial_type=[1],
                            behavioral_response=[1])
     # Create adjacency matrix
@@ -99,7 +98,7 @@ dt = DatasetEphy(coh, y=stim, nb_min_suj=10,
 
 mi_type = 'cd'
 inference = 'rfx'
-kernel = None 
+kernel = None
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel)
 
 kw = dict(n_jobs=20, n_perm=100)
@@ -108,7 +107,7 @@ cluster_th = None  # {float, None, 'tfce'}
 mi, pvalues = wf.fit(dt, mcp="cluster", cluster_th=cluster_th, **kw)
 
 ###############################################################################
-# Saving results 
+# Saving results
 ###############################################################################
 
 # Path to results folder
@@ -119,7 +118,7 @@ path_mi = os.path.join(_ROOT,
                        f"mi_coh_avg_{avg}.nc")
 path_tv = os.path.join(_ROOT,
                        _RESULTS,
-                       f"mi_coh_avg_{avg}.nc")
+                       f"t_coh_avg_{avg}.nc")
 path_pv = os.path.join(_ROOT,
                        _RESULTS,
                        f"pval_coh_avg_{avg}.nc")

@@ -1,6 +1,5 @@
 import os
 import xarray as xr
-import numpy as np
 import argparse
 
 from config import sessions
@@ -115,7 +114,7 @@ cluster_th = None  # {float, None, 'tfce'}
 mi, pvalues = wf.fit(dt, mcp="cluster", cluster_th=cluster_th, **kw)
 
 ###############################################################################
-# Saving results 
+# Saving results
 ###############################################################################
 
 # Path to results folder

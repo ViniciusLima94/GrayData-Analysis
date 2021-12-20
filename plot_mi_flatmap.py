@@ -28,20 +28,21 @@ metric = args.METRIC
 # Load MI files
 ###########################################################################
 # Define paths to read the files
-_ROOT = "Results/lucy/mi_pow_rfx"
+_ROOT = "Results/lucy/mi_data"
 if metric == "power":
     _MI = os.path.join(_ROOT, f"mi_pow_tt_1_br_1_aligned_{at}_avg_1.nc")
     _PV = os.path.join(_ROOT, f"pval_pow_1_br_1_aligned_{at}_avg_1.nc")
-    # _TV = os.path.join(_ROOT, f"tval_pow_1_br_1_aligned_{at}_avg_1.nc")
+    _TV = os.path.join(_ROOT, f"tval_pow_1_br_1_aligned_{at}_avg_1.nc")
 else:
     _MI = os.path.join(_ROOT, "mi_coh_avg_1.nc")
     _PV = os.path.join(_ROOT, "pval_coh_avg_1.nc")
+    _TV = os.path.join(_ROOT, "t_coh_avg_1.nc")
 
 mi = xr.load_dataarray(_MI)
 p = xr.load_dataarray(_PV)
-# tv = xr.load_dataarray(_TV)
+tv = xr.load_dataarray(_TV)
 # Compute siginificant MI values
-mi_sig = mi * (p <= 0.05)
+mi_sig = tv * (p <= 0.05)
 
 # Define sub-cortical areas names
 sca = np.array(['thal', 'putamen', 'claustrum', 'caudate'])
@@ -89,11 +90,11 @@ for f_i, f in enumerate(range(n_freqs)):
         if t == 3:
             fmap.plot(ax[t_i+n_times*f_i], ax_colorbar=ax_cbar[f_i],
                       cbar_title="MI [bits]",
-                      colormap="hot_r", vmax=0.02)
+                      colormap="hot_r", vmax=0.004)
         else:
             fmap.plot(ax[t_i+n_times*f_i], ax_colorbar=None,
                       cbar_title="MI [bits]",
-                      colormap="hot_r", vmax=0.02)
+                      colormap="hot_r", vmax=0.004)
         # Place titles
         if f == 0:
             plt.title(stage[t], fontsize=12)
