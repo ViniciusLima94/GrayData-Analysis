@@ -3,7 +3,7 @@ import pandas as pd
 
 
 def create_stages_time_grid(t_cue_on, t_cue_off, t_match_on, fsample, tarray,
-                            ntrials, align_to="cue", flatten=False):
+                            ntrials, early_delay=None, align_to="cue", flatten=False):
     """
     Create grids to keep track of different stages of the experiment
 
@@ -21,6 +21,13 @@ def create_stages_time_grid(t_cue_on, t_cue_off, t_match_on, fsample, tarray,
         Time axis array
     ntrials: int
         Number of trials
+    early_delay: float | None 
+        Time in seconds after cue onset to be considered as 
+        early delay (if None no division between early and late
+        delay is made)
+    align_to: string | "cue"
+        Wheter the data is aligned to cue or match to set
+        the reference time as t_cue_on or t_match_on.
     flatten: bool | False
         Wheter to concatenate trials and time dimensions
 
@@ -34,6 +41,15 @@ def create_stages_time_grid(t_cue_on, t_cue_off, t_match_on, fsample, tarray,
         t_ref = t_cue_on
     else:
         t_ref = t_match_on
+
+    # Check if has division in early and late delay
+    has_early_delay = isinstance(early_delay, float)
+
+    if has_early_delay:
+        assert early_delay > 0.0
+        mask_names = ["baseline", "cue", "delay_e", "delay_l", "match"]
+    else:
+        mask_names = ["baseline", "cue", "delay", "match"]
 
     # Get starting and ending time of each period
     # according to the reference.
@@ -50,31 +66,41 @@ def create_stages_time_grid(t_cue_on, t_cue_off, t_match_on, fsample, tarray,
     tt = np.tile(tarray, (ntrials, 1))
 
     # Get the mask for each stage
-    t_baseline = tt < t_cue_on
-    t_cue = ((tt >= t_cue_on)*(tt < t_cue_off))
-    t_delay = ((tt >= t_cue_off)*(tt < t_match_on))
-    t_match = ((tt >= t_match_on))
-
-    # Duration of cue for each trial
-    # t_cue_off = (t_cue_off-t_cue_on)/fsample
-    # t_match_on = (t_match_on-t_cue_on)/fsample
-    # tt = np.tile(tarray, (ntrials, 1))
-    # #  Create grids with starting and ending times of each stage for each trial
-    # t_baseline = ((tt < 0))
-    # t_cue = ((tt >= 0)*(tt < t_cue_off[:, None]))
-    # t_delay = ((tt >= t_cue_off[:, None])*(tt < t_match_on[:, None]))
-    # t_match = ((tt >= t_match_on[:, None]))
-    # Stage masks
-    if flatten is False:
-        s_mask = {'baseline': t_baseline,
-                  'cue':      t_cue,
-                  'delay':    t_delay,
-                  'match':    t_match}
+    # t_baseline = tt < t_cue_on
+    # t_cue = ((tt >= t_cue_on)*(tt < t_cue_off))
+    # t_delay = ((tt >= t_cue_off)*(tt < t_match_on))
+    # t_match = ((tt >= t_match_on))
+    t = []
+    t += [tt < t_cue_on]
+    t += [((tt >= t_cue_on)*(tt < t_cue_off))]
+    # If has early delay divides it
+    if not has_early_delay:
+        t += [((tt >= t_cue_off)*(tt < t_match_on))]
     else:
-        s_mask = {'baseline': t_baseline.reshape(ntrials*len(tarray)),
-                  'cue':      t_cue.reshape(ntrials*len(tarray)),
-                  'delay':    t_delay.reshape(ntrials*len(tarray)),
-                  'match':    t_match.reshape(ntrials*len(tarray))}
+        t += [((tt >= t_cue_off)*(tt < t_cue_off+early_delay))]
+        t += [((tt >= t_cue_off+early_delay)*(tt < t_match_on))]
+    t += [((tt >= t_match_on))]
+
+    # Stage masks
+    s_mask = {}
+    if flatten is False:
+        for i, key in enumerate(mask_names):
+            s_mask[key] = t[i]
+    else:
+        for i, key in enumerate(mask_names):
+            s_mask[key] = t[i].reshape(ntrials*len(tarray))
+
+    # Stage masks
+    # if flatten is False:
+        # s_mask = {'baseline': t_baseline,
+                  # 'cue':      t_cue,
+                  # 'delay':    t_delay,
+                  # 'match':    t_match}
+    # else:
+        # s_mask = {'baseline': t_baseline.reshape(ntrials*len(tarray)),
+                  # 'cue':      t_cue.reshape(ntrials*len(tarray)),
+                  # 'delay':    t_delay.reshape(ntrials*len(tarray)),
+                  # 'match':    t_match.reshape(ntrials*len(tarray))}
 
     return s_mask
 

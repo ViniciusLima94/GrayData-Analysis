@@ -178,7 +178,8 @@ def compute_nodes_coreness(A, verbose=False, n_jobs=1):
     return coreness
 
 
-def compute_nodes_coreness_bc(A, verbose=False, n_jobs=1):
+def compute_nodes_coreness_bc(A, delta=1, return_degree=False,
+                              verbose=False, n_jobs=1):
     """
     The same as 'compute_nodes_coreness' but based on brainconnectivity
     toolbox method can be either for binary or weighted undirected graphs.
@@ -234,12 +235,12 @@ def compute_nodes_coreness_bc(A, verbose=False, n_jobs=1):
             # Assigns coreness level to nodes
             s = C.sum(1)
             idx = s > 0
-            if is_weighted:
+            if return_degree:
                 k_core[idx] = s[idx]
             else:
                 k_core[idx] = k
-            k += 1
-        return k_core+1
+            k += delta
+        return k_core
 
     # Compute for a single observation
     def _for_frame(t):
