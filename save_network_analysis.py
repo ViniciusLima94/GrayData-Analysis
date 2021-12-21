@@ -41,15 +41,17 @@ _ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
 
 if bool(thr):
     coh_sig_file = f'coh_k_0.3_{mode}_surr.nc'
+    wt = (-20, 20)
 else:
     coh_sig_file = None
+    wt = None 
 
 ##############################################################################
 # Load the supertensor and convert to adjacency matrix
 ###############################################################################
 
 net = temporal_network(coh_file=f'coh_k_0.3_{mode}_at_cue.nc',
-                       coh_sig_file=coh_sig_file,
+                       coh_sig_file=coh_sig_file, wt = wt, 
                        date=sessions[s_id], trial_type=[1],
                        behavioral_response=[1])
 
