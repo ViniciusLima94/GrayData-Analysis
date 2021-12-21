@@ -14,15 +14,16 @@ import argparse
 ###############################################################################
 
 parser = argparse.ArgumentParser()
-parser.add_argument("ALIGN", help="wheter to align data to cue or match",
-                    type=str)
 parser.add_argument("METRIC", help="wheter to plot power or coherence MI",
                     type=str)
+parser.add_argument("THRESHOLD",
+                    help="wheter to threshold the thresholded metric or not",
+                    type=int)
 args = parser.parse_args()
 
 # Wheter to align to cue or match
-at = args.ALIGN
 metric = args.METRIC
+thr = args.THRESHOLD
 
 ###########################################################################
 # Load MI files
@@ -30,19 +31,19 @@ metric = args.METRIC
 # Define paths to read the files
 _ROOT = "Results/lucy/mi_data"
 if metric == "power":
-    _MI = os.path.join(_ROOT, f"mi_pow_tt_1_br_1_aligned_{at}_avg_1.nc")
-    _PV = os.path.join(_ROOT, f"pval_pow_1_br_1_aligned_{at}_avg_1.nc")
-    _TV = os.path.join(_ROOT, f"tval_pow_1_br_1_aligned_{at}_avg_1.nc")
+    _MI = os.path.join(_ROOT, "mi_pow_tt_1_br_1_aligned_cue_avg_1.nc")
+    _PV = os.path.join(_ROOT, "pval_pow_1_br_1_aligned_cue_avg_1.nc")
+    _TV = os.path.join(_ROOT, "tval_pow_1_br_1_aligned_cue_avg_1.nc")
 else:
-    _MI = os.path.join(_ROOT, "mi_coh_avg_1.nc")
-    _PV = os.path.join(_ROOT, "pval_coh_avg_1.nc")
-    _TV = os.path.join(_ROOT, "t_coh_avg_1.nc")
+    _MI = os.path.join(_ROOT, f"mi_{metric}_avg_1_thr_{thr}.nc")
+    _PV = os.path.join(_ROOT, f"pval_{metric}_avg_1_thr_{thr}.nc")
+    _TV = os.path.join(_ROOT, f"t_{metric}_avg_1_thr_{thr}.nc")
 
 mi = xr.load_dataarray(_MI)
 p = xr.load_dataarray(_PV)
 tv = xr.load_dataarray(_TV)
 # Compute siginificant MI values
-mi_sig = tv * (p <= 0.05)
+mi_sig = mi * (p <= 0.05)
 
 # Define sub-cortical areas names
 sca = np.array(['thal', 'putamen', 'claustrum', 'caudate'])
@@ -98,5 +99,5 @@ for f_i, f in enumerate(range(n_freqs)):
         # Place titles
         if f == 0:
             plt.title(stage[t], fontsize=12)
-plt.savefig(f"figures/flatmap_{metric}_{at}.png")
+plt.savefig(f"figures/flatmap_{metric}_{thr}.png")
 plt.close()
