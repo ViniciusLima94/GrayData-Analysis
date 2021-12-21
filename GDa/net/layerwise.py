@@ -206,11 +206,19 @@ def compute_nodes_coreness_bc(A, verbose=False, n_jobs=1):
     A, roi, trials, time = _unwrap_inputs(A, concat_trials=True)
     #  Number of observations
     nt = A.shape[-1]
+    # Check if the matrix is weighted or binary
+    is_weighted = not _is_binary(A)
+
+    # If it is binary use k-core otherwise use s-core
+    if is_weighted:
+        core_func = bc.core.score_wu
+    else:
+        core_func = bc.core.kcore_bu
 
     ##################################################################
     # Computes nodes' k-coreness
     #################################################################
-    def _nodes_kcore_bu(A):
+    def _nodes_core(A):
         # Number of nodes
         n_nodes = len(A)
         # Initial coreness
@@ -220,7 +228,7 @@ def compute_nodes_coreness_bc(A, verbose=False, n_jobs=1):
         # Iterate until get a disconnected graph
         while True:
             # Get coreness matrix and level of k-core
-            C, kn = bc.core.kcore_bu(A, k, peel=False)
+            C, kn = core_func(A, k)
             if kn == 0:
                 break
             # Assigns coreness level to nodes
@@ -231,7 +239,7 @@ def compute_nodes_coreness_bc(A, verbose=False, n_jobs=1):
 
     # Compute for a single observation
     def _for_frame(t):
-        coreness = _nodes_kcore_bu(A[..., t])
+        coreness = _nodes_core(A[..., t])
         return coreness
 
     # define the function to compute in parallel
