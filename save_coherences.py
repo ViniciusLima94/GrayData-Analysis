@@ -76,7 +76,7 @@ if __name__ == '__main__':
     kw = dict(
         freqs=freqs, times="time", roi="roi", foi=None,
         n_jobs=10, pairs=None, sfreq=ses.data.attrs['fsample'],
-        mode=mode, n_cycles=n_cycles, decim=decim, metric="coh",
+        mode=mode, n_cycles=n_cycles, decim=decim, metric=metric,
         sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel, block_size=4
     )
 
