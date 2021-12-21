@@ -232,8 +232,12 @@ def compute_nodes_coreness_bc(A, verbose=False, n_jobs=1):
             if kn == 0:
                 break
             # Assigns coreness level to nodes
-            idx = C.sum(1) > 0
-            k_core[idx] = k
+            s = C.sum(1)
+            idx = s > 0
+            if is_weighted:
+                k_core[idx] = s[idx]
+            else:
+                k_core[idx] = k
             k += 1
         return k_core+1
 
