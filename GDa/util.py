@@ -3,7 +3,8 @@ import pandas as pd
 
 
 def create_stages_time_grid(t_cue_on, t_cue_off, t_match_on, fsample, tarray,
-                            ntrials, early_delay=None, align_to="cue", flatten=False):
+                            ntrials, early_delay=None, align_to="cue",
+                            flatten=False):
     """
     Create grids to keep track of different stages of the experiment
 
@@ -21,8 +22,8 @@ def create_stages_time_grid(t_cue_on, t_cue_off, t_match_on, fsample, tarray,
         Time axis array
     ntrials: int
         Number of trials
-    early_delay: float | None 
-        Time in seconds after cue onset to be considered as 
+    early_delay: float | None
+        Time in seconds after cue onset to be considered as
         early delay (if None no division between early and late
         delay is made)
     align_to: string | "cue"

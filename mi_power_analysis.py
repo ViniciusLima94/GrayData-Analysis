@@ -55,7 +55,9 @@ def average_stages(power, avg):
                                        power.attrs['t_match_on'],
                                        power.attrs['fsample'],
                                        power.times.data,
-                                       power.sizes["trials"], align_to=at,
+                                       power.sizes["trials"],
+                                       early_delay=0.3,
+                                       align_to=at,
                                        flatten=False)
         for stage in mask.keys():
             mask[stage] = xr.DataArray(mask[stage], dims=('trials', 'times'),
@@ -64,7 +66,7 @@ def average_stages(power, avg):
                                                })
         for stage in mask.keys():
             # Number of observation in the specific stage
-            n_obs = xr.DataArray(mask[stage].mean("times"), dims="trials",
+            n_obs = xr.DataArray(mask[stage].sum("times"), dims="trials",
                                  coords={"trials": power.trials.data})
             out += [(power * mask[stage]).sum("times") / n_obs]
 
