@@ -43,7 +43,7 @@ mi = xr.load_dataarray(_MI)
 p = xr.load_dataarray(_PV)
 tv = xr.load_dataarray(_TV)
 # Compute siginificant MI values
-mi_sig = mi * (p <= 0.05)
+mi_sig = tv * (p <= 0.05)
 
 # Define sub-cortical areas names
 sca = np.array(['thal', 'putamen', 'claustrum', 'caudate'])
@@ -64,7 +64,7 @@ n_times = len(times)
 ###########################################################################
 
 # Name of each stage to use in plot titles
-stage = ['baseline', 'cue', 'delay', 'match']
+stage = ['baseline', 'cue', 'delay_e', 'delay_l', 'match']
 
 # Create canvas in which the flatmaps will be drawn
 fig = plt.figure(figsize=(8, 15), dpi=600)
@@ -91,11 +91,11 @@ for f_i, f in enumerate(range(n_freqs)):
         if t == 3:
             fmap.plot(ax[t_i+n_times*f_i], ax_colorbar=ax_cbar[f_i],
                       cbar_title="MI [bits]",
-                      colormap="hot_r", vmax=0.004)
+                      colormap="hot_r", vmax=7.5)
         else:
             fmap.plot(ax[t_i+n_times*f_i], ax_colorbar=None,
                       cbar_title="MI [bits]",
-                      colormap="hot_r", vmax=0.004)
+                      colormap="hot_r", vmax=7.5)
         # Place titles
         if f == 0:
             plt.title(stage[t], fontsize=12)
