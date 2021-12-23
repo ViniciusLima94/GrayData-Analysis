@@ -190,6 +190,8 @@ def compute_nodes_coreness_bc(A, delta=1, return_degree=False,
     ----------
     A: array_like
         Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    delta: float | 1
+        Increment of the core size.
     return_degree: bool | False
         Return the strength/degree of the node if True.
     n_jobs: int | 1
@@ -268,7 +270,7 @@ def compute_nodes_coreness_bc(A, delta=1, return_degree=False,
     return coreness
 
 
-def compute_nodes_efficiency(A, delta=1, verbose=False, n_jobs=1):
+def compute_nodes_efficiency(A, verbose=False, n_jobs=1):
     """
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time),
     the efficiency for each node is computed for all the trials concatenated.
