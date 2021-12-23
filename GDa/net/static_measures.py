@@ -7,9 +7,22 @@ from .util import (instantiate_graph, _is_binary,
                    _convert_to_membership)
 
 
-def invalid_graph(**args):
+###########################################################
+# Utilities functions 
+###########################################################
+
+
+def invalid_graph(val):
     msg = "Method not implelented for weighted graph and required backend"
     raise ValueError(msg)
+
+def get_weights_params(A):
+    is_weighted = not _is_binary(A)
+    if is_weighted:
+        weights = "weight"
+    else:
+        weights = None 
+    return is_weighted, weights
 
 ###########################################################
 # Brainconn method names
@@ -38,8 +51,8 @@ def _get_func(backend, metric, is_weighted):
     }
 
     funcs["brainconn"]["coreness"] = {
-        False: bc.core.kcore_bu,
-        True: bc.core.score_wu
+        False: coreness_bc,
+        True: coreness_bc 
     }
 
     # Distances
@@ -77,8 +90,8 @@ def _get_func(backend, metric, is_weighted):
 
     # Efficiency
     funcs["igraph"]["efficiency"] = {
-        False: local_efficiency_ig,
-        True: invalid_graph ,
+        False: invalid_graph,
+        True: local_efficiency_ig
     }
 
     funcs["brainconn"]["efficiency"] = {
@@ -103,31 +116,32 @@ def _clustering(A, backend="igraph"):
     # Check backend
     assert backend in ["igraph", "brainconn"]
     # Check if the matrix is weighted or binary
-    is_weighted = not _is_binary(A)
+    is_weighted, weights = get_weights_params(A)
     # Get the function
     func = _get_func(backend, "clustering", is_weighted)
     if backend == 'igraph':
         g = instantiate_graph(A, is_weighted=is_weighted)
-        clustering = func(g, weights="weight")
+        clustering = func(g, weights=weights)
+        clustering = np.nan_to_num(clustering, copy=False, nan=0.0)
     elif backend == 'brainconn':
         clustering = func(A) 
-    return clustering
+    return np.asarray(clustering)
 
 
-def _coreness(A, backend="igraph"):
+def _coreness(A, kw_bc = {}, backend="igraph"):
     """ Compute the coreness from and adjacency matrix """
     # Check backend
     assert backend in ["igraph", "brainconn"]
     # Check if the matrix is weighted or binary
-    is_weighted = not _is_binary(A)
+    is_weighted, _ = get_weights_params(A)
     # Get the function
     func = _get_func(backend, "coreness", is_weighted)
     if backend == 'igraph':
         g = instantiate_graph(A, is_weighted=is_weighted)
-        coreness = func(g, weights="weight")
+        coreness = func(g)
     elif backend == 'brainconn':
-        coreness = func(A) 
-    return coreness
+        coreness = func(A, **kw_bc) 
+    return np.asarray(coreness)
 
 
 def _shortest_path(A, backend="igraph"):
@@ -135,15 +149,15 @@ def _shortest_path(A, backend="igraph"):
     # Check backend
     assert backend in ["igraph", "brainconn"]
     # Check if the matrix is weighted or binary
-    is_weighted = not _is_binary(A)
+    is_weighted, weights = get_weights_params(A)
     # Get the function
     func = _get_func(backend, "shortest_path", is_weighted)
     if backend == 'igraph':
         g = instantiate_graph(A, is_weighted=is_weighted)
-        shortest_path = func(g, weights="weight")
+        shortest_path = func(g, weights=weights)
     elif backend == 'brainconn':
         shortest_path = func(A) 
-    return shortest_path
+    return np.asarray(shortest_path)
 
 
 def _betweenness(A, backend="igraph"):
@@ -151,31 +165,46 @@ def _betweenness(A, backend="igraph"):
     # Check backend
     assert backend in ["igraph", "brainconn"]
     # Check if the matrix is weighted or binary
-    is_weighted = not _is_binary(A)
+    is_weighted, weights = get_weights_params(A)
     # Get the function
     func = _get_func(backend, "betweenness", is_weighted)
     if backend == 'igraph':
         g = instantiate_graph(A, is_weighted=is_weighted)
-        betweenness = func(g, weights="weight")
+        betweenness = func(g, weights=weights)
     elif backend == 'brainconn':
         betweenness = func(A) 
-    return betweenness
+    return np.asarray(betweenness)
 
 
-def _modularity(A, backend="igraph"):
+def _modularity(A, kw_bc={}, backend="igraph"):
     """ Compute the modularity from and adjacency matrix """
     # Check backend
     assert backend in ["igraph", "brainconn"]
     # Check if the matrix is weighted or binary
-    is_weighted = not _is_binary(A)
+    is_weighted, _ = get_weights_params(A)
     # Get the function
     func = _get_func(backend, "modularity", is_weighted)
     if backend == 'igraph':
         g = instantiate_graph(A, is_weighted=is_weighted)
         membership, mod = func(g, is_weighted, True)
     elif backend == 'brainconn':
-        membership, mod = func(A) 
+        membership, mod = func(A, **kw_bc) 
     return membership, mod
+
+
+def _efficiency(A, backend="igraph"):
+    """ Compute the efficiency from and adjacency matrix """
+    # Check backend
+    assert backend in ["igraph", "brainconn"]
+    # Check if the matrix is weighted or binary
+    is_weighted, _ = get_weights_params(A)
+    # Get the function
+    func = _get_func(backend, "efficiency", is_weighted)
+    if backend == 'igraph':
+        eff = func(A)
+    elif backend == 'brainconn':
+        eff = func(A, local=True) 
+    return eff
 
 ###########################################################
 # Igraph wrappers
@@ -211,8 +240,8 @@ def local_efficiency_ig(Gw):
     using igraph Dijkstra algorithm for speed 
     :py:`brainconn.distance.efficiency_wei`
     """
-    from bc.utils.matrix import invert
-    from bc.utils.misc import cuberoot
+    from brainconn.utils.matrix import invert
+    from brainconn.utils.misc import cuberoot
 
     n = len(Gw)
     Gl = invert(Gw, copy=True)  # connection length matrix
@@ -225,10 +254,13 @@ def local_efficiency_ig(Gw):
         # symmetrized vector of weights
         sw = cuberoot(Gw[u, V]) + cuberoot(Gw[V, u].T)
         # Check if is disconnected graph
-        is_weighted = not _is_binary(Gl[np.ix_(V, V)].sum())
-        g = instantiate_graph(Gl[np.ix_(V, V)], is_weighted=is_weighted)
+        is_desconnected = np.sum(Gl[np.ix_(V, V)]) == 0.0
+        if is_desconnected:
+            E[u] = 0
+            continue
+        g = instantiate_graph(Gl[np.ix_(V, V)], is_weighted=True)
         # inverse distance matrix
-        e = distance_inv(g, is_weighted)
+        e = distance_inv(g, True)
         # symmetrized inverse distance matrix
         se = cuberoot(e) + cuberoot(e.T)
 
@@ -240,3 +272,35 @@ def local_efficiency_ig(Gw):
             # print numer,denom
             E[u] = numer / denom  # local efficiency
     return E
+
+def coreness_bc(A, delta=1, return_degree=False):
+    """ Wrapper for brainconn coreness """
+    # Get function
+    is_weighted, _ = get_weights_params(A)
+    # Get the function
+    if is_weighted:
+        func = bc.core.score_wu
+    else:
+        func = bc.core.kcore_bu
+
+    # Number of nodes
+    n_nodes = len(A)
+    # Initial coreness
+    k = 0
+    # Store each node's coreness
+    k_core = np.zeros(n_nodes)
+    # Iterate until get a disconnected graph
+    while True:
+        # Get coreness matrix and level of k-core
+        C, kn = func(A, k)
+        if kn == 0:
+            break
+        # Assigns coreness level to nodes
+        s = C.sum(1)
+        idx = s > 0
+        if return_degree:
+            k_core[idx] = s[idx]
+        else:
+            k_core[idx] = k
+        k += delta
+    return k_core
