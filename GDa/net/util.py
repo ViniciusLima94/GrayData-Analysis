@@ -24,6 +24,17 @@ def _is_binary(matrix):
     return is_binary
 
 
+nb.jit(nopython=True)
+def _convert_to_membership(n_nodes, partitions):
+    """ Convert partitions from obtained from louvain igraph to membership. """
+    # Extact list of partitions
+    av = np.zeros(n_nodes)  # Affiliation vector
+    for comm_i, comm in enumerate(partitions):
+        av[comm] = comm_i
+    return av+1
+
+
+nb.njit
 def _convert_to_affiliation_vector(n_nodes, partitions):
     """
     Convert partitions in leidenalg format to array.
