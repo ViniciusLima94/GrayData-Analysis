@@ -270,7 +270,83 @@ def compute_nodes_coreness_bc(A, delta=1, return_degree=False,
     return coreness
 
 
-def compute_nodes_efficiency(A, verbose=False, n_jobs=1):
+def compute_nodes_distances(A, backend="igraph", verbose=False, n_jobs=1):
+    """
+    Given the multiplex adjacency matrix A with shape (roi,roi,trials,time),
+    the lengths of shortest paths between all pairs of nodes for each node is
+    computed for all the trials concatenated.
+
+    Parameters
+    ----------
+    A: array_like
+        Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    backend: string | "igraph"
+        Wheter to use igraph or brainconn package.
+    n_jobs: int | 1
+        Number of jobs to use when parallelizing in observations.
+
+    Returns
+    -------
+    distances: array_like
+        A matrix containing the nodes coreness with shape
+        (roi,roi,trials,time).
+    """
+
+    # Check inputs
+    _check_inputs(A, 4)
+    # Get values in case it is an xarray
+    A, roi, trials, time = _unwrap_inputs(A, concat_trials=True)
+    #  Number of observations
+    nt = A.shape[-1]
+    # Check if the matrix is weighted or binary
+    is_weighted = not _is_binary(A)
+
+    # If it is binary use k-core otherwise use s-core
+    if is_weighted:
+        dist_func = bc.distance.distance_wei
+    else:
+        dist_func = bc.distance.distance_bin
+
+    ##################################################################
+    # Computes nodes' shortest paths
+    #################################################################
+
+    # Compute for a single observation
+    def _for_frame(t):
+        if backend == "brainconn":
+            dist, _ = dist_func(A[..., t])
+        else:
+            g = instantiate_graph(A[..., t], is_weighted=is_weighted)
+            if is_weighted:
+                weights = g.es["weight"][:]
+            else:
+                weights = None
+            dist = np.array(g.shortest_paths_dijkstra(weights=weights))
+        return dist
+
+    # define the function to compute in parallel
+    parallel, p_fun = parallel_func(
+        _for_frame, n_jobs=n_jobs, verbose=verbose,
+        total=nt)
+    # Compute the single trial coherence
+    dist = parallel(p_fun(t) for t in range(nt))
+    # Convert to numpy array
+    dist = np.asarray(dist)
+
+    # Unstack trials and time
+    dist = dist.reshape((len(roi), len(roi), len(trials), len(time)))
+    # Convert to xarray
+    dist = xr.DataArray(dist.astype(_DEFAULT_TYPE),
+                        dims=("sources", "targets", "trials", "times"),
+                        coords={"sources": roi,
+                                "targets": roi,
+                                "times": time,
+                                "trials": trials})
+
+    return dist
+
+
+def compute_nodes_efficiency(A, backend="igraph", verbose=False, n_jobs=1):
     """
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time),
     the efficiency for each node is computed for all the trials concatenated.
@@ -279,6 +355,8 @@ def compute_nodes_efficiency(A, verbose=False, n_jobs=1):
     ----------
     A: array_like
         Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    backend: string | "igraph"
+        Wheter to use igraph or brainconn package.
     n_jobs: int | 1
         Number of jobs to use when parallelizing in observations.
 
@@ -309,7 +387,17 @@ def compute_nodes_efficiency(A, verbose=False, n_jobs=1):
 
     # Compute for a single observation
     def _for_frame(t):
-        _, eff = eff_func(A[..., t], local=True)
+        if backend == "brainconn":
+            eff = eff_func(A[..., t], local=True)
+        else:
+            g = instantiate_graph(A[..., t], is_weighted=is_weighted)
+            if is_weighted:
+                weights = g.es["weight"][:]
+            else:
+                weights = None
+            sp = (1.0 /
+                  np.array(g.shortest_paths_dijkstra(weights=weights)))
+            eff = (1.0/(len(sp)-1)) * np.nansum(sp, 0)
         return eff
 
     # define the function to compute in parallel
