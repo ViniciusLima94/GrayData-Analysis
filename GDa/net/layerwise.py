@@ -2,10 +2,15 @@ import numpy as np
 import xarray as xr
 import brainconn as bc
 import leidenalg
+
 from frites.utils import parallel_func
 from tqdm import tqdm
 from .util import (instantiate_graph, _check_inputs,
                    _unwrap_inputs, _is_binary, MODquality)
+from static_measures import (_degree, _clustering, _coreness,
+                             _shortest_path, _betweenness, 
+                             _modularity, _efficiency)
+
 
 _DEFAULT_TYPE = np.float32
 
