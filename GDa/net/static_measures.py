@@ -107,11 +107,11 @@ def _get_func(backend, metric, is_weighted):
 
 
 @nb.jit(nopython=True)
-def _degree(A):
+def _degree(A: np.ndarray):
     """ Compute the degree from and adjacency matrix """
     return A.sum(-1)
 
-def _clustering(A, backend="igraph"):
+def _clustering(A: np.ndarray, backend: str = "igraph"):
     """ Compute the clustering from and adjacency matrix """
     # Check backend
     assert backend in ["igraph", "brainconn"]
@@ -128,7 +128,7 @@ def _clustering(A, backend="igraph"):
     return np.asarray(clustering)
 
 
-def _coreness(A, kw_bc = {}, backend="igraph"):
+def _coreness(A: np.ndarray, kw_bc: dict = {}, backend: str = "igraph"):
     """ Compute the coreness from and adjacency matrix """
     # Check backend
     assert backend in ["igraph", "brainconn"]
@@ -144,7 +144,7 @@ def _coreness(A, kw_bc = {}, backend="igraph"):
     return np.asarray(coreness)
 
 
-def _shortest_path(A, backend="igraph"):
+def _shortest_path(A: np.ndarray, backend: str = "igraph"):
     """ Compute the shortest_path from and adjacency matrix """
     # Check backend
     assert backend in ["igraph", "brainconn"]
@@ -156,11 +156,11 @@ def _shortest_path(A, backend="igraph"):
         g = instantiate_graph(A, is_weighted=is_weighted)
         shortest_path = func(g, weights=weights)
     elif backend == 'brainconn':
-        shortest_path = func(A) 
+        shortest_path, _ = func(A) 
     return np.asarray(shortest_path)
 
 
-def _betweenness(A, backend="igraph"):
+def _betweenness(A: np.ndarray, backend: str = "igraph"):
     """ Compute the betweenness from and adjacency matrix """
     # Check backend
     assert backend in ["igraph", "brainconn"]
@@ -176,7 +176,7 @@ def _betweenness(A, backend="igraph"):
     return np.asarray(betweenness)
 
 
-def _modularity(A, kw_bc={}, backend="igraph"):
+def _modularity(A: np.ndarray, kw_bc: dict = {}, backend: str = "igraph"):
     """ Compute the modularity from and adjacency matrix """
     # Check backend
     assert backend in ["igraph", "brainconn"]
@@ -192,7 +192,7 @@ def _modularity(A, kw_bc={}, backend="igraph"):
     return membership, mod
 
 
-def _efficiency(A, backend="igraph"):
+def _efficiency(A: np.ndarray, backend:str = "igraph"):
     """ Compute the efficiency from and adjacency matrix """
     # Check backend
     assert backend in ["igraph", "brainconn"]
