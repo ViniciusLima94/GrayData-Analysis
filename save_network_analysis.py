@@ -8,7 +8,7 @@ import os
 from GDa.temporal_network import temporal_network
 from GDa.net.layerwise import (compute_nodes_degree,
                                compute_nodes_efficiency,
-                               compute_nodes_coreness_bc)
+                               compute_nodes_coreness)
 from config import mode, sessions
 from tqdm import tqdm
 
@@ -96,26 +96,27 @@ degree.to_netcdf(path_degree)
 # 2. Coreness
 ###############################################################################
 
-# coreness = []
-# for f in tqdm(range(net.A.sizes["freqs"])):
-# coreness += [compute_nodes_coreness_bc(net.A.isel(freqs=f),
-# return_degree=False, delta=0.5,
-# verbose=False, n_jobs=20)]
-# coreness = xr.concat(coreness, "freqs")
-# # Assign coords
-# coreness = coreness.assign_coords({"trials": net.A.trials.data,
-# "roi": net.A.sources.data,
-# "freqs": net.A.freqs.data,
-# "times": net.A.times.data})
+coreness = []
+for f in tqdm(range(net.A.sizes["freqs"])):
+    coreness += [compute_nodes_coreness(net.A.isel(freqs=f),
+                                        backend="brainconn",
+                                        kw_bc=dict(delta=0.5),
+                                        verbose=False, n_jobs=20)]
+coreness = xr.concat(coreness, "freqs")
+# Assign coords
+coreness = coreness.assign_coords({"trials": net.A.trials.data,
+                                   "roi": net.A.sources.data,
+                                   "freqs": net.A.freqs.data,
+                                   "times": net.A.times.data})
 
-# coreness = coreness.transpose("trials", "roi", "freqs", "times")
-# coreness.attrs = net.super_tensor.attrs
+coreness = coreness.transpose("trials", "roi", "freqs", "times")
+coreness.attrs = net.super_tensor.attrs
 
-# path_coreness = os.path.join(_ROOT,
-# _RESULTS,
-# f"coreness_thr_{thr}.nc")
+path_coreness = os.path.join(_ROOT,
+                             _RESULTS,
+                             f"coreness_thr_{thr}.nc")
 
-# coreness.to_netcdf(path_coreness)
+coreness.to_netcdf(path_coreness)
 
 ###############################################################################
 # 3. Efficiency
@@ -124,6 +125,7 @@ degree.to_netcdf(path_degree)
 efficiency = []
 for f in tqdm(range(net.A.sizes["freqs"])):
     efficiency += [compute_nodes_efficiency(net.A.isel(freqs=f),
+                                            backend="igraph",
                                             verbose=False, n_jobs=20)]
 efficiency = xr.concat(efficiency, "freqs")
 # Assign coords
