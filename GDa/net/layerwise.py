@@ -75,13 +75,10 @@ def compute_nodes_clustering(A, verbose=False, backend='igraph', n_jobs=1):
     clustering: array_like
         A matrix containing the nodes clustering with shape (roi,trials,time).
     """
-    assert backend in ['igraph', 'brainconn']
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A, concat_trials=True)
-    # Check if the matrix is weighted or binary
-    is_weighted = not _is_binary(A)
     #  Number of channels
     nC = A.shape[0]
     #  Number of observations
@@ -91,19 +88,8 @@ def compute_nodes_clustering(A, verbose=False, backend='igraph', n_jobs=1):
 
     # Compute for a single observation
     def _for_frame(t):
-        #  Instantiate graph
-        if is_weighted:
-            if backend == 'igraph':
-                g = instantiate_graph(A[..., t], is_weighted=is_weighted)
-                clustering = g.transitivity_local_undirected(weights="weight")
-            elif backend == 'brainconn':
-                clustering = bc.clustering.clustering_coef_wu(A[..., t])
-        else:
-            if backend == 'igraph':
-                g = instantiate_graph(A[..., t], is_weighted=is_weighted)
-                clustering = g.transitivity_local_undirected()
-            elif backend == 'brainconn':
-                clustering = bc.clustering.clustering_coef_bu(A[..., t])
+        # Call core function
+        clustering = _clustering(A[..., t], backend=backend)
         return clustering
 
     # define the function to compute in parallel
@@ -127,7 +113,7 @@ def compute_nodes_clustering(A, verbose=False, backend='igraph', n_jobs=1):
     return clustering
 
 
-def compute_nodes_coreness(A, verbose=False, n_jobs=1):
+def compute_nodes_coreness(A, kw_bc={}, verbose=False, backend='igraph', n_jobs=1):
     """
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time),
     the coreness for each node is computed for all the trials concatenated.
@@ -136,6 +122,8 @@ def compute_nodes_coreness(A, verbose=False, n_jobs=1):
     ----------
     A: array_like
         Multiplex adjacency matrix with shape (roi,roi,trials,time).
+    kw_bc: dict | {}
+        Parameters to be passed to brainconn implementation 
     backend: string | "igraph"
         Wheter to use igraph or brainconn package.
     n_jobs: int | 1
@@ -151,107 +139,13 @@ def compute_nodes_coreness(A, verbose=False, n_jobs=1):
     _check_inputs(A, 4)
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A, concat_trials=True)
-    # Check if the matrix is weighted or binary
-    is_weighted = not _is_binary(A)
     #  Number of observations
     nt = A.shape[-1]
 
     # Compute for a single observation
     def _for_frame(t):
-        g = instantiate_graph(A[..., t], is_weighted=is_weighted)
-        coreness = g.coreness()
-        return coreness
-
-    # define the function to compute in parallel
-    parallel, p_fun = parallel_func(
-        _for_frame, n_jobs=n_jobs, verbose=verbose,
-        total=nt)
-    # Compute the single trial coherence
-    coreness = parallel(p_fun(t) for t in range(nt))
-    # Convert to numpy array
-    coreness = np.asarray(coreness).T
-
-    # Unstack trials and time
-    coreness = coreness.reshape((len(roi), len(trials), len(time)))
-    # Convert to xarray
-    coreness = xr.DataArray(coreness.astype(_DEFAULT_TYPE),
-                            dims=("roi", "trials", "times"),
-                            coords={"roi": roi,
-                                    "times": time,
-                                    "trials": trials})
-
-    return coreness
-
-
-def compute_nodes_coreness_bc(A, delta=1, return_degree=False,
-                              verbose=False, n_jobs=1):
-    """
-    The same as 'compute_nodes_coreness' but based on brainconnectivity
-    toolbox method can be either for binary or weighted undirected graphs.
-    Given the multiplex adjacency matrix A with shape (roi,roi,trials,time),
-    the coreness for each node is computed for all the trials concatenated.
-
-    Parameters
-    ----------
-    A: array_like
-        Multiplex adjacency matrix with shape (roi,roi,trials,time).
-    delta: float | 1
-        Increment of the core size.
-    return_degree: bool | False
-        Return the strength/degree of the node if True.
-    n_jobs: int | 1
-        Number of jobs to use when parallelizing in observations.
-
-    Returns
-    -------
-    coreness: array_like
-        A matrix containing the nodes coreness with shape (roi,trials,time).
-    """
-
-    # Check inputs
-    _check_inputs(A, 4)
-    # Get values in case it is an xarray
-    A, roi, trials, time = _unwrap_inputs(A, concat_trials=True)
-    #  Number of observations
-    nt = A.shape[-1]
-    # Check if the matrix is weighted or binary
-    is_weighted = not _is_binary(A)
-
-    # If it is binary use k-core otherwise use s-core
-    if is_weighted:
-        core_func = bc.core.score_wu
-    else:
-        core_func = bc.core.kcore_bu
-
-    ##################################################################
-    # Computes nodes' k-coreness
-    #################################################################
-    def _nodes_core(A):
-        # Number of nodes
-        n_nodes = len(A)
-        # Initial coreness
-        k = 0
-        # Store each node's coreness
-        k_core = np.zeros(n_nodes)
-        # Iterate until get a disconnected graph
-        while True:
-            # Get coreness matrix and level of k-core
-            C, kn = core_func(A, k)
-            if kn == 0:
-                break
-            # Assigns coreness level to nodes
-            s = C.sum(1)
-            idx = s > 0
-            if return_degree:
-                k_core[idx] = s[idx]
-            else:
-                k_core[idx] = k
-            k += delta
-        return k_core
-
-    # Compute for a single observation
-    def _for_frame(t):
-        coreness = _nodes_core(A[..., t])
+        # Call core function
+        coreness = _coreness(A[..., t], kw_bc=kw_bc, backend=backend)
         return coreness
 
     # define the function to compute in parallel
@@ -303,14 +197,6 @@ def compute_nodes_distances(A, backend="igraph", verbose=False, n_jobs=1):
     A, roi, trials, time = _unwrap_inputs(A, concat_trials=True)
     #  Number of observations
     nt = A.shape[-1]
-    # Check if the matrix is weighted or binary
-    is_weighted = not _is_binary(A)
-
-    # If it is binary use k-core otherwise use s-core
-    if is_weighted:
-        dist_func = bc.distance.distance_wei
-    else:
-        dist_func = bc.distance.distance_bin
 
     ##################################################################
     # Computes nodes' shortest paths
@@ -318,15 +204,7 @@ def compute_nodes_distances(A, backend="igraph", verbose=False, n_jobs=1):
 
     # Compute for a single observation
     def _for_frame(t):
-        if backend == "brainconn":
-            dist, _ = dist_func(A[..., t])
-        else:
-            g = instantiate_graph(A[..., t], is_weighted=is_weighted)
-            if is_weighted:
-                weights = g.es["weight"][:]
-            else:
-                weights = None
-            dist = np.array(g.shortest_paths_dijkstra(weights=weights))
+        dist = _shortest_path(A[..., t], backend=backend)
         return dist
 
     # define the function to compute in parallel
@@ -377,14 +255,6 @@ def compute_nodes_efficiency(A, backend="igraph", verbose=False, n_jobs=1):
     A, roi, trials, time = _unwrap_inputs(A, concat_trials=True)
     #  Number of observations
     nt = A.shape[-1]
-    # Check if the matrix is weighted or binary
-    is_weighted = not _is_binary(A)
-
-    # If it is binary use k-core otherwise use s-core
-    if is_weighted:
-        eff_func = bc.distance.efficiency_wei
-    else:
-        eff_func = bc.distance.efficiency_bin
 
     ##################################################################
     # Computes nodes' efficiency
@@ -392,17 +262,7 @@ def compute_nodes_efficiency(A, backend="igraph", verbose=False, n_jobs=1):
 
     # Compute for a single observation
     def _for_frame(t):
-        if backend == "brainconn":
-            eff = eff_func(A[..., t], local=True)
-        else:
-            g = instantiate_graph(A[..., t], is_weighted=is_weighted)
-            if is_weighted:
-                weights = g.es["weight"][:]
-            else:
-                weights = None
-            sp = (1.0 /
-                  np.array(g.shortest_paths_dijkstra(weights=weights)))
-            eff = (1.0/(len(sp)-1)) * np.nansum(sp, 0)
+        eff = _efficiency(A[..., t], backend=backend)
         return eff
 
     # define the function to compute in parallel
@@ -450,25 +310,12 @@ def compute_nodes_betweenness(A, verbose=False, backend='igraph', n_jobs=1):
     _check_inputs(A, 4)
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A, concat_trials=True)
-    # Check if the matrix is weighted or binary
-    is_weighted = not _is_binary(A)
     #  Number of observations
     nt = A.shape[-1]
 
     # Compute for a single observation
     def _for_frame(t):
-        if is_weighted:
-            if backend == 'igraph':
-                g = instantiate_graph(A[..., t], is_weighted=is_weighted)
-                betweenness = g.betweenness(weights="weight")
-            elif backend == 'brainconn':
-                betweenness = bc.centrality.betweenness_wei(A[..., t])
-        else:
-            if backend == 'igraph':
-                g = instantiate_graph(A[..., t], is_weighted=is_weighted)
-                betweenness = g.betweenness()
-            elif backend == 'brainconn':
-                betweenness = bc.centrality.betweenness_bin(A[..., t])
+        betweenness = _betweenness(A[..., t], backend=backend)
         return betweenness
 
     # define the function to compute in parallel
@@ -492,8 +339,8 @@ def compute_nodes_betweenness(A, verbose=False, backend='igraph', n_jobs=1):
     return betweenness
 
 
-def compute_network_partition(A,  kw_louvain={}, kw_leiden={},
-                              backend='igraph', n_jobs=1, verbose=False):
+def compute_network_partition(A,  kw_bc={}, backend='igraph',
+                              n_jobs=1, verbose=False):
     r'''
     Given the multiplex adjacency matrix A with shape (roi,roi,trials*time),
     the network partition for each node is computed for all
@@ -503,11 +350,8 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={},
     ----------
     A: array_like
         Multiplex adjacency matrix with shape (roi,roi,trials,time).
-    kw_louvain: dict | {}
-        Parameters to be passed to louvain alg from BrainConnectivity toolbox
-    kw_leiden: dict | {}
-        Parameters to be passed to leindelalg
-        https://leidenalg.readthedocs.io/en/stable/reference.html
+    kw_bc: dict | {}
+        Parameters to be passed to brainconn implementation 
     backend: string | "igraph"
         Wheter to use igraph or brainconn package.
     n_jobs: int | 1
@@ -518,69 +362,30 @@ def compute_network_partition(A,  kw_louvain={}, kw_leiden={},
     partition:
         A list with the all the partition found for each layer of the
     '''
-
-    assert backend in ['igraph', 'brainconn']
-
     # Check inputs
     _check_inputs(A, 4)
     # Get values in case it is an xarray
     A, roi, trials, time = _unwrap_inputs(A, concat_trials=True)
-    # Check if the matrix is weighted or binary
-    is_weighted = not _is_binary(A)
     #  Number of channels
     nC = A.shape[0]
     #  Number of observations
     nt = A.shape[-1]
 
-    # Using igraph
-    if backend == 'igraph':
-        #  Save the partitions
-        # Store nodes' membership
-        partition = np.zeros((nC, nt))
-        # Store network modularity
-        modularity = np.zeros(nt)
+    def _for_frame(t):
+        # Call core function
+        partition, modularity = func(A[..., t], kw_bc=kw_bc, backend=backend)
+        #  return partition-1, modularity
+        return np.concatenate((partition, [modularity]))
 
-        itr = range(nt)
-        for t in (tqdm(itr) if verbose else itr):
-            g = instantiate_graph(A[..., t], is_weighted=is_weighted)
-            # Uses leidenalg
-            if is_weighted:
-                weights = "weight"
-            else:
-                weights = None
+    # define the function to compute in parallel
+    parallel, p_fun = parallel_func(
+        _for_frame, n_jobs=n_jobs, verbose=verbose,
+        total=nt)
 
-            optimizer = leidenalg.ModularityVertexPartition
-            # Find partitions
-            partition[:, t] = leidenalg.find_partition(
-                g, optimizer, weights=weights, **kw_leiden).membership
-            # Compute modularity
-            modularity[t] = MODquality(A[..., t], partition[:, t], 1)
-
-    # Using brainconn
-    elif backend == 'brainconn':
-
-        # Check if the network have negative weights
-        has_negative_weights = A.min() < 0
-
-        if has_negative_weights:
-            mod_func = bc.modularity.modularity_louvain_und_sign
-        else:
-            mod_func = bc.modularity.modularity_louvain_und
-
-        def _for_frame(t):
-            partition, modularity = mod_func(A[..., t], **kw_louvain)
-            #  return partition-1, modularity
-            return np.concatenate((partition-1, [modularity]))
-
-        # define the function to compute in parallel
-        parallel, p_fun = parallel_func(
-            _for_frame, n_jobs=n_jobs, verbose=verbose,
-            total=nt)
-
-        # Compute the single trial coherence
-        out = np.squeeze(parallel(p_fun(t) for t in range(nt)))
-        partition, modularity = np.asarray(
-            out[:, :-1]).T, np.asarray(out[:, -1])
+    # Compute the single trial coherence
+    out = np.squeeze(parallel(p_fun(t) for t in range(nt)))
+    partition, modularity = np.asarray(
+        out[:, :-1]).T, np.asarray(out[:, -1])
 
     # Reshape partition and modularity back to trials and time
     partition = np.reshape(partition, (nC, len(trials), len(time)))
