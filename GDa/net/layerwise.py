@@ -3,9 +3,9 @@ import xarray as xr
 
 from frites.utils import parallel_func
 from .util import (_check_inputs, _unwrap_inputs)
-from static_measures import (_degree, _clustering, _coreness,
-                             _shortest_path, _betweenness,
-                             _modularity, _efficiency)
+from .static_measures import (_degree, _clustering, _coreness,
+                              _shortest_path, _betweenness,
+                              _modularity, _efficiency)
 
 
 _DEFAULT_TYPE = np.float32
