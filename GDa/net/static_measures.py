@@ -1,14 +1,14 @@
-import numpy as np 
+import numpy as np
 import numba as nb
-import brainconn as bc 
-import igraph as ig 
+import brainconn as bc
+import igraph as ig
 
 from .util import (instantiate_graph, _is_binary,
                    _convert_to_membership)
 
 
 ###########################################################
-# Utilities functions 
+# Utilities functions
 ###########################################################
 
 
@@ -16,17 +16,20 @@ def invalid_graph(val):
     msg = "Method not implelented for weighted graph and required backend"
     raise ValueError(msg)
 
+
 def get_weights_params(A):
     is_weighted = not _is_binary(A)
     if is_weighted:
         weights = "weight"
     else:
-        weights = None 
+        weights = None
     return is_weighted, weights
 
 ###########################################################
 # Brainconn method names
 ###########################################################
+
+
 def _get_func(backend, metric, is_weighted):
     funcs = {}
 
@@ -52,7 +55,7 @@ def _get_func(backend, metric, is_weighted):
 
     funcs["brainconn"]["coreness"] = {
         False: coreness_bc,
-        True: coreness_bc 
+        True: coreness_bc
     }
 
     # Distances
@@ -107,9 +110,10 @@ def _get_func(backend, metric, is_weighted):
 
 
 @nb.jit(nopython=True)
-def _degree(A: np.ndarray):
+def _degree(A: np.ndarray, axis: int = 1):
     """ Compute the degree from and adjacency matrix """
-    return A.sum(-1)
+    return A.sum(axis)
+
 
 def _clustering(A: np.ndarray, backend: str = "igraph"):
     """ Compute the clustering from and adjacency matrix """
@@ -124,7 +128,7 @@ def _clustering(A: np.ndarray, backend: str = "igraph"):
         clustering = func(g, weights=weights)
         clustering = np.nan_to_num(clustering, copy=False, nan=0.0)
     elif backend == 'brainconn':
-        clustering = func(A) 
+        clustering = func(A)
     return np.asarray(clustering)
 
 
@@ -140,7 +144,7 @@ def _coreness(A: np.ndarray, kw_bc: dict = {}, backend: str = "igraph"):
         g = instantiate_graph(A, is_weighted=is_weighted)
         coreness = func(g)
     elif backend == 'brainconn':
-        coreness = func(A, **kw_bc) 
+        coreness = func(A, **kw_bc)
     return np.asarray(coreness)
 
 
@@ -156,7 +160,7 @@ def _shortest_path(A: np.ndarray, backend: str = "igraph"):
         g = instantiate_graph(A, is_weighted=is_weighted)
         shortest_path = func(g, weights=weights)
     elif backend == 'brainconn':
-        shortest_path, _ = func(A) 
+        shortest_path, _ = func(A)
     return np.asarray(shortest_path)
 
 
@@ -172,7 +176,7 @@ def _betweenness(A: np.ndarray, backend: str = "igraph"):
         g = instantiate_graph(A, is_weighted=is_weighted)
         betweenness = func(g, weights=weights)
     elif backend == 'brainconn':
-        betweenness = func(A) 
+        betweenness = func(A)
     return np.asarray(betweenness)
 
 
@@ -188,11 +192,11 @@ def _modularity(A: np.ndarray, kw_bc: dict = {}, backend: str = "igraph"):
         g = instantiate_graph(A, is_weighted=is_weighted)
         membership, mod = func(g, is_weighted, True)
     elif backend == 'brainconn':
-        membership, mod = func(A, **kw_bc) 
+        membership, mod = func(A, **kw_bc)
     return membership, mod
 
 
-def _efficiency(A: np.ndarray, backend:str = "igraph"):
+def _efficiency(A: np.ndarray, backend: str = "igraph"):
     """ Compute the efficiency from and adjacency matrix """
     # Check backend
     assert backend in ["igraph", "brainconn"]
@@ -203,19 +207,20 @@ def _efficiency(A: np.ndarray, backend:str = "igraph"):
     if backend == 'igraph':
         eff = func(A)
     elif backend == 'brainconn':
-        eff = func(A, local=True) 
+        eff = func(A, local=True)
     return eff
 
 ###########################################################
 # Igraph wrappers
 ###########################################################
 
+
 def louvain_ig(g, is_weighted, membership=False):
     """ Determines louvain modularity algorithm using igraph """
     if is_weighted:
         weights = "weight"
     else:
-        weights = None 
+        weights = None
     louvain_partition = ig.Graph.community_multilevel(g, weights=weights)
     mod = g.modularity(louvain_partition, weights=weights)
     if membership:
@@ -223,17 +228,19 @@ def louvain_ig(g, is_weighted, membership=False):
     else:
         return louvain_partition, mod
 
+
 def distance_inv(g, is_weighted):
     """ igraph inverse distance """
     if is_weighted:
         weights = "weight"
     else:
-        weights = None 
+        weights = None
     D = np.asarray(g.shortest_paths_dijkstra(weights=weights))
     np.fill_diagonal(D, 1)
     D = 1 / D
     np.fill_diagonal(D, 0)
     return D
+
 
 def local_efficiency_ig(Gw):
     """ BrainConn implementation of efficiency but 
@@ -272,6 +279,7 @@ def local_efficiency_ig(Gw):
             # print numer,denom
             E[u] = numer / denom  # local efficiency
     return E
+
 
 def coreness_bc(A, delta=1, return_degree=False):
     """ Wrapper for brainconn coreness """

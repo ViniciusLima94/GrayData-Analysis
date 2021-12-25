@@ -1,14 +1,10 @@
 import numpy as np
 import xarray as xr
-import brainconn as bc
-import leidenalg
 
 from frites.utils import parallel_func
-from tqdm import tqdm
-from .util import (instantiate_graph, _check_inputs,
-                   _unwrap_inputs, _is_binary, MODquality)
+from .util import (_check_inputs, _unwrap_inputs)
 from static_measures import (_degree, _clustering, _coreness,
-                             _shortest_path, _betweenness, 
+                             _shortest_path, _betweenness,
                              _modularity, _efficiency)
 
 
@@ -43,7 +39,7 @@ def compute_nodes_degree(A, mirror=False):
     if mirror:
         A = A + np.transpose(A, (1, 0, 2, 3))
 
-    node_degree = A.sum(axis=1)
+    node_degree = _degree(A)
 
     # Convert to xarray
     node_degree = xr.DataArray(node_degree.astype(_DEFAULT_TYPE),
@@ -113,7 +109,8 @@ def compute_nodes_clustering(A, verbose=False, backend='igraph', n_jobs=1):
     return clustering
 
 
-def compute_nodes_coreness(A, kw_bc={}, verbose=False, backend='igraph', n_jobs=1):
+def compute_nodes_coreness(A, kw_bc={}, verbose=False, backend='igraph',
+                           n_jobs=1):
     """
     Given the multiplex adjacency matrix A with shape (roi,roi,trials,time),
     the coreness for each node is computed for all the trials concatenated.
@@ -123,7 +120,7 @@ def compute_nodes_coreness(A, kw_bc={}, verbose=False, backend='igraph', n_jobs=
     A: array_like
         Multiplex adjacency matrix with shape (roi,roi,trials,time).
     kw_bc: dict | {}
-        Parameters to be passed to brainconn implementation 
+        Parameters to be passed to brainconn implementation
     backend: string | "igraph"
         Wheter to use igraph or brainconn package.
     n_jobs: int | 1
@@ -351,7 +348,7 @@ def compute_network_partition(A,  kw_bc={}, backend='igraph',
     A: array_like
         Multiplex adjacency matrix with shape (roi,roi,trials,time).
     kw_bc: dict | {}
-        Parameters to be passed to brainconn implementation 
+        Parameters to be passed to brainconn implementation
     backend: string | "igraph"
         Wheter to use igraph or brainconn package.
     n_jobs: int | 1
@@ -373,7 +370,8 @@ def compute_network_partition(A,  kw_bc={}, backend='igraph',
 
     def _for_frame(t):
         # Call core function
-        partition, modularity = func(A[..., t], kw_bc=kw_bc, backend=backend)
+        partition, modularity = _modularity(A[..., t], kw_bc=kw_bc,
+                                            backend=backend)
         #  return partition-1, modularity
         return np.concatenate((partition, [modularity]))
 
