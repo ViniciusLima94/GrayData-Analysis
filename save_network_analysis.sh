@@ -5,6 +5,6 @@
 #SBATCH --ntasks=40
 #SBATCH --mem-per-cpu=2000
 #SBATCH --cpus-per-task=1
-#SBATCH --array=25-61
+#SBATCH --array=0-61
 
 python -O save_network_analysis.py "coh" $SLURM_ARRAY_TASK_ID 1
