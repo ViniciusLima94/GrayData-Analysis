@@ -6,4 +6,6 @@
 #SBATCH --mem-per-cpu=2000
 #SBATCH --cpus-per-task=1
 
-python -O mi_coh_analysis.py "cue" 1
+python -O mi_net_analysis.py "degree" 1 1
+python -O mi_net_analysis.py "coreness" 1 1
+python -O mi_net_analysis.py "efficiency" 1 1

@@ -99,5 +99,5 @@ for f_i, f in enumerate(range(n_freqs)):
         # Place titles
         if f == 0:
             plt.title(stage[t], fontsize=12)
-plt.savefig(f"figures/flatmap_{metric}_{thr}.png")
+plt.savefig(f"figures/flatmap_mi_{metric}_{thr}.png")
 plt.close()

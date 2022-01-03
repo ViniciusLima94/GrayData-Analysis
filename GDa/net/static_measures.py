@@ -3,6 +3,7 @@ import numba as nb
 import brainconn as bc
 import igraph as ig
 
+from functools import partial
 from .util import (instantiate_graph, _is_binary,
                    _convert_to_membership)
 
@@ -65,8 +66,8 @@ def _get_func(backend, metric, is_weighted):
     }
 
     funcs["brainconn"]["shortest_path"] = {
-        False: bc.distance.distance_bin,
-        True: bc.distance.distance_wei
+        False: dijkstra_bc,
+        True: dijkstra_bc
     }
 
     # Betweenness
@@ -160,7 +161,7 @@ def _shortest_path(A: np.ndarray, backend: str = "igraph"):
         g = instantiate_graph(A, is_weighted=is_weighted)
         shortest_path = func(g, weights=weights)
     elif backend == 'brainconn':
-        shortest_path, _ = func(A)
+        shortest_path = func(A, is_weighted)
     return np.asarray(shortest_path)
 
 
@@ -229,6 +230,15 @@ def louvain_ig(g, is_weighted, membership=False):
         return louvain_partition, mod
 
 
+def dijkstra_bc(A, is_weighted):
+    """ Switch for Dijkstra alg. in BrainConn """
+    if is_weighted:
+        D, _ = bc.distance.distance_wei(A)
+    else:
+        D = bc.distance.distance_bin(A)
+    return D
+
+
 def distance_inv(g, is_weighted):
     """ igraph inverse distance """
     if is_weighted:
@@ -243,8 +253,8 @@ def distance_inv(g, is_weighted):
 
 
 def local_efficiency_ig(Gw):
-    """ BrainConn implementation of efficiency but 
-    using igraph Dijkstra algorithm for speed 
+    """ BrainConn implementation of efficiency but
+    using igraph Dijkstra algorithm for speed
     :py:`brainconn.distance.efficiency_wei`
     """
     from brainconn.utils.matrix import invert
