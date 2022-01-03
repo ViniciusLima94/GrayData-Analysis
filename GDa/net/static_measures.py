@@ -94,7 +94,7 @@ def _get_func(backend, metric, is_weighted):
 
     # Efficiency
     funcs["igraph"]["efficiency"] = {
-        False: invalid_graph,
+        False: local_efficiency_ig,
         True: local_efficiency_ig
     }
 
