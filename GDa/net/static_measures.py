@@ -4,6 +4,8 @@ import brainconn as bc
 import igraph as ig
 
 from functools import partial
+from brainconn.utils.matrix import invert
+from brainconn.utils.misc import cuberoot
 from .util import (instantiate_graph, _is_binary,
                    _convert_to_membership)
 
@@ -94,8 +96,8 @@ def _get_func(backend, metric, is_weighted):
 
     # Efficiency
     funcs["igraph"]["efficiency"] = {
-        False: local_efficiency_ig,
-        True: local_efficiency_ig
+        False: local_efficiency_bin_ig,
+        True: local_efficiency_wei_ig
     }
 
     funcs["brainconn"]["efficiency"] = {
@@ -252,13 +254,47 @@ def distance_inv(g, is_weighted):
     return D
 
 
-def local_efficiency_ig(Gw):
-    """ BrainConn implementation of efficiency but
-    using igraph Dijkstra algorithm for speed
+def local_efficiency_bin_ig(G):
+    """ BrainConn implementation of binary 
+    efficiency but using igraph Dijkstra algorithm 
+    for speed increase
+    :py:`brainconn.distance.efficiency_bin`
+    """
+
+    # The matrix should be binary
+    is_weighted = False
+    assert _is_binary(G) == True
+
+    n = len(G)
+    E = np.zeros((n,))  # local efficiency
+    for u in range(n):
+        # find pairs of neighbors
+        (V,) = np.where(np.logical_or(G[u, :], G[:, u].T))
+        # Check if is disconnected graph
+        is_desconnected = np.sum(G[np.ix_(V, V)]) == 0.0
+        if is_desconnected:
+            E[u] = 0
+            continue
+        g = instantiate_graph(G[np.ix_(V, V)], is_weighted=is_weighted)
+        # inverse distance matrix
+        e = distance_inv(g, is_weighted)
+        # symmetrized inverse distance matrix
+        se = e + e.T
+        # symmetrized adjacency vector
+        sa = G[u, V] + G[V, u].T
+        numer = np.sum(np.outer(sa.T, sa) * se) / 2
+        if numer != 0:
+            denom = np.sum(sa) ** 2 - np.sum(sa * sa)
+            # print numer,denom
+            E[u] = numer / denom  # local efficiency
+    return E
+
+def local_efficiency_wei_ig(Gw):
+    """ BrainConn implementation of binary 
+    efficiency but using igraph Dijkstra algorithm 
+    for speed increase
     :py:`brainconn.distance.efficiency_wei`
     """
-    from brainconn.utils.matrix import invert
-    from brainconn.utils.misc import cuberoot
 
     n = len(Gw)
     Gl = invert(Gw, copy=True)  # connection length matrix
