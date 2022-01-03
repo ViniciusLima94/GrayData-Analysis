@@ -1,20 +1,13 @@
+import os
 import numpy as np
 import xarray as xr
 import scipy
-
 import GDa.session
+
 from GDa.util import create_stages_time_grid, filter_trial_indexes
 from GDa.net.util import compute_coherence_thresholds, convert_to_adjacency
-
-import os
-
-# Define default return type
-_DEFAULT_TYPE = np.float32
-# Defining default paths
-_ROOT = '~/storage1/projects/GrayData-Analysis/'
-_COORDS_PATH = os.path.expanduser(_ROOT+'Brain Areas/lucy_brainsketch_xy.mat')
-_DATA_PATH = os.path.expanduser(_ROOT+'GrayLab')
-_COH_PATH = os.path.expanduser(_ROOT+'Results')
+from .config import (_DEFAULT_TYPE, _COORDS_PATH,
+                     _DATA_PATH, _COH_PATH)
 
 
 class temporal_network():

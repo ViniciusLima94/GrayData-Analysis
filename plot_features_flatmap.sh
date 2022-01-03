@@ -17,3 +17,7 @@ python -O plot_features_flatmap.py "degree" "95p"
 python -O plot_features_flatmap.py "coreness" "mean" 
 python -O plot_features_flatmap.py "coreness" "cv" 
 python -O plot_features_flatmap.py "coreness" "95p" 
+
+python -O plot_features_flatmap.py "efficiency" "mean" 
+python -O plot_features_flatmap.py "efficiency" "cv" 
+python -O plot_features_flatmap.py "efficiency" "95p" 
