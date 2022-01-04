@@ -3,7 +3,6 @@ import numba as nb
 import brainconn as bc
 import igraph as ig
 
-from functools import partial
 from brainconn.utils.matrix import invert
 from brainconn.utils.misc import cuberoot
 from .util import (instantiate_graph, _is_binary,
@@ -177,10 +176,13 @@ def _betweenness(A: np.ndarray, backend: str = "igraph"):
     func = _get_func(backend, "betweenness", is_weighted)
     if backend == 'igraph':
         g = instantiate_graph(A, is_weighted=is_weighted)
-        betweenness = func(g, weights=weights)
+        # Multiply by 2 to match brainconn
+        betweenness = func(g, directed=False, weights=weights)
+        betweenness = 2*np.asarray(betweenness)
     elif backend == 'brainconn':
         betweenness = func(A)
-    return np.asarray(betweenness)
+        betweenness = np.asarray(betweenness)
+    return betweenness
 
 
 def _modularity(A: np.ndarray, kw_bc: dict = {}, backend: str = "igraph"):
@@ -255,15 +257,15 @@ def distance_inv(g, is_weighted):
 
 
 def local_efficiency_bin_ig(G):
-    """ BrainConn implementation of binary 
-    efficiency but using igraph Dijkstra algorithm 
+    """ BrainConn implementation of binary
+    efficiency but using igraph Dijkstra algorithm
     for speed increase
     :py:`brainconn.distance.efficiency_bin`
     """
 
     # The matrix should be binary
     is_weighted = False
-    assert _is_binary(G) == True
+    assert _is_binary(G) is True
 
     n = len(G)
     E = np.zeros((n,))  # local efficiency
@@ -289,9 +291,10 @@ def local_efficiency_bin_ig(G):
             E[u] = numer / denom  # local efficiency
     return E
 
+
 def local_efficiency_wei_ig(Gw):
-    """ BrainConn implementation of binary 
-    efficiency but using igraph Dijkstra algorithm 
+    """ BrainConn implementation of binary
+    efficiency but using igraph Dijkstra algorithm
     for speed increase
     :py:`brainconn.distance.efficiency_wei`
     """

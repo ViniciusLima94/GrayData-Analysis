@@ -65,7 +65,7 @@ def compute_allegiance_matrix(A, kw_bc={}, backend='igraph',
             grid = np.meshgrid(p_lst, p_lst)
             grid = np.reshape(grid, (2, len(p_lst)**2)).T
             T[grid[:, 0], grid[:, 1]] = 1
-        np.fill_diagonal(T, 1)
+        np.fill_diagonal(T, 0)
         return T
 
     # define the function to compute in parallel
