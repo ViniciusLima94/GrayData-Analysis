@@ -159,8 +159,14 @@ class temporal_network():
             # Keep the attributes
             cfg = self.super_tensor.attrs
             # Removing values bellow siginificance level
-            self.super_tensor.values = self.super_tensor\
-                * (self.super_tensor >= sig_values).astype(_DEFAULT_TYPE)
+            # self.super_tensor.values = self.super_tensor\
+            # * (self.super_tensor >= sig_values).astype(_DEFAULT_TYPE)
+            self.super_tensor.values = (
+                self.super_tensor - sig_values).astype(_DEFAULT_TYPE)
+            # Remove negative values
+            self.super_tensor.values = np.clip(self.super_tensor.values,
+                                               0,
+                                               np.inf)
             # Restoring attributes
             self.super_tensor.attrs = cfg
 
