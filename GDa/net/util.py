@@ -24,7 +24,22 @@ def _is_binary(matrix):
     return is_binary
 
 
-nb.jit(nopython=True)
+@nb.jit(nopython=True)
+def _is_disconnected(matrix):
+    """
+    Check if a graph is disconnected or not.
+
+    Parameters
+    ----------
+    matrix: array_like
+        The adjacency matrix or tensor.
+    """
+    is_disconnected = False
+    if np.sum(matrix) == 0.0:
+        is_disconnected = True
+    return is_disconnected
+
+
 def _convert_to_membership(n_nodes, partitions):
     """ Convert partitions from obtained from louvain igraph to membership. """
     # Extact list of partitions
@@ -34,7 +49,6 @@ def _convert_to_membership(n_nodes, partitions):
     return av+1
 
 
-nb.njit
 def _convert_to_affiliation_vector(n_nodes, partitions):
     """
     Convert partitions in leidenalg format to array.
@@ -57,125 +71,6 @@ def _convert_to_affiliation_vector(n_nodes, partitions):
         for comm_i, comm in enumerate(partitions[t]):
             av[comm, t] = comm_i
     return av
-
-
-@nb.jit(nopython=True)
-def MODquality(A, av, gamma=1):
-    """
-    Given an affiliation vector compute the modularity of the graph
-    given by A (adapted from brainconn).
-
-    Parameters
-    ----------
-    A: array_like
-        Adjacency matrix.
-    av: array_like
-        Affiliation vector of size (n_nodes) containing the label of the
-        community of each node.
-    gamma: float
-        Value of gamma to use.
-
-    Returns
-    -------
-    The modularity index of the network.
-    """
-    # Number of nodes
-    n_nodes = A.shape[0]
-    # Degrees
-    d = A.sum(0)
-    # Number of edges
-    n_edges = np.sum(d)
-    # Initial modularity matrix
-    B = A - gamma * np.outer(d, d) / n_edges
-    # Tile affiliation vector
-    s = av.repeat(n_nodes).reshape((-1, n_nodes))
-    return np.sum(np.logical_not(s - s.T) * B / n_edges)
-
-
-def CPMquality(A, av, gamma=1):
-    """
-    Constant Potts Model (CPM) quality function.
-
-    Parameters
-    ----------
-    A: array_like
-        Adjacency matrix.
-    av: array_like
-        Affiliation vector of size (n_nodes) containing the label of the
-        community of each node.
-    gamma: float
-        Value of gamma to use.
-
-    Returns
-    -------
-    H: float
-        The quality given by the CPM model.
-    """
-    av = av.astype(int)
-    # Total number of communities
-    n_comm = int(np.max(av))+1
-    # Quality index
-    H = 0
-    for c in range(n_comm):
-        # Find indexes of channels in the commucnit C
-        idx = av == c
-        # Number of nodes in community C
-        n_c = np.sum(idx)
-        H = H + np.sum(A[np.ix_(av[idx], av[idx])])-gamma*n_c*(n_c-1)/2
-    return H
-
-
-def _check_inputs(array, dims):
-    """
-    Check the input type and size.
-
-    Parameters
-    ----------
-    array: array_lie
-        The data array.
-    dims: int
-        The number of dimensions the array should have.
-    """
-    assert isinstance(dims, int)
-    assert isinstance(array, (np.ndarray, xr.DataArray))
-    assert len(array.shape) == dims
-
-
-def _unwrap_inputs(array, concat_trials=False):
-    """
-    Unwrap array and its dimensions for further manipulation.
-
-    Parameters
-    ----------
-    array: array_like
-        The data array (roi,roi,trials,time).
-    concat_trials: bool | False
-        Wheter to concatenate or not trials of the values in the array.
-
-    Returns
-    -------
-    array values concatenated or not and the values for each of its dimensions.
-    """
-    if isinstance(array, xr.DataArray):
-        # Concatenate trials and time axis
-        try:
-            roi = array.sources.values
-            trials = array.trials.values
-            time = array.time.values
-        except AttributeError:
-            roi = np.arange(0, array.shape[0])
-            trials = np.arange(0, array.shape[2])
-            time = np.arange(0, array.shape[3])
-        if concat_trials:
-            array = array.stack(observations=("trials", "times"))
-        array = array.values
-    else:
-        roi = np.arange(0, array.shape[0])
-        trials = np.arange(0, array.shape[2])
-        time = np.arange(0, array.shape[3])
-        if concat_trials:
-            array = array.reshape((len(roi), len(roi), len(trials)*len(time)))
-    return array, roi, trials, time
 
 
 def _reshape_list(array, shapes, dtype):

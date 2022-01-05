@@ -2,7 +2,7 @@ import numpy as np
 import xarray as xr
 import numba as nb
 
-from .util import _check_inputs
+from .io import _check_inputs
 from frites.utils import parallel_func
 from .layerwise import compute_network_partition
 from ..config import _DEFAULT_TYPE
