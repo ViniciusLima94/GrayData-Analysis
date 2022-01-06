@@ -101,7 +101,7 @@ if __name__ == '__main__':
         coh_surr = coh_surr.quantile(0.95, dim="trials")
         # Add name of the coherence file
         path_st_surr = os.path.join(
-            path_st, f'{metric}_k_{sm_times}_{mode}_surr.nc')
+            path_st, f'{metric}_k_{sm_times}_{mode}_at_{at}_surr.nc')
         coh_surr.to_netcdf(path_st_surr)
         del coh_surr
 

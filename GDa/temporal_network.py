@@ -5,7 +5,7 @@ import scipy
 import GDa.session
 
 from GDa.util import create_stages_time_grid, filter_trial_indexes
-from GDa.net.util import compute_coherence_thresholds, convert_to_adjacency
+from GDa.net.util import compute_quantile_thresholds, convert_to_adjacency
 from .config import (_DEFAULT_TYPE, _COORDS_PATH,
                      _DATA_PATH, _COH_PATH)
 
@@ -215,7 +215,7 @@ class temporal_network():
         if not isinstance(self.coh_thr, xr.DataArray):
             if verbose:
                 print('Computing coherence thresholds')
-            self.coh_thr = compute_coherence_thresholds(
+            self.coh_thr = compute_quantile_thresholds(
               self.super_tensor.stack(observations=('trials', 'times')).values,
               q=q, relative=relative, verbose=verbose, n_jobs=n_jobs)
         # Temporarily store the stacked super-tensor
@@ -322,9 +322,13 @@ class temporal_network():
             self.create_stage_masks(flatten=True)
 
         if pad:
-            return self.super_tensor.stack(observations=("trials", "times")) * self.s_mask[stage]
+            return self.super_tensor.stack(
+                observations=("trials",
+                              "times")) * self.s_mask[stage]
         else:
-            return self.super_tensor.stack(observations=("trials", "times")).isel(observations=self.s_mask[stage])
+            return self.super_tensor.stack(
+                observations=("trials",
+                              "times")).isel(observations=self.s_mask[stage])
 
     def get_number_of_samples(self, stage=None, total=False):
         """
