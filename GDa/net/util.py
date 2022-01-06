@@ -144,8 +144,8 @@ def instantiate_graph(A, is_weighted=False):
     return g
 
 
-def compute_coherence_thresholds(tensor, q=0.8, relative=False, verbose=False,
-                                 n_jobs=1):
+def compute_quantile_thresholds(tensor, q=0.8, relative=False, verbose=False,
+                                n_jobs=1):
     """
     Compute the power/coherence thresholds for the data
 
@@ -162,7 +162,7 @@ def compute_coherence_thresholds(tensor, q=0.8, relative=False, verbose=False,
 
     Returns
     -------
-    coh_thr: array_like
+    thr: array_like
         Threshold values, if realtive is True it will have
         dimensions ("links","bands","trials") otherwise ("bands","trials")
         (if tensor shape is 3 there is no "trials" dimension)
@@ -180,10 +180,10 @@ def compute_coherence_thresholds(tensor, q=0.8, relative=False, verbose=False,
 
     # Create containers
     if relative:
-        coh_thr = xr.DataArray(
+        thr = xr.DataArray(
             np.zeros([n_nodes, n_bands]), dims=("roi", "freqs"))
     else:
-        coh_thr = xr.DataArray(np.zeros(n_bands), dims=("freqs"))
+        thr = xr.DataArray(np.zeros(n_bands), dims=("freqs"))
 
     # define the function to compute in parallel
     parallel, p_fun = parallel_func(
@@ -191,8 +191,8 @@ def compute_coherence_thresholds(tensor, q=0.8, relative=False, verbose=False,
         total=n_bands)
     # Compute the single trial coherence
     out = np.squeeze(parallel(p_fun(t) for t in range(n_bands)))
-    coh_thr.values = np.stack(out, -1)
-    return coh_thr
+    thr.values = np.stack(out, -1)
+    return thr
 
 
 def check_symmetric(a, rtol=1e-05, atol=1e-08):
