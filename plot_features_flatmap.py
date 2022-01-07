@@ -25,6 +25,7 @@ args = parser.parse_args()
 
 # Wheter to align to cue or match
 feature = args.FEATURE
+# What stats to plot
 pl = args.PLOT
 
 ##############################################################################
@@ -51,7 +52,7 @@ assert pl in ["mean",
 if feature == "power":
     _FILE_NAME = "power_tt_1_br_1_at_cue.nc"
 else:
-    _FILE_NAME = f"{feature}_thr_1.nc"
+    _FILE_NAME = f"coh_{feature}_thr_1_at_cue.nc"
 
 ###############################################################################
 # Loading feature
@@ -191,5 +192,5 @@ for f in range(n_freqs):
         if t == 0:
             plt.ylabel(f"f = {freqs[f]} Hz", fontsize=12)
 plt.suptitle(f"{feature} {pl}", fontsize=12)
-plt.savefig(f"figures/flatmap_{feature}_1_{pl}.png")
+plt.savefig(f"figures/flatmap_{feature}_thr_1_{pl}.png")
 plt.close()

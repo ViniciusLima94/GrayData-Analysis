@@ -6,6 +6,7 @@ from tqdm import tqdm
 from config import sessions
 from GDa.util import create_stages_time_grid
 from frites.dataset import DatasetEphy
+from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
 
 ###############################################################################
@@ -19,15 +20,11 @@ parser.add_argument("METRIC",
 parser.add_argument("AVERAGED",
                     help="wheter to analyse the avg. power or not",
                     type=int)
-parser.add_argument("THRESHOLD",
-                    help="wheter to threshold the thresholded metric or not",
-                    type=int)
 
 args = parser.parse_args()
 
 metric = args.METRIC
 avg = args.AVERAGED
-thr = args.THRESHOLD
 
 ##############################################################################
 # Get root path
@@ -49,7 +46,7 @@ def average_stages(feature, avg):
     if avg == 1:
         out = []
         # Creates stage mask
-        mask = create_stages_time_grid(feature.attrs['t_cue_on'],
+        mask = create_stages_time_grid(feature.attrs['t_cue_on']-0.2,
                                        feature.attrs['t_cue_off'],
                                        feature.attrs['t_match_on'],
                                        feature.attrs['fsample'],
@@ -80,7 +77,7 @@ def average_stages(feature, avg):
 coh = []
 stim = []
 for s_id in tqdm(sessions):
-    _FILE_NAME = f"{metric}_thr_{thr}.nc"
+    _FILE_NAME = f"coh_{metric}_thr_1_at_cue.nc"
     path_metric = \
         os.path.join(_ROOT,
                      f"Results/lucy/{s_id}/session01",
@@ -108,7 +105,10 @@ dt = DatasetEphy(coh, y=stim, nb_min_suj=10,
 mi_type = 'cd'
 inference = 'rfx'
 kernel = None
-wf = WfMi(mi_type, inference, verbose=True, kernel=kernel)
+estimator = GCMIEstimator(mi_type='cd', relative=False, copnorm=True,
+                          biascorrect=False, demeaned=False, tensor=True,
+                          gpu=False, verbose=None)
+wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
 
 kw = dict(n_jobs=20, n_perm=100)
 cluster_th = None  # {float, None, 'tfce'}
@@ -120,17 +120,17 @@ mi, pvalues = wf.fit(dt, mcp="cluster", cluster_th=cluster_th, **kw)
 ###############################################################################
 
 # Path to results folder
-_RESULTS = "Results/lucy/mi_data"
+_RESULTS = "Results/lucy/mutual_information"
 
 path_mi = os.path.join(_ROOT,
                        _RESULTS,
-                       f"mi_{metric}_avg_{avg}_thr_{thr}.nc")
+                       f"mi_{metric}_avg_{avg}_thr_1.nc")
 path_tv = os.path.join(_ROOT,
                        _RESULTS,
-                       f"t_{metric}_avg_{avg}_thr_{thr}.nc")
+                       f"t_{metric}_avg_{avg}_thr_1.nc")
 path_pv = os.path.join(_ROOT,
                        _RESULTS,
-                       f"pval_{metric}_avg_{avg}_thr_{thr}.nc")
+                       f"pval_{metric}_avg_{avg}_thr_1.nc")
 
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)

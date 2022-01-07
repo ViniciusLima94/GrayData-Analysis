@@ -29,7 +29,7 @@ thr = args.THRESHOLD
 # Load MI files
 ###########################################################################
 # Define paths to read the files
-_ROOT = "Results/lucy/mi_data"
+_ROOT = "Results/lucy/mutual_information"
 if metric == "power":
     _MI = os.path.join(_ROOT, "mi_pow_tt_1_br_1_aligned_cue_avg_1.nc")
     _PV = os.path.join(_ROOT, "pval_pow_1_br_1_aligned_cue_avg_1.nc")
@@ -43,7 +43,7 @@ mi = xr.load_dataarray(_MI)
 p = xr.load_dataarray(_PV)
 tv = xr.load_dataarray(_TV)
 # Compute siginificant MI values
-mi_sig = tv * (p <= 0.05)
+mi_sig = mi * (p <= 0.05)
 
 # Define sub-cortical areas names
 sca = np.array(['thal', 'putamen', 'claustrum', 'caudate'])
@@ -76,10 +76,12 @@ gs2 = fig.add_gridspec(nrows=n_freqs, ncols=1,
 # Will store the axes of the figure
 ax, ax_cbar = [], []
 # Plot flatmap for different freuquencies and times
-for f_i, f in enumerate(range(n_freqs)):
-    ax_cbar += [plt.subplot(gs2[f_i])]  # Colorbar axis
-    for t_i, t in enumerate(range(n_times)):
-        ax += [plt.subplot(gs1[t_i+n_times*f_i])]  # Flatmap axis
+for f in range(n_freqs):
+    ax_cbar += [plt.subplot(gs2[f])]  # Colorbar axis
+    vmin = None #mi_sig.isel(freqs=f).min()
+    vmax = None #mi_sig.isel(freqs=f).max()
+    for t in range(n_times):
+        ax += [plt.subplot(gs1[t+n_times*f])]  # Flatmap axis
         # Get values to plot in the flatmap
         values = mi_sig.isel(times=t)
         values = values.isel(freqs=f).data
@@ -89,13 +91,13 @@ for f_i, f in enumerate(range(n_freqs)):
         fmap = flatmap(values, _areas_nosca)
         # Only plot colorbar for last column
         if t == 3:
-            fmap.plot(ax[t_i+n_times*f_i], ax_colorbar=ax_cbar[f_i],
+            fmap.plot(ax[t+n_times*f], ax_colorbar=ax_cbar[f],
                       cbar_title="MI [bits]",
-                      colormap="hot_r", vmax=7.5)
+                      colormap="hot_r", vmin=vmin, vmax=vmax)
         else:
-            fmap.plot(ax[t_i+n_times*f_i], ax_colorbar=None,
+            fmap.plot(ax[t+n_times*f], ax_colorbar=None,
                       cbar_title="MI [bits]",
-                      colormap="hot_r", vmax=7.5)
+                      colormap="hot_r", vmin=vmin, vmax=vmax)
         # Place titles
         if f == 0:
             plt.title(stage[t], fontsize=12)

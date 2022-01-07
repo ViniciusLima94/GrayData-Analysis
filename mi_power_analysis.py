@@ -4,6 +4,7 @@ import argparse
 
 from config import sessions
 from frites.dataset import DatasetEphy
+from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
 from GDa.util import create_stages_time_grid
 from tqdm import tqdm
@@ -50,7 +51,7 @@ def average_stages(power, avg):
     if avg == 1:
         out = []
         # Creates stage mask
-        mask = create_stages_time_grid(power.attrs['t_cue_on'],
+        mask = create_stages_time_grid(power.attrs['t_cue_on']-0.2,
                                        power.attrs['t_cue_off'],
                                        power.attrs['t_match_on'],
                                        power.attrs['fsample'],
@@ -108,7 +109,10 @@ dt = DatasetEphy(sxx, y=stim, nb_min_suj=10,
 mi_type = 'cd'
 inference = 'rfx'
 kernel = None
-wf = WfMi(mi_type, inference, verbose=True, kernel=kernel)
+estimator = GCMIEstimator(mi_type='cd', relative=False, copnorm=True,
+                          biascorrect=False, demeaned=False, tensor=True,
+                          gpu=False, verbose=None)
+wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
 
 kw = dict(n_jobs=20, n_perm=100)
 cluster_th = None  # {float, None, 'tfce'}
@@ -120,7 +124,7 @@ mi, pvalues = wf.fit(dt, mcp="cluster", cluster_th=cluster_th, **kw)
 ###############################################################################
 
 # Path to results folder
-_RESULTS = "Results/lucy/mi_data"
+_RESULTS = "Results/lucy/mutual_information"
 
 path_mi = os.path.join(_ROOT,
                        _RESULTS,
