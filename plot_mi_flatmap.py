@@ -43,7 +43,7 @@ mi = xr.load_dataarray(_MI)
 p = xr.load_dataarray(_PV)
 tv = xr.load_dataarray(_TV)
 # Compute siginificant MI values
-mi_sig = mi * (p <= 0.05)
+mi_sig = mi# * (p <= 0.05)
 
 # Define sub-cortical areas names
 sca = np.array(['thal', 'putamen', 'claustrum', 'caudate'])
@@ -78,8 +78,8 @@ ax, ax_cbar = [], []
 # Plot flatmap for different freuquencies and times
 for f in range(n_freqs):
     ax_cbar += [plt.subplot(gs2[f])]  # Colorbar axis
-    vmin = None #mi_sig.isel(freqs=f).min()
-    vmax = None #mi_sig.isel(freqs=f).max()
+    vmin = None  # mi_sig.isel(freqs=f).min()
+    vmax = None  # mi_sig.isel(freqs=f).max()
     for t in range(n_times):
         ax += [plt.subplot(gs1[t+n_times*f])]  # Flatmap axis
         # Get values to plot in the flatmap

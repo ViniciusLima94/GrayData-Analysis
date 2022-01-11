@@ -21,7 +21,7 @@ for(i in 0:4){
   
   ggplot(data=df, aes(x=roi, y=t_values, fill = metric)) +
     geom_bar(alpha = 0.7, stat='identity', position="stack") +
-    ylim(-10, 80) +
+    ylim(0, 80) +
     coord_flip() +
     facet_wrap(~freqs, ncol=5,
                labeller = labeller(freqs = freqs.labs)) +

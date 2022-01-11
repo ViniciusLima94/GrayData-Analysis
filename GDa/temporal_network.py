@@ -247,17 +247,21 @@ class temporal_network():
                 "sources":  self.super_tensor.attrs['areas'],
                 "targets":  self.super_tensor.attrs['areas']}).astype(
                     _DEFAULT_TYPE, keep_attrs=True)
+        self.A.attrs = self.super_tensor.attrs
 
     def create_stage_masks(self, flatten=False):
         filtered_trials, filtered_trials_idx = filter_trial_indexes(
             self.trial_info, trial_type=self.trial_type,
             behavioral_response=self.behavioral_response)
         self.s_mask = create_stages_time_grid(
-            self.super_tensor.attrs['t_cue_on'],
+            self.super_tensor.attrs['t_cue_on']-0.2,
             self.super_tensor.attrs['t_cue_off'],
             self.super_tensor.attrs['t_match_on'],
             self.super_tensor.attrs['fsample'],
-            self.time, self.super_tensor.sizes['trials'], flatten=flatten
+            self.time, self.super_tensor.sizes['trials'],
+            early_delay=0.3,
+            align_to="cue",
+            flatten=flatten
         )
         if flatten:
             dims = ("observations")

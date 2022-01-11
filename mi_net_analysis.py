@@ -4,7 +4,7 @@ import argparse
 
 from tqdm import tqdm
 from config import sessions
-from GDa.util import create_stages_time_grid
+from GDa.util import create_stages_time_grid, average_stages
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
@@ -35,44 +35,6 @@ _ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
 ###############################################################################
 # Iterate over all sessions and concatenate coherece
 ###############################################################################
-
-
-def average_stages(feature, avg):
-    """
-    Loads the network feature DataArray and average it for each task
-    stage if needed (avg=1) otherwise return the feature itself
-    (avg=0).
-    """
-    if avg == 1:
-        out = []
-        # Creates stage mask
-        mask = create_stages_time_grid(feature.attrs['t_cue_on']-0.2,
-                                       feature.attrs['t_cue_off'],
-                                       feature.attrs['t_match_on'],
-                                       feature.attrs['fsample'],
-                                       feature.times.data,
-                                       feature.sizes["trials"],
-                                       early_delay=0.3,
-                                       align_to="cue",
-                                       flatten=False)
-        for stage in mask.keys():
-            mask[stage] = xr.DataArray(mask[stage], dims=('trials', 'times'),
-                                       coords={"trials": feature.trials.data,
-                                               "times": feature.times.data
-                                               })
-        for stage in mask.keys():
-            # Number of observation in the specific stage
-            n_obs = xr.DataArray(mask[stage].sum("times"), dims="trials",
-                                 coords={"trials": feature.trials.data})
-            out += [(feature * mask[stage]).sum("times") / n_obs]
-
-        out = xr.concat(out, "times")
-        out = out.transpose("trials", "roi", "freqs", "times")
-        out.attrs = feature.attrs
-    else:
-        out = feature
-    return out
-
 
 coh = []
 stim = []

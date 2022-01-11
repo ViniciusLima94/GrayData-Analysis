@@ -11,7 +11,7 @@ from ..config import _DEFAULT_TYPE
 def compute_allegiance_matrix(A, kw_bc={}, backend='igraph',
                               n_jobs=1, verbose=False):
     """
-    Given the multiplex adjacency matrix A with shape (roi,roi,trials*time),
+    Given the multiplex adjacency matrix A with shape (roi,roi,trials,time),
     the allegiance matrix for the whole period provided will be computed.
 
     Parameters

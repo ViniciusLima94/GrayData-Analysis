@@ -76,7 +76,7 @@ def average_stages(data):
     out = []
     # Creates stage mask
     attrs = data.attrs
-    mask = create_stages_time_grid(attrs['t_cue_on'],
+    mask = create_stages_time_grid(attrs['t_cue_on']-0.2,
                                    attrs['t_cue_off'],
                                    attrs['t_match_on'],
                                    attrs['fsample'],
@@ -167,8 +167,8 @@ ax, ax_cbar = [], []
 for f in range(n_freqs):
     ax_cbar += [plt.subplot(gs2[f])]  # Colorbar axis
     # Limits
-    vmin = data.isel(freqs=f).min()
-    vmax = data.isel(freqs=f).max()
+    vmin = None #  data.isel(freqs=f).min()
+    vmax = None #  data.isel(freqs=f).max()
     for t in range(n_times):
         ax += [plt.subplot(gs1[t+n_times*f])]  # Flatmap axis
         # Get values to plot in the flatmap

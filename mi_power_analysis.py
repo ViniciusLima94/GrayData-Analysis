@@ -6,7 +6,7 @@ from config import sessions
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
-from GDa.util import create_stages_time_grid
+from GDa.util import create_stages_time_grid, average_stages
 from tqdm import tqdm
 
 ###############################################################################
@@ -41,47 +41,6 @@ _ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
 # Iterate over all sessions and concatenate power
 ###############################################################################
 
-
-def average_stages(power, avg):
-    """
-    Loads the power DataArray and average it for each task
-    stage if needed (avg=1) otherwise return the power itself
-    (avg=0).
-    """
-    if avg == 1:
-        out = []
-        # Creates stage mask
-        mask = create_stages_time_grid(power.attrs['t_cue_on']-0.2,
-                                       power.attrs['t_cue_off'],
-                                       power.attrs['t_match_on'],
-                                       power.attrs['fsample'],
-                                       power.times.data,
-                                       power.sizes["trials"],
-                                       early_delay=0.3,
-                                       align_to=at,
-                                       flatten=False)
-        for stage in mask.keys():
-            mask[stage] = xr.DataArray(mask[stage], dims=('trials', 'times'),
-                                       coords={"trials": power.trials.data,
-                                               "times": power.times.data
-                                               })
-        for stage in mask.keys():
-            # Number of observation in the specific stage
-            n_obs = xr.DataArray(mask[stage].sum("times"), dims="trials",
-                                 coords={"trials": power.trials.data})
-            out += [(power * mask[stage]).sum("times") / n_obs]
-
-        out = xr.concat(out, "times")
-        out = out.transpose("trials", "roi", "freqs", "times")
-        out.attrs = power.attrs
-    else:
-        out = power
-    return out
-
-
-###############################################################################
-# Organizes the data to perform the rfx for the MI
-###############################################################################
 sxx = []
 stim = []
 for s_id in tqdm(sessions):
