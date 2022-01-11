@@ -2,8 +2,10 @@ import igraph as ig
 import numpy as np
 import numba as nb
 import xarray as xr
+
 from scipy import stats
 from frites.utils import parallel_func
+from ..util import _extract_roi
 
 
 @nb.njit
@@ -119,6 +121,68 @@ def convert_to_adjacency(tensor, sources, targets, dtype=np.float32):
         i, j = sources[p], targets[p]
         A[i, j, ...] = A[j, i, ...] = tensor[p, ...]
     return A
+
+def convert_to_stream(adj, sources, targets, dtype=np.float32):
+    """
+    Convert adjacency tensor to edge time-series tensor.
+
+
+    Parameters:
+    ----------
+    adj: array_like#### 
+        The adjacency tensor (roi, roi, freqs, trials, times)
+    sources: array_like
+        list of source nodes.
+    targets: array_like
+        list of target nodes.
+
+    Returns
+    -------
+    The edge time-series tensor (roi,freqs,trials,times).
+    """
+
+    assert adj.ndim == 5
+
+    # Adjacency tensor dimensions
+    n_roi, _, n_bands, n_trials, n_times = adj.shape[:]
+    # Number of edges
+    n_pairs = int(n_roi * (n_roi - 1) / 2)
+
+    assert n_pairs == len(sources) == len(targets)
+
+    # Edge time-series tensor
+    tensor = np.zeros([n_pairs,  n_bands,
+                       n_trials, n_times], dtype=dtype)
+
+    for p in range(n_pairs):
+        i, j = sources[p], targets[p]
+        tensor[p, ...] = adj[i, j, ...]
+
+    # In case adj is and DataArray the output 
+    # will also be
+    if isinstance(adj, xr.DataArray):
+        # Check if dimensions have the apropriate labels
+        dims = ['sources', 'targets', 'freqs', 'trials', 'times']
+        np.testing.assert_array_equal(
+            adj.dims, dims)
+        # Get sources and targets roi names
+        x_s, x_t \
+        = adj.sources.data, adj.targets.data
+        roi_c = np.c_[x_s[sources], x_t[targets]]
+        idx = np.argsort(np.char.lower(roi_c.astype(str)), axis=1)
+        roi = np.c_[[r[i] for r, i in zip(roi_c, idx)]]
+        rois = []
+        rois += [f'{s}-{t}' for s, t in roi]
+        # Convert to DataArray
+        tensor = xr.DataArray(tensor,
+                              dims=('roi', 'freqs', 'trials', 'times'),
+                              coords = {
+                                  'roi': rois,
+                                  'freqs': adj.freqs.data,
+                                  'trials': adj.trials.data,
+                                  'times': adj.times.data
+                              })
+    return tensor
 
 
 def instantiate_graph(A, is_weighted=False):

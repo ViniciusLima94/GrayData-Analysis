@@ -1,4 +1,5 @@
 import numpy as np
+import xarray as xr
 import pandas as pd
 
 
@@ -144,6 +145,71 @@ def filter_trial_indexes(trial_info, trial_type=None,
     filtered_trials = trial_info[idx].trial_index.values
     filtered_trials_idx = trial_info[idx].index.values
     return filtered_trials, filtered_trials_idx
+
+
+def average_stages(feature, avg):
+    """
+    Loads the network feature DataArray and average it for each task
+    stage if needed (avg=1) otherwise return the feature itself
+    (avg=0).
+
+    Paramters:
+    ---------
+    feature: xr.DataArray
+        A given feature array (power, degree, coreness...) with
+        shape (roi, freqs, trials, times).
+    avg: int
+        Wheter to average over task stages or not
+
+    Returns:
+    -------
+    out: xr.DataArray
+        If avg==0 returns features otherwise returns 
+        a version of features averaged over stages.
+    """
+    if avg == 1:
+        out = []
+        # Creates stage mask
+        mask = create_stages_time_grid(feature.attrs['t_cue_on']-0.2,
+                                       feature.attrs['t_cue_off'],
+                                       feature.attrs['t_match_on'],
+                                       feature.attrs['fsample'],
+                                       feature.times.data,
+                                       feature.sizes["trials"],
+                                       early_delay=0.3,
+                                       align_to="cue",
+                                       flatten=False)
+        for stage in mask.keys():
+            mask[stage] = xr.DataArray(mask[stage], dims=('trials', 'times'),
+                                       coords={"trials": feature.trials.data,
+                                               "times": feature.times.data
+                                               })
+        for stage in mask.keys():
+            # Number of observation in the specific stage
+            n_obs = xr.DataArray(mask[stage].sum("times"), dims="trials",
+                                 coords={"trials": feature.trials.data})
+            out += [(feature * mask[stage]).sum("times") / n_obs]
+
+        out = xr.concat(out, "times")
+        out = out.transpose("trials", "roi", "freqs", "times")
+        out.attrs = feature.attrs
+    else:
+        out = feature
+    return out
+
+
+# Extract area names
+def _extract_roi(roi, sep):
+    # Code by Etiene
+    x_s, x_t = [], []
+    for r in roi:
+        _x_s, _x_t = r.split(sep)
+        x_s.append(_x_s), x_t.append(_x_t)
+    roi_c = np.c_[x_s, x_t]
+    idx = np.argsort(np.char.lower(roi_c.astype(str)), axis=1)
+    roi_s, roi_t = np.c_[[r[i] for r, i in zip(roi_c, idx)]].T
+    roi_st = [f"{s}{sep}{t}" for s, t in zip(roi_s, roi_t)]
+    return roi_s, roi_t
 
 
 def _check_values(values, in_list):
