@@ -14,7 +14,7 @@ xy = scipy.io.loadmat(_COORDS)['xy']
 ethyl_brainsketch = plt.imread(_FIG)
 
 
-def plot_node_brain_sketch(channel_label, features, alpha, beta, cmap, sketch=True):
+def plot_node_brain_sketch(channel_label, features, alpha, beta, cmap, size=None, sketch=True):
     """
     Plot nodes in the brain sketch.
 
@@ -34,11 +34,17 @@ def plot_node_brain_sketch(channel_label, features, alpha, beta, cmap, sketch=Tr
         If false show only the nodes and hide the
         brainsketch.
     """
+    # Wheter to show or not sketch
     if sketch:
         plt.imshow(ethyl_brainsketch)
+    # Wheter to scale dots with features or not
+    if size is not None:
+        s = size
+    else:
+        s = alpha * np.abs(features) ** beta
     plt.scatter(xy[channel_label-1, 0],
                 xy[channel_label-1, 1],
-                s=alpha * np.abs(features) ** beta,
+                s=s,
                 c=features,
                 cmap=cmap)
     plt.axis('off')

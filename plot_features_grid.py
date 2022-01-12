@@ -134,7 +134,6 @@ n_rois = len(channel_labels)
 #  Plotting brain skecth
 ###############################################################################
 
-
 # Name of each stage to use in plot titles
 stage = ['baseline', 'cue', 'delay_e', 'delay_l', 'match']
 
@@ -154,12 +153,13 @@ for f in range(n_freqs):
         # Plot in the brain skect
         plot_node_brain_sketch(channel_labels,
                                features,
-                               100,
-                               5,
-                               'turbo',
-                               True)
+                               None,
+                               None,
+                               'hot_r',
+                               size=10,
+                               sketch=True)
         # Place titles
         if f == 0:
             plt.title(stage[t], fontsize=12)
-plt.savefig(f"figures/scatter_mi_{feature}.png")
+plt.savefig(f"figures/scatter_mi_{feature}_{pl}.png")
 plt.close()
