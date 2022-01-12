@@ -43,7 +43,7 @@ mi = xr.load_dataarray(_MI)
 p = xr.load_dataarray(_PV)
 tv = xr.load_dataarray(_TV)
 # Compute siginificant MI values
-mi_sig = mi# * (p <= 0.05)
+mi_sig = tv * (p <= 0.05)
 
 # Define sub-cortical areas names
 sca = np.array(['thal', 'putamen', 'claustrum', 'caudate'])

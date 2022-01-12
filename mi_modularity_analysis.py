@@ -45,7 +45,7 @@ for s_id in tqdm(sessions):
     # Add dummy roi dim if modularity
     if metric == 'modularity':
         feature = feature.expand_dims('roi', 1)
-    # Average if needed
+    # average if needed
     feature = average_stages(feature, avg)
     # Convert to format required by the MI workflow
     mod += [feature.isel(roi=[r])
