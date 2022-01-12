@@ -120,6 +120,27 @@ def convert_to_adjacency(tensor, sources, targets, dtype=np.float32):
     for p in range(n_pairs):
         i, j = sources[p], targets[p]
         A[i, j, ...] = A[j, i, ...] = tensor[p, ...]
+
+    # In case adj is and DataArray the output 
+    # will also be
+    if isinstance(tensor, xr.DataArray):
+        # Check if dimensions have the apropriate labels
+        dims = ['roi', 'freqs', 'trials', 'times']
+        np.testing.assert_array_equal(
+            tensor.dims, dims)
+        x_s, x_t = _extract_roi(tensor.roi.data, '-')
+        x_s, x_t = 
+        # Convert to DataArray
+        A = xr.DataArray(A,
+                         dims=('sources', 'targets',
+                               'freqs', 'trials', 'times'),
+                         coords={
+                             # 'sources': x_s,
+                             # 'targets': x_t,
+                             'freqs': tensor.freqs.data,
+                             'trials': tensor.trials.data,
+                             'times': tensor.times.data
+                         })
     return A
 
 def convert_to_stream(adj, sources, targets, dtype=np.float32):
@@ -129,7 +150,7 @@ def convert_to_stream(adj, sources, targets, dtype=np.float32):
 
     Parameters:
     ----------
-    adj: array_like#### 
+    adj: array_like 
         The adjacency tensor (roi, roi, freqs, trials, times)
     sources: array_like
         list of source nodes.
