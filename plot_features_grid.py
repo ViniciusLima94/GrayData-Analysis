@@ -1,5 +1,5 @@
 """
-Plot the flatmaps of features at ROI level over task stages
+Plot the scatter of features at channel level over task stages
 """
 import os
 import numpy as np
@@ -10,7 +10,7 @@ import argparse
 from tqdm import tqdm
 from config import sessions
 from GDa.util import create_stages_time_grid
-from GDa.flatmap.flatmap import flatmap
+from GDa.graphics.plot_brain_sketch import plot_node_brain_sketch
 
 ###############################################################################
 # Argument parsing
@@ -25,7 +25,6 @@ args = parser.parse_args()
 
 # Wheter to align to cue or match
 feature = args.FEATURE
-# What stats to plot
 pl = args.PLOT
 
 ##############################################################################
@@ -115,41 +114,26 @@ for s_id in tqdm(sessions):
     out = xr.load_dataarray(path_metric)
     # Average if needed
     out = average_stages(out)
-    # Concqtenate channels
-    data += [out.isel(roi=[r])
-             for r in range(len(out['roi']))]
+    # Reassing roi coord
+    out = out.assign_coords({'roi': out.attrs['channels_labels']})
+    # Save in data
+    data += [out]
 
-# Concatenate channels
-data = xr.concat(data, dim="roi")
-# Get unique rois
-urois, counts = np.unique(data.roi.data, return_counts=True)
-# Get unique rois that has at leats 10 channels
-urois = urois[counts >= 10]
-# Average channels withn the same roi
-data = data.groupby("roi").mean("roi", skipna=True)
-data = data.sel(roi=urois)
-
-# z-score data
-# data = (data - data.mean("times")) / data.std("times")
-
-###############################################################################
-# Plotting in the flatmap
-###############################################################################
-
-
-# Define sub-cortical areas names
-sca = np.array(['thal', 'putamen', 'claustrum', 'caudate'])
-
-# Get area names
-areas = data.roi.data
-areas = [a.lower() for a in areas]
-index = np.where(np.isin(areas, sca))
-_areas_nosca = np.delete(areas, index)
+# Group channels and average over the same channel labels
+data = xr.concat(data, 'roi')
+data = data.groupby('roi').mean('roi', skipna=True)
 
 freqs = data.freqs.data
 times = data.times.data
+channel_labels = data.roi.data
 n_freqs = len(freqs)
 n_times = len(times)
+n_rois = len(channel_labels)
+
+###############################################################################
+#  Plotting brain skecth
+###############################################################################
+
 
 # Name of each stage to use in plot titles
 stage = ['baseline', 'cue', 'delay_e', 'delay_l', 'match']
@@ -157,40 +141,25 @@ stage = ['baseline', 'cue', 'delay_e', 'delay_l', 'match']
 # Create canvas in which the flatmaps will be drawn
 fig = plt.figure(figsize=(8, 15), dpi=600)
 gs1 = fig.add_gridspec(nrows=n_freqs, ncols=n_times,
-                       left=0.05, right=0.87, bottom=0.05, top=0.94)
-gs2 = fig.add_gridspec(nrows=n_freqs, ncols=1,
-                       left=0.89, right=0.91, bottom=0.05, top=0.95)
+                       left=0.05, right=0.93, bottom=0.05, top=0.95)
 
 # Will store the axes of the figure
 ax, ax_cbar = [], []
 # Plot flatmap for different freuquencies and times
 for f in range(n_freqs):
-    ax_cbar += [plt.subplot(gs2[f])]  # Colorbar axis
-    # Limits
-    vmin = None #  data.isel(freqs=f).min()
-    vmax = None #  data.isel(freqs=f).max()
     for t in range(n_times):
         ax += [plt.subplot(gs1[t+n_times*f])]  # Flatmap axis
         # Get values to plot in the flatmap
-        values = data.isel(times=t, freqs=f).values
-        # Delete values for subcortical areas
-        values = np.delete(values, index)
-        # Instantiate flatmap
-        fmap = flatmap(values, _areas_nosca)
-        # Only plot colorbar for last column
-        if t == 3:
-            fmap.plot(ax[t+n_times*f], ax_colorbar=ax_cbar[f],
-                      cbar_title=f"{feature}", vmin=vmin, vmax=vmax,
-                      colormap="hot_r")
-        else:
-            fmap.plot(ax[t+n_times*f], ax_colorbar=None,
-                      cbar_title=f"{feature}", vmin=vmin, vmax=vmax,
-                      colormap="hot_r")
+        features = data.isel(times=t, freqs=f).data
+        # Plot in the brain skect
+        plot_node_brain_sketch(channel_labels,
+                               features,
+                               100,
+                               5,
+                               'turbo',
+                               True)
         # Place titles
         if f == 0:
             plt.title(stage[t], fontsize=12)
-        if t == 0:
-            plt.ylabel(f"f = {freqs[f]} Hz", fontsize=12)
-plt.suptitle(f"{feature} {pl}", fontsize=12)
-plt.savefig(f"figures/flatmap_{feature}_thr_1_{pl}.png")
+plt.savefig(f"figures/scatter_mi_{feature}.png")
 plt.close()

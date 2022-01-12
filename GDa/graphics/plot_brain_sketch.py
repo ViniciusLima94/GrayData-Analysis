@@ -1,27 +1,47 @@
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.ndimage
 import scipy.io
 
+# Path to brainsketch
+_ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
+_COORDS = os.path.join(_ROOT, 'Brain Areas/lucy_brainsketch_xy.mat')
+_FIG = os.path.join(_ROOT, 'Brain Areas/ethyl_brainsketch.jpg')
 # Channels coordinates
-xy = scipy.io.loadmat('../Brain Areas/lucy_brainsketch_xy.mat')['xy']
-ethyl_brainsketch = scipy.ndimage.imread(
-    '../Brain Areas/ethyl_brainsketch.jpg')     # Brainsketch
+xy = scipy.io.loadmat(_COORDS)['xy']
+# Brain sketch
+ethyl_brainsketch = plt.imread(_FIG)
 
 
-def plot_node_brain_sketch(node_list, node_size, alpha, beta, cmap):
-    #  Colormap
-    #  mapf = cm.get_cmap(cmap, 20)
-    plt.imshow(ethyl_brainsketch)
-    for i, c in zip(range(len(node_list)), node_list):
-        if node_size[i] > 0:
-            color = 'b'
-        else:
-            color = 'm'
-        plt.plot(xy[c-1, 0], xy[c-1, 1], 'o', ms=alpha *
-                 np.abs(node_size[i])**beta, color=color)
-    plt.xticks([])
-    plt.yticks([])
+def plot_node_brain_sketch(channel_label, features, alpha, beta, cmap, sketch=True):
+    """
+    Plot nodes in the brain sketch.
+
+    Parameters:
+    ----------
+    channel_label: array_like
+        List containing the channel labels.
+    features: array_like
+        List with the features to be represented in the brain map.
+    alpha: float
+        Scaling paramter for the node size
+    beta: float
+        Scaling paramter for the node size
+    cmap: matplotlib.colors.Colormap
+        Colormap to be used
+    sketch: bool | True
+        If false show only the nodes and hide the
+        brainsketch.
+    """
+    if sketch:
+        plt.imshow(ethyl_brainsketch)
+    plt.scatter(xy[channel_label-1, 0],
+                xy[channel_label-1, 1],
+                s=alpha * np.abs(features) ** beta,
+                c=features,
+                cmap=cmap)
+    plt.axis('off')
 
 
 def plot_edge_brain_sketch(edge_list, node_list, edge_width):
