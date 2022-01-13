@@ -7,6 +7,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
+import argparse
 
 from config import (sm_times, sm_kernel, sm_freqs, decim,
                     mode, freqs, n_cycles, sessions,
@@ -22,7 +23,17 @@ from GDa.session import session
 from GDa.net.util import convert_to_adjacency
 from GDa.util import _extract_roi
 
-idx = 0
+#######################################################################
+# Argument parsing
+#######################################################################
+parser = argparse.ArgumentParser()
+parser.add_argument("IDX", help="index of the session to run",
+                    type=int)
+
+args = parser.parse_args()
+# The index of the session to use
+idx = args.IDX
+
 metric = 'coh'
 at = 'cue'
 _SEED = 8179273
@@ -111,7 +122,7 @@ def significance_test(verbose=False, n_jobs=1):
 
 
 # Compute p-values
-p_values = significance_test(verbose=True, n_jobs=10)
+p_values = significance_test(verbose=True, n_jobs=5)
 # Significance level
 alpha = 0.05
 # Convert to xarray
