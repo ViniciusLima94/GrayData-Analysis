@@ -87,7 +87,7 @@ def _reshape_list(array, shapes, dtype):
     return container
 
 
-def convert_to_adjacency(tensor, sources, targets, dtype=np.float32):
+def convert_to_adjacency(tensor, sources, targets, areas = None, dtype=np.float32):
     """
     Convert the tensor with the edge time-series to a matrix representations.
 
@@ -128,15 +128,18 @@ def convert_to_adjacency(tensor, sources, targets, dtype=np.float32):
         dims = ['roi', 'freqs', 'trials', 'times']
         np.testing.assert_array_equal(
             tensor.dims, dims)
-        x_s, x_t = _extract_roi(tensor.roi.data, '-')
-        x_s, x_t = 
+        if isinstance(areas, (list, tuple, np.ndarray)):
+            assert len(areas) == n_channels
+            rois = areas
+        else:
+            rois = np.arange(0, n_channels, 1, dtype=int)
         # Convert to DataArray
         A = xr.DataArray(A,
                          dims=('sources', 'targets',
                                'freqs', 'trials', 'times'),
                          coords={
-                             # 'sources': x_s,
-                             # 'targets': x_t,
+                             'sources': rois,
+                             'targets': rois,
                              'freqs': tensor.freqs.data,
                              'trials': tensor.trials.data,
                              'times': tensor.times.data
