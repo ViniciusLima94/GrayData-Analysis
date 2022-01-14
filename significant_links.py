@@ -2,9 +2,6 @@
 Compute number of siginificant links between regions across
 sessions.
 """
-import os
-
-import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 import argparse
@@ -12,15 +9,11 @@ import argparse
 from config import (sm_times, sm_kernel, sm_freqs, decim,
                     mode, freqs, n_cycles, sessions,
                     return_evt_dt)
-from mne.viz import circular_layout, plot_connectivity_circle
 from frites.utils import parallel_func
 from frites.conn.conn_spec import conn_spec
-from tqdm import tqdm
 from scipy.stats import ks_2samp, ttest_ind
-from GDa.temporal_network import temporal_network
 from GDa.signal.surrogates import trial_swap_surrogates
 from GDa.session import session
-from GDa.net.util import convert_to_adjacency
 from GDa.util import _extract_roi
 
 #######################################################################
