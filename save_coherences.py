@@ -1,13 +1,14 @@
 import os
 import time
 import numpy as np
+import argparse
+
 from config import (sm_times, sm_kernel, sm_freqs, decim,
                     mode, freqs, n_cycles, sessions,
                     return_evt_dt)
 from GDa.session import session
 from frites.conn.conn_spec import conn_spec
 from GDa.signal.surrogates import trial_swap_surrogates
-import argparse
 
 # Argument parsing
 parser = argparse.ArgumentParser()
