@@ -17,11 +17,18 @@ import numba as nb
 import numpy as np
 import xarray as xr
 import pandas as pd
+import argparse
 
 from GDa.temporal_network import temporal_network
 from config import sessions
 
-idx = 0
+# Argument parsing
+parser = argparse.ArgumentParser()
+parser.add_argument("SIDX", help="index of the session to run",
+                    type=int)
+args = parser.parse_args()
+# The index of the session to use
+idx = args.SIDX
 
 ###############################################################################
 # Loading power and temporal network
@@ -40,7 +47,7 @@ net = temporal_network(
     coh_file="coh_k_0.3_multitaper_at_cue.nc",
     coh_sig_file=coh_sig_file,
     wt=wt,
-    date="141017",
+    date=sessions[idx],
     trial_type=[1],
     behavioral_response=[1],
 )
@@ -62,6 +69,7 @@ n_freqs = len(freqs)
 # Compute NLI
 ###############################################################################
 
+
 @nb.vectorize([nb.float64(nb.float64)])
 def H(x):
     if x >= 0:
@@ -80,6 +88,7 @@ def H_tilde(x):
 
 sources = net.super_tensor.attrs["sources"].astype(int)
 targets = net.super_tensor.attrs["targets"].astype(int)
+areas = np.asarray(net.super_tensor.attrs["areas"])
 
 nli = np.zeros((Zcoh.shape[0], Zcoh.shape[1]))
 for p, (s, t) in enumerate(zip(sources, targets)):
@@ -98,19 +107,28 @@ nli = xr.DataArray(
 mean_power = power.mean("samples")
 mean_coh = coh.mean("samples")
 
+###############################################################################
+# DataFrame for NLI 
+###############################################################################
 out = []
 for f in range(n_freqs):
-    data = np.array([sources,
+    data = np.array([areas[sources],
+                     areas[targets],
+                     sources,
                      targets,
                      [freqs[f]]*n_rois,
                      nli.isel(freqs=f),
-                     mean_power[sources].isel(freqs=f),
-                     mean_power[targets].isel(freqs=f),
                      mean_coh.isel(freqs=f)])
     out += [pd.DataFrame(
         data=data.T,
-        columns=["s", "t", "f", "nli", "pow_s", "pow_t", "coh_st"],
+        columns=["roi_s", "roi_t", "s", "t", "f", "nli", "coh_st"],
     )]
 
 out = pd.concat(out, axis=0)
 out.to_csv(f'Results/lucy/nli/nli_{sessions[idx]}.csv')
+
+###############################################################################
+# DataFrame for mean power 
+###############################################################################
+mean_power.to_dataframe(name="power").reset_index().to_csv(
+    f'Results/lucy/nli/mean_power_{sessions[idx]}.csv')
