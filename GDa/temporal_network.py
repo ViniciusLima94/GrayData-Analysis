@@ -19,7 +19,7 @@ class temporal_network():
     def __init__(self, coh_file=None, coh_sig_file=None, monkey='lucy',
                  session=1, coh_thr=None, date='150128', trial_type=None,
                  behavioral_response=None, wt=None, relative=False,
-                 q=None, verbose=False, n_jobs=1):
+                 q=None, early_delay=0.3, verbose=False, n_jobs=1):
         """
         Temporal network class, this object will have information about the
         session analysed and store the coherence networks (a.k.a. supertensor).
@@ -54,6 +54,9 @@ class temporal_network():
             (one thr per link per band) or an common thr for links per band.
         q: float | None
             Quartile value to use for thresholding.
+        early_delay: float | 0.3
+            The period at the beggining of the delay that should
+            be used as early delay.
         n_jobs: int | 1
             Number of jobs to use when computing the threshold
             for the coherence tensor. Parallelized over bands.
@@ -85,6 +88,14 @@ class temporal_network():
         self.session = f'session0{session}'
         self.trial_type = trial_type
         self.behavioral_response = behavioral_response
+        self.early_delay = early_delay
+        # Get how the signal was aligned
+        self.align_to = coh_file.split("_")[-1][:3]
+
+        if isinstance(early_delay, float):
+            self.stages = ["baseline", "cue", "delay_e", "delay_l", "match"]
+        else:
+            self.stages = ["baseline", "cue", "delay", "match"]
 
         # Load super-tensor
         self.__load_h5(wt)
@@ -259,8 +270,8 @@ class temporal_network():
             self.super_tensor.attrs['t_match_on'],
             self.super_tensor.attrs['fsample'],
             self.time, self.super_tensor.sizes['trials'],
-            early_delay=0.3,
-            align_to="cue",
+            early_delay=self.early_delay,
+            align_to=self.align_to,
             flatten=flatten
         )
         if flatten:
@@ -315,7 +326,7 @@ class temporal_network():
         -------
             Copy of the super-tensor for the stage specified.
         """
-        assert stage in ['baseline', 'cue', 'delay', 'match']
+        assert stage in self.stages 
         assert pad in [False, True]
 
         # Check if the binary mask was already created
@@ -351,7 +362,7 @@ class temporal_network():
             Return the number of samples for the stage provided
             for all trials concatenated.
         """
-        assert stage in ['baseline', 'cue', 'delay', 'match']
+        assert stage in self.stages 
 
         # Check if the binary mask was already created
         if not hasattr(self, 's_mask'):
