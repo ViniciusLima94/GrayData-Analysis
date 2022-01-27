@@ -50,7 +50,8 @@ def _bias_lachaux(sm_times, freqs, n_cycles):
 if __name__ == '__main__':
 
     # Path in which to save coherence data
-    path_st = os.path.join('Results', 'lucy', sessions[idx], 'session01')
+    path_st = os.path.join('/home/vinicius/funcog/gda/Results',
+                           'lucy', sessions[idx], 'session01')
     # Check if path existis, if not it will be created
     if not os.path.exists(path_st):
         os.makedirs(path_st)

@@ -2,16 +2,14 @@
 Computes meta-connectivity at roi level.
 """
 import os
-import brainconn as bc
-import numpy as np
 import xarray as xr
+import numpy as np
 import argparse
 
-from tqdm import tqdm
-from GDa.net.layerwise import compute_network_partition
+from frites.utils import parallel_func
+from GDa.util import _extract_roi
 from GDa.temporal_network import temporal_network
 from GDa.fc.mc import meta_conn
-from GDa.util import _extract_roi
 from config import sessions
 
 ###############################################################################
@@ -52,158 +50,88 @@ net = temporal_network(
 net.create_stage_masks()
 # Average same rois
 coh = net.super_tensor.groupby("roi").mean("roi")
+coh.attrs = net.super_tensor.attrs
 mask = net.s_mask
 del net
 
 MC = []
 for f in range(coh.sizes["freqs"]):
-    MC += [meta_conn(coh.isel(freqs=f), mask=mask, n_jobs=20)]
+    MC += [meta_conn(coh.isel(freqs=f), mask=mask, n_jobs=10)]
 
 MC = xr.concat(MC, "freqs")
 MC = MC.transpose("sources", "targets", "freqs", "trials", "times")
-# Average over trials
-MC_avg = MC.mean("trials")
+MC = MC.assign_coords({"freqs": coh.freqs.data})
 
-###############################################################################
-# Detecting communities in the MC matrix
-###############################################################################
-
-
-def MC_modularity(MC, n_jobs=1):
-    """
-    Modularity for the MC matrix with shape (roi, roi, trials, times)
-    """
-    partition, modularity = compute_network_partition(
-        MC.data, backend="brainconn", n_jobs=n_jobs
-    )
-    # Set up dims and coords
-    partition = partition.rename({"trials": "freqs"})
-    modularity = modularity.rename({"trials": "freqs"})
-    partition = partition.assign_coords(
-        {"roi": MC.sources.data, "freqs": MC.freqs.data}
-    )
-    modularity = modularity.assign_coords({"freqs": MC.freqs.data})
-    return partition, modularity
-
-
-partition, modularity = [], []
-for i in tqdm(range(10)):
-    p, m = MC_modularity(MC.mean("trials"), n_jobs=20)
-    partition += [p]
-    modularity += [m]
-
-partition = xr.concat(partition, "seeds")
-modularity = xr.concat(modularity, "seeds")
-
-###############################################################################
-# Robust detection of communities
-###############################################################################
-
-
-def _allegiance(
-    aff,
-):
-    """
-    Compute the allegiance matrix based on a series of affiliation vectors.
-
-    Parameters
-    ----------
-    aff: array_like
-        Affiliation vector with shape (roi,observations).
-        Observations can either be the affiliation vector for different time
-        steps for a temporal network or for different realiaztions of
-        stochastic comm. detection algorithms (e.g., Louvain or Leiden).
-
-    Returns
-    -------
-    T: array_like
-        The allegiance matrix with shape (roi,roi)
-    """
-
-    assert isinstance(aff, np.ndarray)
-
-    # Number of nodes
-    nC = aff.shape[0]
-    # Number of observations
-    nt = aff.shape[1]
-
-    # Function to be applied to a single observation of the affiliation vector
-    def _for_frame(t):
-        # Allegiance for a frame
-        T = np.zeros((nC, nC))
-        # Affiliation vector
-        av = aff[:, t]
-        # For now convert affiliation vector to igraph format
-        n_comm = int(av.max() + 1)
-        for j in range(n_comm):
-            p_lst = np.arange(nC, dtype=int)[av == j]
-            grid = np.meshgrid(p_lst, p_lst)
-            grid = np.reshape(grid, (2, len(p_lst) ** 2)).T
-            T[grid[:, 0], grid[:, 1]] = 1
-        np.fill_diagonal(T, 1)
-        return T
-
-    # Compute the single trial coherence
-    T = [_for_frame(t) for t in range(nt)]
-    T = np.nanmean(T, 0)
-
-    return T
-
-
-rois, freqs, times = (partition.roi.data,
-                      partition.freqs.data, partition.times.data)
-n_rois, n_freqs, n_times = len(rois), len(freqs), len(times)
-# Compute the affiliation vector over the allegiance
-aff = np.zeros((n_rois, n_freqs, n_times))
-Q = np.zeros((n_freqs, n_times))
-
-# Stack partition
-p = partition.transpose("roi", "seeds", "freqs", "times").data
-
-for f in range(n_freqs):
-    for t in range(n_times):
-        T = _allegiance(p[..., f, t])
-        aff[:, f, t], Q[f, t] = bc.modularity.modularity_finetune_und(
-            T, seed=500)
-
-aff = xr.DataArray(
-    aff,
-    dims=("roi", "freqs", "times"),
-    coords={"roi": rois, "freqs": freqs},
-)
-
-Q = xr.DataArray(Q, dims=("freqs", "times"), coords={"freqs": freqs})
+# Numerical roi
+# n_roi = np.core.defchararray.add(
+    # np.core.defchararray.add(coh.attrs["sources"].astype(str),
+                             # ["-"] * 4371),
+    # coh.attrs["targets"].astype(str)
+# )
+# MC = MC.assign_coords({"sources": n_roi})
+# MC = MC.assign_coords({"targets": n_roi})
 
 ###############################################################################
 # Compute trimmer strengths
 ###############################################################################
 
 
-def compute_trimer_st(MC, x_s, x_t, av=None):
-
+def compute_trimer_st(MC, x_s, x_t):
     # Get number of rois based on source/targets arrays
-    n_rois = np.concatenate((x_s, x_t)).astype(int).max() + 1
-
-    # If a affiliation vector is passed compute trimer-strengths
-    # per module
-    if av is not None:
-        # Number of modules
-        n_mods = av.max()
-        ts = np.zeros((n_mods, n_rois))
-        for m in range(1, av.max() + 1):
-            # Get indexes of nodes inside module m
-            i_m = av == m
-            sources, targets = x_s[i_m], x_t[i_m]
-            for i in range(n_rois):
-                idx = np.logical_or(sources == i, targets == i)
-                ts[m - 1, i] = MC[np.ix_(idx, idx)].sum()
-    # Otherwise compute for each roi
-    else:
-        ts = np.zeros(n_rois)
-        for i in range(n_rois):
-            idx = np.logical_or(x_s == i, x_t == i)
-            ts[i] = MC[np.ix_(idx, idx)].sum()
+    n_rois = int(np.hstack((x_s, x_t)).max() + 1)
+    ts = np.zeros(n_rois)
+    for i in range(n_rois):
+        idx = np.logical_or(x_s == i, x_t == i)
+        ts[i] = MC[np.ix_(idx, idx)].sum()
     return ts
+
+
+def trimmer_strength(MC, n_jobs=1, verbose=False):
+    """
+    Compute trimmer strengths for meta connectivity
+    tensor (roi, roi, trials, times).
+    """
+
+    # Get rois names
+    roi_s, roi_t = _extract_roi(MC.sources.data, "-")
+    # Create a mapping to track rois and indexes
+    mapping = creat_roi_mapping(roi_s, roi_t)
+    x_s, x_t = area2idx(roi_s, mapping), area2idx(roi_t, mapping)
+    # Get number of rois based on source/targets arrays
+    n_rois = int(np.hstack((x_s, x_t)).max() + 1)
+    # Get number of times and trials
+    n_times, n_trials = MC.sizes["times"], MC.sizes["trials"]
+    nt = n_times * n_trials
+
+    # Stack trials and times
+    A = MC.stack(z=("trials", "times")).data
+
+    # Compute for a single observation
+    def _for_frame(t):
+        # Call core function
+        Tst = compute_trimer_st(A[..., t], x_s, x_t)
+        return Tst
+
+    # define the function to compute in parallel
+    parallel, p_fun = parallel_func(
+        _for_frame, n_jobs=n_jobs, verbose=verbose,
+        total=nt)
+    # Compute the single trial coherence
+    Tst = parallel(p_fun(t) for t in range(nt))
+    # Convert to numpy array
+    Tst = np.asarray(Tst)
+
+    # Unstack trials and time
+    Tst = Tst.reshape((n_rois, n_trials, n_times))
+
+    Tst = xr.DataArray(Tst,
+                       dims=("roi", "trials", "times"),
+                       coords={
+                           "roi": list(mapping.keys()),
+                           "trials": MC.trials.data,
+                           "times": MC.times.data,
+                       })
+    return Tst
 
 
 def creat_roi_mapping(x_s, x_t):
@@ -233,24 +161,12 @@ def area2idx(areas, mapping):
     return np.asarray([mapping[a] for a in areas])
 
 
-x_s, x_t = _extract_roi(MC.sources.data, "-")
-mapping = creat_roi_mapping(x_s, x_t)
-x_s, x_t = area2idx(x_s, mapping), area2idx(x_t, mapping)
-n_rois = np.concatenate((x_s, x_t)).max() + 1
-# Maximum number of communities
-max_n_comm = int(aff.max())
-Tst = np.ones((n_rois, max_n_comm, n_freqs, n_times)) * np.nan
-for f in tqdm(range(n_freqs)):
-    for t in range(n_times):
-        A = MC_avg.isel(freqs=f, times=t).data
-        av = aff.isel(freqs=f, times=t).data
-        n_comm = int(av.max())
-        Tst[:, :n_comm, f, t] = compute_trimer_st(
-            A, x_s, x_t, av=av.astype(int)).T
-Tst = xr.DataArray(
-    Tst, dims=("roi", "comm", "freqs", "times"),
-    coords=dict(roi=list(mapping.keys()))
-)
+Tst = []
+for f in range(MC.sizes["freqs"]):
+    Tst += [trimmer_strength(MC.isel(freqs=f), n_jobs=20)]
+Tst = xr.concat(Tst, "freqs").transpose("roi", "freqs", "trials", "times")
+Tst.attrs = coh.attrs
+
 
 ###############################################################################
 # Saving data
@@ -259,4 +175,7 @@ _PATH = os.path.expanduser(
     "~/storage1/projects/GrayData-Analysis/Results/lucy/meta_conn")
 
 # Save MC
-MC_avg.to_netcdf(os.path.join(_PATH, f"MC_avg_{session}.nc"))
+# MC.to_netcdf(os.path.join(_PATH, f"MC_{session}.nc"))
+# MC.mean("trials").to_netcdf(os.path.join(_PATH, f"MC_avg_{session}.nc"))
+# Save trimmer strengths
+Tst.to_netcdf(os.path.join(_PATH, f"tst_{session}.nc"))

@@ -49,7 +49,8 @@ at = args.ALIGNED
 _ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
 
 # Path in which to save coherence data
-_RESULTS = os.path.join('Results',
+_RESULTS = os.path.join('/home/vinicius/funcog/gda',
+                        'Results',
                         'lucy',
                         sessions[s_id],
                         'session01')
@@ -59,7 +60,7 @@ _RESULTS = os.path.join('Results',
 ###############################################################################
 
 if bool(thr):
-    coh_sig_file = f'coh_k_0.3_{mode}_at_{at}_surr.nc'
+    coh_sig_file = f'{metric}_k_0.3_{mode}_at_{at}_surr.nc'
     wt = None
 else:
     coh_sig_file = None

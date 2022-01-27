@@ -8,3 +8,4 @@
 #SBATCH --array=0-61
 
 python -O meta_conn.py $SLURM_ARRAY_TASK_ID
+#python -O meta_conn_features.py $SLURM_ARRAY_TASK_ID
