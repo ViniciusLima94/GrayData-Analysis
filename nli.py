@@ -108,7 +108,7 @@ mean_power = power.mean("samples")
 mean_coh = coh.mean("samples")
 
 ###############################################################################
-# DataFrame for NLI 
+# DataFrame for NLI
 ###############################################################################
 out = []
 for f in range(n_freqs):
@@ -128,7 +128,7 @@ out = pd.concat(out, axis=0)
 out.to_csv(f'Results/lucy/nli/nli_{sessions[idx]}.csv')
 
 ###############################################################################
-# DataFrame for mean power 
+# DataFrame for mean power
 ###############################################################################
 mean_power.to_dataframe(name="power").reset_index().to_csv(
     f'Results/lucy/nli/mean_power_{sessions[idx]}.csv')
