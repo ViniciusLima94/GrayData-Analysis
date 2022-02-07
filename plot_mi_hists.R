@@ -12,7 +12,7 @@ stages = c("Baseline", "Cue", "Early delay", "Late delay", "Match")
 
 for(i in 0:4){
   df = read.csv(
-                "Results/lucy/mutual_information/mi_df.csv"
+                "/home/vinicius/funcog/gda/Results/lucy/mutual_information/mi_df_plv.csv"
   )
   
   df <- df %>% gather(key = metric, value = t_values, c("power", "degree", "coreness", "efficiency"))
