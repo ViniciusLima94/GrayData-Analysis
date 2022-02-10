@@ -23,8 +23,16 @@ df_plv = read.csv(
     collapse="")
 )
 
+df_pec = read.csv(
+  paste(
+    c(root,
+      "/Results/lucy/mutual_information/mi_pec.csv"),
+    collapse="")
+)
+
 df <- df_coh %>% select(1:5)
 df$plv <- df_plv$plv
+df$pec <- df_plv$pec
 df$t <- NULL
 df$s <- NULL
 
@@ -72,7 +80,7 @@ neff %>% ggplot(aes(x=times, y = n, group=metric)) +
   facet_wrap(~freqs, ncol=5,
              labeller = labeller(freqs = freqs.labs)) +
   scale_x_discrete(labels=times.labs) +
-  theme_classic() +
+  theme_bw() +
   theme(plot.title = element_text(hjust=0.5),
         axis.text.x = element_text(angle = 45, hjust=1)) +
   labs(x = "", y = "#sig. effects")
