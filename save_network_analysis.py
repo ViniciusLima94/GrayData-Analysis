@@ -1,6 +1,7 @@
 ###############################################################################
 # Perform network measurements on the super tensor (coherence data)
 ###############################################################################
+import numpy as np
 import xarray as xr
 import argparse
 import os
@@ -77,6 +78,9 @@ net = temporal_network(coh_file=f'{metric}_k_0.3_{mode}_at_{at}.nc',
 
 net.convert_to_adjacency()
 
+# If the metric is pec take the absolute value of weigths only
+if metric == "pec":
+    net.super_tensor.values = np.abs(net.super_tensor.values)
 
 ###############################################################################
 # 1. Strength
@@ -105,92 +109,91 @@ degree.to_netcdf(path_degree)
 # 2. Coreness
 ###############################################################################
 
-coreness = []
-for f in tqdm(range(net.A.sizes["freqs"])):
-    coreness += [compute_nodes_coreness(net.A.isel(freqs=f),
-                                        backend="brainconn",
-                                        kw_bc=dict(delta=0.5),
-                                        verbose=False, n_jobs=20)]
-coreness = xr.concat(coreness, "freqs")
-# Assign coords
-coreness = coreness.assign_coords({"trials": net.A.trials.data,
-                                   "roi": net.A.sources.data,
-                                   "freqs": net.A.freqs.data,
-                                   "times": net.A.times.data})
+# coreness = []
+# for f in tqdm(range(net.A.sizes["freqs"])):
+    # coreness += [compute_nodes_coreness(net.A.isel(freqs=f),
+                                        # backend="brainconn",
+                                        # kw_bc=dict(delta=0.5),
+                                        # verbose=False, n_jobs=20)]
+# coreness = xr.concat(coreness, "freqs")
+# # Assign coords
+# coreness = coreness.assign_coords({"trials": net.A.trials.data,
+                                   # "roi": net.A.sources.data,
+                                   # "freqs": net.A.freqs.data,
+                                   # "times": net.A.times.data})
 
-coreness = coreness.transpose("trials", "roi", "freqs", "times")
-coreness.attrs = net.super_tensor.attrs
+# coreness = coreness.transpose("trials", "roi", "freqs", "times")
+# coreness.attrs = net.super_tensor.attrs
 
-path_coreness = os.path.join(_ROOT,
-                             _RESULTS,
-                             f"{metric}_coreness_thr_{thr}_at_{at}.nc")
+# path_coreness = os.path.join(_ROOT,
+                             # _RESULTS,
+                             # f"{metric}_coreness_thr_{thr}_at_{at}.nc")
 
-coreness.to_netcdf(path_coreness)
+# coreness.to_netcdf(path_coreness)
 
 ###############################################################################
 # 3. Efficiency
 ###############################################################################
 
-efficiency = []
-for f in tqdm(range(net.A.sizes["freqs"])):
-    efficiency += [compute_nodes_efficiency(net.A.isel(freqs=f),
-                                            backend="igraph",
-                                            verbose=False, n_jobs=20)]
-efficiency = xr.concat(efficiency, "freqs")
-# Assign coords
-efficiency = efficiency.assign_coords({"trials": net.A.trials.data,
-                                       "roi": net.A.sources.data,
-                                       "freqs": net.A.freqs.data,
-                                       "times": net.A.times.data})
+# efficiency = []
+# for f in tqdm(range(net.A.sizes["freqs"])):
+    # efficiency += [compute_nodes_efficiency(net.A.isel(freqs=f),
+                                            # backend="igraph",
+                                            # verbose=False, n_jobs=20)]
+# efficiency = xr.concat(efficiency, "freqs")
+# # Assign coords
+# efficiency = efficiency.assign_coords({"trials": net.A.trials.data,
+                                       # "roi": net.A.sources.data, "freqs": net.A.freqs.data,
+                                       # "times": net.A.times.data})
 
-efficiency = efficiency.transpose("trials", "roi", "freqs", "times")
-efficiency.attrs = net.super_tensor.attrs
+# efficiency = efficiency.transpose("trials", "roi", "freqs", "times")
+# efficiency.attrs = net.super_tensor.attrs
 
-path_efficiency = os.path.join(_ROOT,
-                               _RESULTS,
-                               f"{metric}_efficiency_thr_{thr}_at_{at}.nc")
+# path_efficiency = os.path.join(_ROOT,
+                               # _RESULTS,
+                               # f"{metric}_efficiency_thr_{thr}_at_{at}.nc")
 
-efficiency.to_netcdf(path_efficiency)
+# efficiency.to_netcdf(path_efficiency)
 
 ###############################################################################
 # 4. Modularity
 ###############################################################################
 
-partition, modularity = [], []
-for f in tqdm(range(net.A.sizes["freqs"])):
-    p, m = compute_network_partition(net.A.isel(freqs=f),
-                                     backend="igraph",
-                                     verbose=False, n_jobs=20)
-    partition += [p]
-    modularity += [m]
+# partition, modularity = [], []
+# for f in tqdm(range(net.A.sizes["freqs"])):
+    # p, m = compute_network_partition(net.A.isel(freqs=f),
+                                     # backend="igraph",
+                                     # verbose=False, n_jobs=20)
+    # partition += [p]
+    # modularity += [m]
 
-partition = xr.concat(partition, "freqs")
-modularity = xr.concat(modularity, "freqs")
-# Assign coords
-partition = partition.assign_coords({"trials": net.A.trials.data,
-                                     "roi": net.A.sources.data,
-                                     "freqs": net.A.freqs.data,
-                                     "times": net.A.times.data})
+# partition = xr.concat(partition, "freqs")
+# modularity = xr.concat(modularity, "freqs")
+# # Assign coords
+# partition = partition.assign_coords({"trials": net.A.trials.data,
+                                     # "roi": net.A.sources.data,
+                                     # "freqs": net.A.freqs.data,
+                                     # "times": net.A.times.data})
 
-partition = partition.transpose("trials", "roi", "freqs", "times")
-partition.attrs = net.super_tensor.attrs
+# partition = partition.transpose("trials", "roi", "freqs", "times")
+# partition.attrs = net.super_tensor.attrs
 
-modularity = modularity.assign_coords({"trials": net.A.trials.data,
-                                       "freqs": net.A.freqs.data,
-                                       "times": net.A.times.data})
+# modularity = modularity.assign_coords({"trials": net.A.trials.data,
+                                       # "freqs": net.A.freqs.data,
+                                       # "times": net.A.times.data})
 
-modularity = modularity.transpose("trials", "freqs", "times")
-modularity.attrs = net.super_tensor.attrs
+# modularity = modularity.transpose("trials", "freqs", "times")
+# modularity.attrs = net.super_tensor.attrs
 
-# Saving
-path_partition = os.path.join(_ROOT,
-                              _RESULTS,
-                              f"{metric}_partition_thr_{thr}_at_{at}.nc")
+# # Saving
+# path_partition = os.path.join(_ROOT,
+                              # _RESULTS,
+                              # f"{metric}_partition_thr_{thr}_at_{at}.nc")
 
-partition.to_netcdf(path_partition)
+# partition.to_netcdf(path_partition)
 
-path_modularity = os.path.join(_ROOT,
-                               _RESULTS,
-                               f"{metric}_modularity_thr_{thr}_at_{at}.nc")
+# path_modularity = os.path.join(_ROOT,
+                               # _RESULTS,
+                               # f"{metric}_modularity_thr_{thr}_at_{at}.nc")
 
-modularity.to_netcdf(path_modularity)
+# modularity.to_netcdf(path_modularity)

@@ -2,12 +2,11 @@
 Edge-based encoding analysis done on the coherence dFC
 """
 import os
-import xarray as xr
 import argparse
 
 from tqdm import tqdm
 from config import sessions
-from GDa.util import create_stages_time_grid, average_stages
+from GDa.util import average_stages
 from GDa.temporal_network import temporal_network
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
@@ -34,12 +33,12 @@ avg = args.AVERAGED
 # Get root path
 ###############################################################################
 
-_ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
+_ROOT = os.path.expanduser('~/funcog/gda')
 
 ###############################################################################
 # Iterate over all sessions and concatenate coherece
 ###############################################################################
-coh_file=f'{metric}_k_0.3_multitaper_at_cue.nc'
+coh_file = f'{metric}_k_0.3_multitaper_at_cue.nc'
 coh_sig_file = f'{metric}_k_0.3_multitaper_at_cue_surr.nc'
 
 coh = []
@@ -69,6 +68,14 @@ dt = DatasetEphy(coh, y=stim, nb_min_suj=10,
 
 mi_type = 'cd'
 inference = 'rfx'
+
+if avg:
+    mcp = "maxstats"
+    # check
+    # mcp = "fdr"
+else:
+    mcp = "cluster"
+
 kernel = None
 estimator = GCMIEstimator(mi_type='cd', relative=False, copnorm=True,
                           biascorrect=False, demeaned=False, tensor=True,
@@ -78,14 +85,15 @@ wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
 kw = dict(n_jobs=20, n_perm=100)
 cluster_th = None  # {float, None, 'tfce'}
 
-mi, pvalues = wf.fit(dt, mcp="cluster", cluster_th=cluster_th, **kw)
+mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
 
 ###############################################################################
 # Saving results
 ###############################################################################
 
 # Path to results folder
-_RESULTS = os.path.expanduser("~/funcog/gda/Results/lucy/mutual_information")
+_RESULTS = os.path.join(_ROOT,
+                        "Results/lucy/mutual_information")
 
 path_mi = os.path.join(_RESULTS,
                        f"mi_{metric}_avg_{avg}_thr_1.nc")
