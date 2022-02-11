@@ -4,7 +4,7 @@ import argparse
 
 from tqdm import tqdm
 from config import sessions
-from GDa.util import create_stages_time_grid, average_stages
+from GDa.util import average_stages
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
@@ -71,6 +71,14 @@ dt = DatasetEphy(coh, y=stim, nb_min_suj=10,
 mi_type = 'cd'
 inference = 'rfx'
 kernel = None
+
+if avg:
+    mcp = "maxstats"
+    # check
+    # mcp = "fdr"
+else:
+    mcp = "cluster"
+
 estimator = GCMIEstimator(mi_type='cd', relative=False, copnorm=True,
                           biascorrect=False, demeaned=False, tensor=True,
                           gpu=False, verbose=None)
@@ -79,23 +87,21 @@ wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
 kw = dict(n_jobs=20, n_perm=100)
 cluster_th = None  # {float, None, 'tfce'}
 
-mi, pvalues = wf.fit(dt, mcp="cluster", cluster_th=cluster_th, **kw)
+mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
 
 ###############################################################################
 # Saving results
 ###############################################################################
 
 # Path to results folder
-_RESULTS = "Results/lucy/mutual_information"
+_RESULTS = os.path.join(_ROOT,
+                        "Results/lucy/mutual_information")
 
-path_mi = os.path.join(_ROOT,
-                       _RESULTS,
+path_mi = os.path.join(_RESULTS,
                        f"mi_{metric}_{feat}_avg_{avg}_thr_1.nc")
-path_tv = os.path.join(_ROOT,
-                       _RESULTS,
+path_tv = os.path.join(_RESULTS,
                        f"t_{metric}_{feat}_avg_{avg}_thr_1.nc")
-path_pv = os.path.join(_ROOT,
-                       _RESULTS,
+path_pv = os.path.join(_RESULTS,
                        f"pval_{metric}_{feat}_avg_{avg}_thr_1.nc")
 
 mi.to_netcdf(path_mi)

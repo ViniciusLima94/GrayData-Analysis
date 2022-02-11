@@ -7,4 +7,4 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --array=0-61
 
-python -O mi_power_analysis.py $SLURM_ARRAY_TASK_ID
+python -O mi_power_analysis.py 1 1 "cue" 1 

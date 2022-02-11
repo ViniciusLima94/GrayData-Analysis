@@ -31,8 +31,8 @@ df_pec = read.csv(
 )
 
 df <- df_coh %>% select(1:5)
-df$plv <- df_plv$plv
-df$pec <- df_plv$pec
+df$plv <- 0*df_plv$plv
+df$pec <- 0*df_plv$pec
 df$t <- NULL
 df$s <- NULL
 
@@ -58,10 +58,14 @@ for(f in freqs) {
     neff_coh <- sum(out$coh > 0)
     # PLV
     neff_plv <- sum(out$plv > 0)
+    # PEC
+    neff_pec <- sum(out$pec > 0)
     # Row for dataframe
     row <- c(f, t, "coh", neff_coh)
     neff[nrow(neff) + 1,] <- row
     row <- c(f, t, "plv", neff_plv)
+    neff[nrow(neff) + 1,] <- row
+    row <- c(f, t, "pec", neff_pec)
     neff[nrow(neff) + 1,] <- row
   }
 }
@@ -80,7 +84,7 @@ neff %>% ggplot(aes(x=times, y = n, group=metric)) +
   facet_wrap(~freqs, ncol=5,
              labeller = labeller(freqs = freqs.labs)) +
   scale_x_discrete(labels=times.labs) +
-  theme_bw() +
+  theme_classic() +
   theme(plot.title = element_text(hjust=0.5),
         axis.text.x = element_text(angle = 45, hjust=1)) +
-  labs(x = "", y = "#sig. effects")
+  labs(x = "", y = "#sig. edges")

@@ -1,6 +1,7 @@
 library(tidyverse)
 library(umap)
 
+ROOT = "/home/vinicius/storage1/projects/GrayData-Analysis/figures"
 
 # Titles for frequencies
 freqs.labs <- c("3 Hz", "11 Hz", "19 Hz", "27 Hz", "35 Hz",
@@ -12,10 +13,12 @@ stages = c("Baseline", "Cue", "Early delay", "Late delay", "Match")
 
 for(i in 0:4){
   df = read.csv(
-                "/home/vinicius/funcog/gda/Results/lucy/mutual_information/mi_df_plv.csv"
+      "/home/vinicius/funcog/gda/Results/lucy/mutual_information/mi_df_degree.csv"
   )
   
-  df <- df %>% gather(key = metric, value = t_values, c("power", "degree", "coreness", "efficiency"))
+  df <- df %>% gather(key = metric,
+                      value = t_values,
+                      c("power", "coh", "plv", "pec"))
 
   df <- df %>% filter(times==i)
   
@@ -29,6 +32,56 @@ for(i in 0:4){
     theme(plot.title = element_text(hjust=0.5))
   
   ggsave(
-    paste(c("figures/mi_hist_", i, ".png"), collapse = ""),
+    paste(
+      c(ROOT,
+        "/mi_hist_degree_",
+        i,
+        ".png"),
+      collapse = ""),
     width = 12, height = 8)
 }
+
+# For each roi determines if the stim is encoded by power uniquely, by FC degree
+# uniquely or both.
+df = read.csv(
+  "/home/vinicius/funcog/gda/Results/lucy/mutual_information/mi_df_degree.csv"
+)
+
+out <- df %>% select(1:3)
+
+out$power <- as.integer(df$power > 0)
+out$fc <- ((df$coh + df$plv + df$pec) > 0)*2
+out$n <- out$power + out$fc
+
+out %>% ggplot(aes(x=times, y = n, group=as.factor(freqs))) +
+  geom_line(aes(color=as.factor(freqs)))  + 
+  geom_point(aes(color=as.factor(freqs))) + 
+  theme_classic() +
+  scale_x_discrete(labels=times.labs) +
+  facet_wrap(~roi, ncol=6,
+             labeller = labeller(freqs = freqs.labs)) +
+  labs(x = "", y = "Freqs [Hz]")  
+
+mycolors = c("#FFFFFF", "#D800FF", "#178A00", "#000000")
+times.labs <- c("baseline", "cue", "e. delay", "l. delay", "match")
+names(times.labs) <- 0:4
+
+out %>% ggplot(aes(x=factor(times), y=freqs, fill= as.factor(n))) + 
+  scale_x_discrete(labels=times.labs) +
+  geom_tile() +
+  facet_wrap(~roi, ncol=8) +
+  scale_fill_manual(values = mycolors, name="Encoding",
+                    labels=c("No encoding","Power uniquely",
+                             "Degree uniquely", "Both")) +
+  theme_classic()  +
+  theme(plot.title = element_text(hjust=0.5),
+        axis.text.x = element_text(angle = 90, hjust=1)) +
+  labs(x = "", y = "Freqs [Hz]") 
+  #
+
+ggsave(
+  paste(
+    c(ROOT,
+      "/mi_enconding_degree.png"),
+    collapse = ""),
+  width = 12, height = 8)

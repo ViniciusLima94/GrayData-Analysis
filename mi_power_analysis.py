@@ -6,7 +6,7 @@ from config import sessions
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
-from GDa.util import create_stages_time_grid, average_stages
+from GDa.util import average_stages
 from tqdm import tqdm
 
 ###############################################################################
@@ -35,7 +35,7 @@ avg = args.AVERAGED
 # Get root path
 ###############################################################################
 
-_ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
+_ROOT = os.path.expanduser('~/funcog/gda')
 
 ###############################################################################
 # Iterate over all sessions and concatenate power
@@ -68,31 +68,37 @@ dt = DatasetEphy(sxx, y=stim, nb_min_suj=10,
 mi_type = 'cd'
 inference = 'rfx'
 kernel = None
+
+if avg:
+    mcp = "maxstats"
+    # check
+    # mcp = "fdr"
+else:
+    mcp = "cluster"
+
 estimator = GCMIEstimator(mi_type='cd', relative=False, copnorm=True,
                           biascorrect=False, demeaned=False, tensor=True,
                           gpu=False, verbose=None)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
 
 kw = dict(n_jobs=20, n_perm=100)
-cluster_th = None  # {float, None, 'tfce'}
+cluster_th = None
 
-mi, pvalues = wf.fit(dt, mcp="cluster", cluster_th=cluster_th, **kw)
+mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
 
 ###############################################################################
 # Saving results
 ###############################################################################
 
 # Path to results folder
-_RESULTS = "Results/lucy/mutual_information"
+_RESULTS = os.path.join(_ROOT,
+                        "Results/lucy/mutual_information")
 
-path_mi = os.path.join(_ROOT,
-                       _RESULTS,
+path_mi = os.path.join(_RESULTS,
                        f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}.nc")
-path_tv = os.path.join(_ROOT,
-                       _RESULTS,
+path_tv = os.path.join(_RESULTS,
                        f"tval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}.nc")
-path_pv = os.path.join(_ROOT,
-                       _RESULTS,
+path_pv = os.path.join(_RESULTS,
                        f"pval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}.nc")
 
 mi.to_netcdf(path_mi)
