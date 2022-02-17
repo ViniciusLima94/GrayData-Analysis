@@ -73,9 +73,9 @@ inference = 'rfx'
 kernel = None
 
 if avg:
-    mcp = "maxstats"
+    # mcp = "maxstats"
     # check
-    # mcp = "fdr"
+    mcp = "fdr"
 else:
     mcp = "cluster"
 
@@ -98,11 +98,11 @@ _RESULTS = os.path.join(_ROOT,
                         "Results/lucy/mutual_information")
 
 path_mi = os.path.join(_RESULTS,
-                       f"mi_{metric}_{feat}_avg_{avg}_thr_1.nc")
+                       f"mi_{metric}_{feat}_avg_{avg}_thr_1_{mcp}.nc")
 path_tv = os.path.join(_RESULTS,
-                       f"t_{metric}_{feat}_avg_{avg}_thr_1.nc")
+                       f"t_{metric}_{feat}_avg_{avg}_thr_1_{mcp}.nc")
 path_pv = os.path.join(_RESULTS,
-                       f"pval_{metric}_{feat}_avg_{avg}_thr_1.nc")
+                       f"pval_{metric}_{feat}_avg_{avg}_thr_1_{mcp}.nc")
 
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)
