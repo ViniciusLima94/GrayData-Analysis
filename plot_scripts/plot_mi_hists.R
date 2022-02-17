@@ -53,15 +53,6 @@ out$power <- as.integer(df$power > 0)
 out$fc <- ((df$coh + df$plv + df$pec) > 0)*2
 out$n <- out$power + out$fc
 
-out %>% ggplot(aes(x=times, y = n, group=as.factor(freqs))) +
-  geom_line(aes(color=as.factor(freqs)))  + 
-  geom_point(aes(color=as.factor(freqs))) + 
-  theme_classic() +
-  scale_x_discrete(labels=times.labs) +
-  facet_wrap(~roi, ncol=6,
-             labeller = labeller(freqs = freqs.labs)) +
-  labs(x = "", y = "Freqs [Hz]")  
-
 mycolors = c("#FFFFFF", "#D800FF", "#178A00", "#000000")
 times.labs <- c("baseline", "cue", "e. delay", "l. delay", "match")
 names(times.labs) <- 0:4

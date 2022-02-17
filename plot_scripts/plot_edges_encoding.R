@@ -12,27 +12,27 @@ root = "/home/vinicius/funcog/gda"
 df_coh = read.csv(
   paste(
     c(root,
-      "/Results/lucy/mutual_information/mi_coh.csv"),
+      "/Results/lucy/mutual_information/mi_coh_fdr.csv"),
     collapse="")
 )
 
 df_plv = read.csv(
   paste(
     c(root,
-      "/Results/lucy/mutual_information/mi_plv.csv"),
+      "/Results/lucy/mutual_information/mi_plv_fdr.csv"),
     collapse="")
 )
 
 df_pec = read.csv(
   paste(
     c(root,
-      "/Results/lucy/mutual_information/mi_pec.csv"),
+      "/Results/lucy/mutual_information/mi_pec_maxstats.csv"),
     collapse="")
 )
 
 df <- df_coh %>% select(1:5)
-df$plv <- 0*df_plv$plv
-df$pec <- 0*df_plv$pec
+df$plv <- df_plv$plv
+df$pec <- df_pec$pec
 df$t <- NULL
 df$s <- NULL
 
@@ -59,7 +59,7 @@ for(f in freqs) {
     # PLV
     neff_plv <- sum(out$plv > 0)
     # PEC
-    neff_pec <- sum(out$pec > 0)
+    neff_pec <- sum(out $pec > 0)
     # Row for dataframe
     row <- c(f, t, "coh", neff_coh)
     neff[nrow(neff) + 1,] <- row
@@ -73,18 +73,21 @@ for(f in freqs) {
 # Define labels
 freqs.labs <- c("3 Hz", "11 Hz", "19 Hz", "27 Hz", "35 Hz",
                 "43 Hz", "51 Hz", "59 Hz", "67 Hz", "75 Hz")
-names(freqs.labs) <- list(3, 11, 19, 27, 35, 43, 51, 59, 67, 75)
+names(freqs.labs) <- unique(neff$freqs)
 
 times.labs <- c("baseline", "cue", "e. delay", "l. delay", "match")
 names(times.labs) <- 0:4
 
-neff %>% ggplot(aes(x=times, y = n, group=metric)) +
+neff %>% ggplot(aes(x=as.factor(times), y = as.numeric(n),
+                    group=as.factor(metric))) +
   geom_line(aes(color=metric))  + 
   geom_point(aes(color=metric)) + 
-  facet_wrap(~freqs, ncol=5,
-             labeller = labeller(freqs = freqs.labs)) +
+  facet_wrap(~as.numeric(freqs), ncol=5,
+             labeller = labeller(freqs = freqs.labs),
+             scales = "free_y") +
   scale_x_discrete(labels=times.labs) +
   theme_classic() +
   theme(plot.title = element_text(hjust=0.5),
         axis.text.x = element_text(angle = 45, hjust=1)) +
   labs(x = "", y = "#sig. edges")
+
