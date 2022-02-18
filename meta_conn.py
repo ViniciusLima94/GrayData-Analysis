@@ -11,6 +11,7 @@ from GDa.util import _extract_roi
 from GDa.temporal_network import temporal_network
 from GDa.fc.mc import meta_conn
 from config import sessions
+from tqdm import tqdm
 
 ###############################################################################
 # Argument parsing
@@ -18,24 +19,28 @@ from config import sessions
 parser = argparse.ArgumentParser()
 parser.add_argument("SIDX", help="index of the session to run",
                     type=int)
+parser.add_argument("METRIC",
+                    help="which FC metric to use",
+                    type=str)
 args = parser.parse_args()
-# The index of the session to use
+metric = args.METRIC
 idx = args.SIDX
 session = sessions[idx]
 
 ###############################################################################
 # Loading temporal network
 ###############################################################################
-_ROOT = os.path.expanduser("~/storage1/projects/GrayData-Analysis")
+_ROOT = os.path.expanduser("~/funcog/gda")
 
 # Path in which to save coherence data
 _RESULTS = os.path.join("Results", "lucy", session, "session01")
 
-coh_sig_file = "coh_k_0.3_multitaper_at_cue_surr.nc"
+coh_file = f'{metric}_k_0.3_multitaper_at_cue.nc'
+coh_sig_file = f'{metric}_k_0.3_multitaper_at_cue_surr.nc'
 wt = None
 
 net = temporal_network(
-    coh_file="coh_k_0.3_multitaper_at_cue.nc",
+    coh_file=coh_file,
     coh_sig_file=coh_sig_file,
     wt=wt,
     date=session,
@@ -43,33 +48,33 @@ net = temporal_network(
     behavioral_response=[1],
 )
 
+# Masks for each stage
+net.create_stage_masks(flatten=True)
+# Stack trials
+FC = net.super_tensor.stack(obs=("trials", "times")).data
+
 ###############################################################################
 # Compute meta-connectivity
 ###############################################################################
-# Masks for each stage
-net.create_stage_masks()
-# Average same rois
-coh = net.super_tensor.groupby("roi").mean("roi")
-coh.attrs = net.super_tensor.attrs
-mask = net.s_mask
-del net
+n_edges = net.super_tensor.sizes["roi"]
+n_freqs = net.super_tensor.sizes["freqs"]
+stages = net.s_mask.keys()
+n_stages = len(stages)
 
-MC = []
-for f in range(coh.sizes["freqs"]):
-    MC += [meta_conn(coh.isel(freqs=f), mask=mask, n_jobs=10)]
+MC = np.zeros((n_edges, n_edges, n_freqs, n_stages))
+for f in tqdm(range(n_freqs)):
+    for s, stage in enumerate(net.s_mask.keys()):
+        # Get index for the stages of interest
+        idx = net.s_mask[stage].values
+        MC[..., f, s] = np.corrcoef(FC[:, f, idx])
 
-MC = xr.concat(MC, "freqs")
-MC = MC.transpose("sources", "targets", "freqs", "trials", "times")
-MC = MC.assign_coords({"freqs": coh.freqs.data})
+MC = xr.DataArray(MC,
+                  dims = ("sources", "targets", "freqs", "times"),
+                  coords = {"sources": net.super_tensor.roi.values,
+                            "targets": net.super_tensor.roi.values,
+                            "freqs": net.super_tensor.freqs.values,})
 
-# Numerical roi
-# n_roi = np.core.defchararray.add(
-    # np.core.defchararray.add(coh.attrs["sources"].astype(str),
-                             # ["-"] * 4371),
-    # coh.attrs["targets"].astype(str)
-# )
-# MC = MC.assign_coords({"sources": n_roi})
-# MC = MC.assign_coords({"targets": n_roi})
+MC.attrs = net.super_tensor.attrs
 
 ###############################################################################
 # Compute trimmer strengths
@@ -89,7 +94,7 @@ def compute_trimer_st(MC, x_s, x_t):
 def trimmer_strength(MC, n_jobs=1, verbose=False):
     """
     Compute trimmer strengths for meta connectivity
-    tensor (roi, roi, trials, times).
+    tensor (roi, roi, times).
     """
 
     # Get rois names
@@ -100,11 +105,11 @@ def trimmer_strength(MC, n_jobs=1, verbose=False):
     # Get number of rois based on source/targets arrays
     n_rois = int(np.hstack((x_s, x_t)).max() + 1)
     # Get number of times and trials
-    n_times, n_trials = MC.sizes["times"], MC.sizes["trials"]
-    nt = n_times * n_trials
+    n_times = MC.sizes["times"]
+    nt = n_times 
 
     # Stack trials and times
-    A = MC.stack(z=("trials", "times")).data
+    A = MC.data
 
     # Compute for a single observation
     def _for_frame(t):
@@ -122,13 +127,12 @@ def trimmer_strength(MC, n_jobs=1, verbose=False):
     Tst = np.asarray(Tst)
 
     # Unstack trials and time
-    Tst = Tst.reshape((n_rois, n_trials, n_times))
+    Tst = Tst.reshape((n_rois, n_times))
 
     Tst = xr.DataArray(Tst,
-                       dims=("roi", "trials", "times"),
+                       dims=("roi", "times"),
                        coords={
                            "roi": list(mapping.keys()),
-                           "trials": MC.trials.data,
                            "times": MC.times.data,
                        })
     return Tst
@@ -164,18 +168,17 @@ def area2idx(areas, mapping):
 Tst = []
 for f in range(MC.sizes["freqs"]):
     Tst += [trimmer_strength(MC.isel(freqs=f), n_jobs=20)]
-Tst = xr.concat(Tst, "freqs").transpose("roi", "freqs", "trials", "times")
-Tst.attrs = coh.attrs
+Tst = xr.concat(Tst, "freqs").transpose("roi", "freqs", "times")
+Tst.attrs = MC.attrs
 
 
 ###############################################################################
 # Saving data
 ###############################################################################
-_PATH = os.path.expanduser(
-    "~/storage1/projects/GrayData-Analysis/Results/lucy/meta_conn")
+_PATH = os.path.expanduser(os.path.join(_ROOT,
+                                        "Results/lucy/meta_conn"))
 
 # Save MC
-# MC.to_netcdf(os.path.join(_PATH, f"MC_{session}.nc"))
-# MC.mean("trials").to_netcdf(os.path.join(_PATH, f"MC_avg_{session}.nc"))
+MC.to_netcdf(os.path.join(_PATH, f"MC_{session}.nc"))
 # Save trimmer strengths
 Tst.to_netcdf(os.path.join(_PATH, f"tst_{session}.nc"))
