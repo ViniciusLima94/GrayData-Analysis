@@ -10,3 +10,4 @@
 python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh"
 python -O meta_conn.py $SLURM_ARRAY_TASK_ID "plv"
 python -O meta_conn.py $SLURM_ARRAY_TASK_ID "pec"
+
