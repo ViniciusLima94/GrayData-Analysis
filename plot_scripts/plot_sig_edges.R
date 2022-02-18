@@ -71,6 +71,7 @@ create_graph <- function(frequency, stat) {
       #plot.title = element_text(hjust = 0.5),
       plot.margin=unit(c(0,0,0,0),"cm")
     )
+  
   ggsave(
     paste(c("figures/sig_anal/", stat, "_test_freq_", frequency, "_session_",
             session, ".png"),
