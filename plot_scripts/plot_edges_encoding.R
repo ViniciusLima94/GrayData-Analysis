@@ -175,7 +175,7 @@ create_graph <- function(f, t, metric) {
   df_filt <- df[idx, ]
   
   # Binary network
-  weights <-df_filt[metric]
+  weights <- as.numeric(df_filt[metric] > 0)
   # Creating network
   edges <- df_filt %>% select(6:7)
   edges$weights <- unlist(weights)
@@ -223,11 +223,11 @@ create_graph <- function(f, t, metric) {
     ylabel <- " "
   }
   
-  filter <- (edges$weights>=5) #& ((edges$from=="a8L") | (edges$to=="a8L"))
+  filter <- (edges$weights>0) #& ((edges$from=="a8L") | (edges$to=="a8L"))
   
   p<-ggraph(graph, layout = 'linear', circular = TRUE) + 
-    geom_edge_arc(aes(filter=filter, color=edges$weights),
-                  width=1,
+    geom_edge_arc(aes(filter=filter),
+                  width=.3, color="black",
                   show.legend=F) +
     scale_edge_colour_distiller(palette = "RdPu", direction=1,
                                 name="", limits=c(0, 20)) +
@@ -303,7 +303,7 @@ ggsave(
 # PEC
 ################################################################################
 myplots <- vector('list', length(times))
-i<-1
+i<-2
 for(f in freqs) {
   for(t in times) {
     p1 <- create_graph(f, t, "pec")
@@ -324,3 +324,44 @@ ggsave(
       "/mi_edge_enconding_pec_net.png"),
     collapse = ""),
   width = 14, height = 20)
+
+###############################################################################################################
+f=35
+t=4
+metric="coh"
+# Load data
+df = read.csv(
+  paste(
+    c(root,
+      "/Results/lucy/mutual_information/mi_",
+      metric,
+      "_fdr.csv"),
+    collapse="")
+)
+
+idx = as.logical((df$freqs == f) & (df$times == t))
+# Filter frequency and time of interest
+df_filt <- df[idx, ]
+
+# Creating network
+edges <- df_filt[df_filt[metric] > 0, 6:7]
+edges <- edges %>% 
+  rename(from = s,
+         to = t)
+
+rois <- unique(c(as.character(edges$from), as.character(edges$to)))
+n_rois <- length(rois)
+n_pairs <- length(weights)
+
+nodes <- as.data.frame(rois)
+nodes <- nodes %>% rename(id = rois)
+
+# Create a graph object
+graph <- igraph::graph_from_data_frame( d=edges, vertices=nodes, directed=F )
+
+clp <- cluster_louvain(graph)
+plot(clp, graph)
+layout <-layout_with_fr(graph)
+V(graph)$community <- clp$membership
+plot(clp, graph, vertex.size=3, layout=layout, asp=1, edge.width = .11,
+     vertex.label.cex = 1, margin = -0.3, rescale=T)
