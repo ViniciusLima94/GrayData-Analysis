@@ -1,19 +1,17 @@
 import os
 import time
 import numpy as np
+import xarray as xr
 import argparse
 
-from config import (sm_times, sm_kernel, sm_freqs, decim,
-                    mode, freqs, n_cycles, sessions,
-                    return_evt_dt)
+from config import (mode, bandwidth, sessions, t_win,
+                    fmin, fmax, return_evt_dt, n_fft)
 from GDa.session import session
-from frites.conn.conn_spec import conn_spec
+from xfrites.conn.conn_csd import conn_csd
 from GDa.signal.surrogates import trial_swap_surrogates
 
 # Argument parsing
 parser = argparse.ArgumentParser()
-parser.add_argument("METRIC", help="which connectivity metric to use",
-                    type=str)
 parser.add_argument("ALIGNED", help="wheter to align data to cue or match",
                     type=str)
 parser.add_argument("SIDX", help="index of the session to run",
@@ -24,8 +22,6 @@ parser.add_argument("SEED", help="seed for create surrogates",
                     type=int)
 
 args = parser.parse_args()
-# The connectivity metric that should be used
-metric = args.METRIC
 # Wheter to align data to cue or match
 at = args.ALIGNED
 # The index of the session to use
@@ -42,11 +38,6 @@ evt_dt = return_evt_dt(at)
 # Method to compute the bias accordingly to Lachaux et. al. (2002)
 ###############################################################################
 
-
-def _bias_lachaux(sm_times, freqs, n_cycles):
-    return (1+2*sm_times*freqs/n_cycles)**-1
-
-
 if __name__ == '__main__':
 
     # Path in which to save coherence data
@@ -58,7 +49,7 @@ if __name__ == '__main__':
 
     # Add name of the coherence file
     path_st_coh = os.path.join(path_st,
-                               f'{metric}_k_{sm_times}_{mode}_at_{at}.nc')
+                               f'coh_csd_{mode}_at_{at}.nc')
 
     # Remove file if it was already created
     if os.path.isfile(path_st_coh):
@@ -75,20 +66,21 @@ if __name__ == '__main__':
 
     start = time.time()
 
-    kw = dict(
-        freqs=freqs, times="time", roi="roi", foi=None,
-        n_jobs=10, pairs=None, sfreq=ses.data.attrs['fsample'],
-        mode=mode, n_cycles=n_cycles, decim=decim, metric=metric,
-        sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel, block_size=4
-    )
+    # kw = dict(t0=evt_dt[0], fmin=fmin, fmax=fmax,bandwidth=bandwidth)
+    kw = dict(fmin=fmin, fmax=fmax,bandwidth=bandwidth, n_fft=n_fft)
+    coh = []
+    for t0, t1 in t_win:
+        coh += [conn_csd(ses.data.sel(time=slice(t0,t1)), times='time', roi='roi',
+                         sfreq=ses.data.attrs["fsample"], mode=mode, metric="coh",
+                         freqs=None, n_jobs=20, verbose=None,  csd_kwargs=kw)]
+    coh = xr.concat(coh, "times")
 
-    # compute the coherence
-    coh = conn_spec(ses.data, **kw).astype(np.float32, keep_attrs=True)
     # reordering dimensions
     coh = coh.transpose("roi", "freqs", "trials", "times")
     # Add areas as attribute
     coh.attrs['areas'] = ses.data.roi.values.astype('str')
-    coh.attrs['bias'] = _bias_lachaux(sm_times, freqs, n_cycles).tolist()
+    del coh.attrs['attrs'], coh.attrs['freqs'], coh.attrs['sm_times'], coh.attrs['sm_freqs']
+    del coh.attrs['roi_idx'], coh.attrs['win_sample'], coh.attrs['win_times'], coh.attrs['blocks']
     # Save to file
     coh.to_netcdf(path_st_coh)
     # To release memory
@@ -98,12 +90,17 @@ if __name__ == '__main__':
     if surr:
         data_surr = trial_swap_surrogates(
             ses.data.astype(np.float32), seed=seed, verbose=False)
-        coh_surr = conn_spec(data_surr, **kw)
+        coh_surr = []
+        for t0, t1 in t_win:
+            coh_surr += [conn_csd(data_surr.sel(time=slice(t0,t1)), times='time', roi='roi',
+                             sfreq=ses.data.attrs["fsample"], mode=mode, metric="coh",
+                             freqs=None, n_jobs=20, verbose=None,  csd_kwargs=kw)]
+        coh_surr = xr.concat(coh_surr, "times")
         #  Estimate significance level from 95% percentile over trials
         coh_surr = coh_surr.quantile(0.95, dim="trials")
         # Add name of the coherence file
         path_st_surr = os.path.join(
-            path_st, f'{metric}_k_{sm_times}_{mode}_at_{at}_surr.nc')
+            path_st, f'coh_csd_{mode}_at_{at}_surr.nc')
         coh_surr.to_netcdf(path_st_surr)
         del coh_surr
 

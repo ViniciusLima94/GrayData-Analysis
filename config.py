@@ -31,26 +31,25 @@ dirs = {
 # Spectral analysis parameters
 ###############################################################################
 
-# Smoothing windows
-sm_times = 0.3  # In seconds
-sm_freqs = 1
-sm_kernel = "square"
-
 # Defining parameters
-decim = 20  # Downsampling factor
 mode = 'multitaper'  # Wheter to use Morlet or Multitaper
+bandwidth = 10
+fmin, fmax = 3, 80
+# Decimation in freqs
+n_fft = None
 
-n_freqs = 10  # How many frequencies to use
-freqs = np.linspace(3, 75, n_freqs)  # Frequency array
-n_cycles = freqs/4  # Number of cycles
-mt_bandwidth = None
-
+# Times of interest
+t_win = np.array([[-0.5, -0.1],
+                  [0.05, 0.45],
+                  [0.5, 0.9],
+                  [0.9, 1.3],
+                  [1.3, 1.7]])
 
 def return_evt_dt(align_at):
     """ Return the window in which the data will be loaded
     depending on the alignment """
     assert align_at in ["cue", "match"]
     if align_at == "cue":
-        return [-0.65, 3.00]
+        return [-0.50, 2.00]
     else:
         return [-2.2, 0.65]
