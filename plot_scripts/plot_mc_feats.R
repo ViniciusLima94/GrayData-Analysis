@@ -12,24 +12,32 @@ root = "/home/vinicius/funcog/gda"
 
 results = "/home/vinicius/storage1/projects/GrayData-Analysis/figures/"
 
+metric = "pec"
+
 aMC = read.csv(
   paste(
     c(root,
-      "/Results/lucy/meta_conn/aMC.csv"),
+      "/Results/lucy/meta_conn/aMC_",
+      metric,
+      ".csv"),
     collapse="")
 )
 
 Q = read.csv(
   paste(
     c(root,
-      "/Results/lucy/meta_conn/Q.csv"),
+      "/Results/lucy/meta_conn/Q_",
+      metric,
+      ".csv"),
     collapse="")
 )
 
 nu = read.csv(
   paste(
     c(root,
-      "/Results/lucy/meta_conn/nu.csv"),
+      "/Results/lucy/meta_conn/nu_",
+      metric,
+      ".csv"),
     collapse="")
 )
 
@@ -133,13 +141,21 @@ p3 <- Q %>% ggplot(aes(x=as.factor(times), y=Q)) +
 #    collapse = ""),
 #  width = 10, height = 4)
 
-ggarrange(p1, p2, p3,
+title = paste(c("MC features (", metric, ")"), collapse = "")
+
+fig <- ggarrange(p1, p2, p3,
           ncol = 1, nrow = 3,
           labels = c("A", "B", "C")) 
-
+annotate_figure(fig,
+                top = text_grob(title,
+                                color = "black",
+                                face = "bold", size = 14))
 ggsave(
   paste(
     c(results,
-      "/mc_features.png"),
+      "/mc_features_",
+      metric,
+      ".png"),
     collapse = ""),
-  width = 10, height = 4)
+  width = 10, height = 12)
+
