@@ -1,12 +1,14 @@
 import os
 import argparse
 
+import xarray as xr
+
 from tqdm import tqdm
 from GDa.session import session
-from config import (decim, mode, freqs, n_cycles,
-                    sessions, return_evt_dt)
-from xfrites.conn.conn_tf import wavelet_spec
-
+from GDa.util import _extract_roi
+from config import (mode, bandwidth, sessions, t_win,
+                    fmin, fmax, return_evt_dt, n_fft)
+from xfrites.conn.conn_csd import conn_csd
 ###############################################################################
 # Argument parsing
 ###############################################################################
@@ -30,7 +32,7 @@ br = args.BR
 at = args.ALIGN
 
 # Root directory
-_ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
+_ROOT = os.path.expanduser('~/funcog/gda')
 # Get session number
 # s_id = sessions[idx]
 
@@ -43,7 +45,8 @@ for s_id in tqdm(sessions):
     evt_dt = return_evt_dt(at)
 
     # Instantiate class
-    ses = session(raw_path='GrayLab/', monkey='lucy', date=s_id, session=1,
+    ses = session(raw_path=os.path.join(_ROOT, 'GrayLab/'),
+                  monkey='lucy', date=s_id, session=1,
                   slvr_msmod=True, align_to=at, evt_dt=evt_dt)
 
     # Read data from .mat files
@@ -57,12 +60,15 @@ for s_id in tqdm(sessions):
     # Compute power spectra
     ###########################################################################
 
-    sxx = wavelet_spec(data, freqs=freqs, roi=data.roi, times="time",
-                       sfreq=data.attrs["fsample"], foi=None, sm_times=0,
-                       sm_freqs=0, sm_kernel="square", mode=mode,
-                       n_cycles=n_cycles, mt_bandwidth=None,
-                       decim=decim, kw_cwt={}, kw_mt={}, block_size=1,
-                       n_jobs=20, verbose=None)
+    kw = dict(fmin=fmin, fmax=fmax,bandwidth=bandwidth, n_fft=n_fft)
+    csd = []
+    for t0, t1 in t_win:
+        csd += [conn_csd(ses.data.sel(time=slice(t0,t1)), times='time', roi='roi',
+                         sfreq=ses.data.attrs["fsample"], mode=mode, metric="csd",
+                         freqs=None, n_jobs=20, verbose=None,  csd_kwargs=kw)]
+    csd = xr.concat(csd, "times")
+    x_s, x_t = csd.attrs['x_s'], csd.attrs['x_t']
+    psd = csd.isel(roi=(x_s==x_t)).real
 
     ###########################################################################
     # Saves file
@@ -74,10 +80,11 @@ for s_id in tqdm(sessions):
     if not os.path.exists(results_path):
         os.makedirs(results_path)
 
-    file_name = f"power_tt_{tt}_br_{br}_at_{at}.nc"
+    file_name = f"power_csd_tt_{tt}_br_{br}_at_{at}.nc"
     path_pow = os.path.join(_ROOT, results_path,
                             file_name)
 
-    sxx.attrs["evt_dt"] = evt_dt
-    del sxx.attrs["mt_bandwidth"]
-    sxx.to_netcdf(path_pow)
+    psd.attrs["evt_dt"] = evt_dt
+    del psd.attrs['attrs'], psd.attrs['freqs'], psd.attrs['sm_times'], psd.attrs['sm_freqs']
+    del psd.attrs['roi_idx'], psd.attrs['win_sample'], psd.attrs['win_times'], psd.attrs['blocks']
+    psd.to_netcdf(path_pow)
