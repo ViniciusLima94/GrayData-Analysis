@@ -3,15 +3,11 @@ library(umap)
 
 ROOT = "/home/vinicius/storage1/projects/GrayData-Analysis/figures"
 
-# Titles for frequencies
-freqs.labs <- c("3 Hz", "11 Hz", "19 Hz", "27 Hz", "35 Hz",
-                "43 Hz", "51 Hz", "59 Hz", "67 Hz", "75 Hz")
-names(freqs.labs) <- list(3, 11, 19, 27, 35, 43, 51, 59, 67, 75)
 
 # Stages names
 stages = c("Baseline", "Cue", "Early delay", "Late delay", "Match")
 
-data_path = "/home/vinicius/funcog/gda/Results/lucy/mutual_information/"
+data_path = "/home/vinicius/funcog/gda/Results/lucy/mutual_information_csd/"
 file = paste(
   c(data_path, "mi_df_degree_fdr.csv"),
   collapse = "")
@@ -21,18 +17,14 @@ for(i in 0:4){
       file
   )
   
-  df <- df %>% gather(key = metric,
-                      value = t_values,
-                      c("power", "coh", "plv", "pec"))
 
   df <- df %>% filter(times==i)
   
-  ggplot(data=df, aes(x=roi, y=t_values, fill = metric)) +
+  ggplot(data=df, aes(x=roi, y=coh)) +
     geom_bar(alpha = 0.7, stat='identity', position="stack") +
     ylim(0, 80) +
     coord_flip() +
-    facet_wrap(~freqs, ncol=5,
-               labeller = labeller(freqs = freqs.labs)) +
+    facet_wrap(~freqs, ncol=5) +
     ggtitle(stages[i+1]) +
     theme(plot.title = element_text(hjust=0.5)) +
     labs(y="t-values", x="ROI")
@@ -47,7 +39,6 @@ for(i in 0:4){
     width = 12, height = 8)
 }
 
-metrics <- c("coh", "plv", "pec")
 
 for(metric in metrics) {
   # For each roi determines if the stim is encoded by power uniquely, by FC degree
@@ -58,17 +49,8 @@ for(metric in metrics) {
   
   out <- df %>% select(1:3)
   
-  out$power <- as.integer(df$power > 0)
-  if(metric == "coh") {
-    out$fc <- 2*(df$coh > 0)
-  }
-  else if(metric == "plv") {
-    out$fc <- 2*(df$plv > 0)
-  }
-  else {
-    out$fc <- 2*(df$pec > 0)
-  }
-  out$n <- out$power + out$fc
+  out$fc <- df$coh > 0
+  out$n <- out$fc
   
   mycolors = c("#FFFFFF", "#D800FF", "#178A00", "#000000")
   times.labs <- c("baseline", "cue", "e. delay", "l. delay", "match")
@@ -85,7 +67,7 @@ for(metric in metrics) {
     theme(plot.title = element_text(hjust=0.5),
           axis.text.x = element_text(angle = 90, hjust=1)) +
     labs(x = "", y = "Freqs [Hz]") +
-    ggtitle(paste(c(metric, " encoding"), collapse=""))
+    ggtitle("Coherence degree encoding")
     #
   
   ggsave(

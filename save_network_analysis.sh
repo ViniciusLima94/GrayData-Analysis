@@ -7,4 +7,4 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --array=0-61
 
-python -O save_network_analysis.py "pec" $SLURM_ARRAY_TASK_ID 1 "cue"
+python -O save_network_analysis.py "coh" $SLURM_ARRAY_TASK_ID 1 "cue"

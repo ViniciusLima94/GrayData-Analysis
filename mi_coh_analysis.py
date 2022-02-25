@@ -20,14 +20,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument("METRIC",
                     help="which network metric to use",
                     type=str)
-parser.add_argument("AVERAGED",
-                    help="wheter to analyse the avg. power or not",
-                    type=int)
 
 args = parser.parse_args()
 
 metric = args.METRIC
-avg = args.AVERAGED
+avg = 0
 
 ##############################################################################
 # Get root path
@@ -38,8 +35,8 @@ _ROOT = os.path.expanduser('~/funcog/gda')
 ###############################################################################
 # Iterate over all sessions and concatenate coherece
 ###############################################################################
-coh_file = f'{metric}_k_0.3_multitaper_at_cue.nc'
-coh_sig_file = f'{metric}_k_0.3_multitaper_at_cue_surr.nc'
+coh_file = f'{metric}_csd_multitaper_at_cue.nc'
+coh_sig_file = f'{metric}_csd_multitaper_at_cue_surr.nc'
 
 coh = []
 stim = []
@@ -69,15 +66,10 @@ dt = DatasetEphy(coh, y=stim, nb_min_suj=10,
 mi_type = 'cd'
 inference = 'rfx'
 
-if avg:
-    # mcp = "maxstats"
-    # check
-    mcp = "fdr"
-else:
-    mcp = "cluster"
+mcp = "fdr"
 
 kernel = None
-estimator = GCMIEstimator(mi_type='cd', relative=False, copnorm=True,
+estimator = GCMIEstimator(mi_type='cd', copnorm=True,
                           biascorrect=False, demeaned=False, tensor=True,
                           gpu=False, verbose=None)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
@@ -93,14 +85,14 @@ mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
 
 # Path to results folder
 _RESULTS = os.path.join(_ROOT,
-                        "Results/lucy/mutual_information")
+                        "Results/lucy/mutual_information_csd")
 
 path_mi = os.path.join(_RESULTS,
-                       f"mi_{metric}_avg_{avg}_thr_1_{mcp}.nc")
+                       f"mi_{metric}_csd_avg_{avg}_thr_1_{mcp}.nc")
 path_tv = os.path.join(_RESULTS,
-                       f"t_{metric}_avg_{avg}_thr_1_{mcp}.nc")
+                       f"t_{metric}_csd_avg_{avg}_thr_1_{mcp}.nc")
 path_pv = os.path.join(_RESULTS,
-                       f"pval_{metric}_avg_{avg}_thr_1_{mcp}.nc")
+                       f"pval_{metric}_csd_avg_{avg}_thr_1_{mcp}.nc")
 
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)
