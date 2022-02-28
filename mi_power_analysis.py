@@ -20,8 +20,6 @@ parser.add_argument("BR",   help="behavioral response",
                     type=int)
 parser.add_argument("ALIGN", help="wheter to align data to cue or match",
                     type=str)
-parser.add_argument("AVERAGED", help="wheter to analyse the avg. power or not",
-                    type=int)
 
 args = parser.parse_args()
 
@@ -29,7 +27,7 @@ args = parser.parse_args()
 tt = args.TT
 br = args.BR
 at = args.ALIGN
-avg = args.AVERAGED
+avg = 0 
 
 ##############################################################################
 # Get root path
@@ -44,7 +42,7 @@ _ROOT = os.path.expanduser('~/funcog/gda')
 sxx = []
 stim = []
 for s_id in tqdm(sessions):
-    _FILE_NAME = f"power_tt_{tt}_br_{br}_at_{at}.nc"
+    _FILE_NAME = f"power_csd_tt_{tt}_br_{br}_at_{at}.nc"
     path_pow = \
         os.path.join(_ROOT,
                      f"Results/lucy/{s_id}/session01",
@@ -52,7 +50,7 @@ for s_id in tqdm(sessions):
     power = xr.load_dataarray(path_pow)
     # Averages power for each period (baseline, cue, delay, match) if needed
     out = average_stages(power, avg)
-
+    # Re-order data
     sxx += [out.isel(roi=[r]) for r in range(len(out['roi']))]
     stim += [out.attrs["stim"].astype(int)]*len(out['roi'])
 
@@ -69,14 +67,9 @@ mi_type = 'cd'
 inference = 'rfx'
 kernel = None
 
-if avg:
-    # mcp = "maxstats"
-    # check
-    mcp = "fdr"
-else:
-    mcp = "cluster"
+mcp = "fdr"
 
-estimator = GCMIEstimator(mi_type='cd', relative=False, copnorm=True,
+estimator = GCMIEstimator(mi_type='cd', copnorm=True,
                           biascorrect=False, demeaned=False, tensor=True,
                           gpu=False, verbose=None)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
@@ -92,14 +85,14 @@ mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
 
 # Path to results folder
 _RESULTS = os.path.join(_ROOT,
-                        "Results/lucy/mutual_information")
+                        "Results/lucy/mutual_information_csd")
 
 path_mi = os.path.join(_RESULTS,
-                       f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
+                       f"mi_pow_csd_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
 path_tv = os.path.join(_RESULTS,
-                       f"tval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
+                       f"tval_csd_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
 path_pv = os.path.join(_RESULTS,
-                       f"pval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
+                       f"pval_csd_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
 
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)

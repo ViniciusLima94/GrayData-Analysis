@@ -14,8 +14,7 @@
 #python -O mi_net_analysis.py "plv" "coreness" 1
 #python -O mi_net_analysis.py "plv" "efficiency" 1
 
-python -O mi_coh_analysis.py "plv" 1
-python -O mi_coh_analysis.py "pec" 1
+python -O mi_coh_analysis.py "coh"
 
 #python -O mi_net_analysis.py "coh" "degree" 1 
 #python -O mi_net_analysis.py "plv" "degree" 1 

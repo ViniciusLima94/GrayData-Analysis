@@ -10,30 +10,12 @@ library(RColorBrewer)
 ################################################################################
 root = "/home/vinicius/funcog/gda"
 results = "/home/vinicius/storage1/projects/GrayData-Analysis/figures/"
-df_coh = read.csv(
+df = read.csv(
   paste(
     c(root,
-      "/Results/lucy/mutual_information/mi_coh_fdr.csv"),
+      "/Results/lucy/mutual_information_csd/mi_coh_fdr.csv"),
     collapse="")
 )
-
-df_plv = read.csv(
-  paste(
-    c(root,
-      "/Results/lucy/mutual_information/mi_plv_fdr.csv"),
-    collapse="")
-)
-
-df_pec = read.csv(
-  paste(
-    c(root,
-      "/Results/lucy/mutual_information/mi_pec_fdr.csv"),
-    collapse="")
-)
-
-df <- df_coh %>% select(1:5)
-df$plv <- df_plv$plv
-df$pec <- df_pec$pec
 
 ################################################################################
 # Number of sig. effects
@@ -51,28 +33,17 @@ colnames(neff) <- x
 for(f in freqs) {
   for(t in times) {
     # Filter for a freq and time
-    out <- df %>% filter(freqs==f,
-                         times==t)
+    
+    idx = df$freqs == f & df$times==t
+    out <- df[idx, ]
     # Coherence
     neff_coh <- sum(out$coh > 0)
-    # PLV
-    neff_plv <- sum(out$plv > 0)
-    # PEC
-    neff_pec <- sum(out $pec > 0)
     # Row for dataframe
     row <- c(f, t, "coh", neff_coh)
-    neff[nrow(neff) + 1,] <- row
-    row <- c(f, t, "plv", neff_plv)
-    neff[nrow(neff) + 1,] <- row
-    row <- c(f, t, "pec", neff_pec)
     neff[nrow(neff) + 1,] <- row
   }
 }
 
-# Define labels
-freqs.labs <- c("3 Hz", "11 Hz", "19 Hz", "27 Hz", "35 Hz",
-                "43 Hz", "51 Hz", "59 Hz", "67 Hz", "75 Hz")
-names(freqs.labs) <- as.character(unique(neff$freqs))
 
 times.labs <- c("baseline", "cue", "e. delay", "l. delay", "match")
 names(times.labs) <- 0:4
@@ -86,7 +57,6 @@ neff %>% ggplot(aes(x=as.factor(times), y = as.numeric(n),
   theme(plot.title = element_text(hjust=0.5),
         axis.text.x = element_text(angle = 45, hjust=1)) +
   facet_wrap(~as.numeric(freqs), ncol=5,
-             labeller = labeller(freqs = freqs.labs),
              scales = "free_y") +
   labs(x = "", y = "#sig. edges")
 
@@ -96,7 +66,7 @@ ggsave(
     c(results,
       "/mi_edge_enconding_nedges.png"),
     collapse = ""),
-  width = 10, height = 4)
+  width = 10, height = 12)
 
 ################################################################################
 # Average effect
@@ -111,23 +81,13 @@ colnames(meff) <- x
 for(f in freqs) {
   for(t in times) {
     # Filter for a freq and time
-    out <- df %>% filter(freqs==f,
-                         times==t)
+    idx = df$freqs == f & df$times==t
+    out <- df[idx, ]
     # Coherence
     meff_coh <- mean(out$coh)
     meff_coh_se <- se(out$coh)
-    # PLV
-    meff_plv <- mean(out$plv)
-    meff_plv_se <- se(out$plv)
-    # PEC
-    meff_pec <- mean(out $pec)
-    meff_pec_se <- se(out$pec)
     # Row for dataframe
     row <- c(f, t, "coh", meff_coh, meff_coh_se)
-    meff[nrow(meff) + 1,] <- row
-    row <- c(f, t, "plv", meff_plv, meff_plv_se) 
-    meff[nrow(meff) + 1,] <- row
-    row <- c(f, t, "pec", meff_pec, meff_pec_se)
     meff[nrow(meff) + 1,] <- row
   }
 }
@@ -143,7 +103,6 @@ meff %>% ggplot(aes(x=as.factor(times), y = as.numeric(n),
   theme(plot.title = element_text(hjust=0.5),
         axis.text.x = element_text(angle = 45, hjust=1)) +
   facet_wrap(~as.numeric(freqs), ncol=5,
-             labeller = labeller(freqs = freqs.labs),
              scales = "free_y") +
   labs(x = "", y = "Average effect")
 
@@ -153,7 +112,7 @@ ggsave(
     c(results,
       "/mi_edge_enconding_avgeffect.png"),
     collapse = ""),
-  width = 10, height = 4)
+  width = 10, height = 12)
 
 ################################################################################
 # Encoding networks

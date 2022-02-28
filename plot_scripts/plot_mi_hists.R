@@ -3,24 +3,26 @@ library(umap)
 
 ROOT = "/home/vinicius/storage1/projects/GrayData-Analysis/figures"
 
-
 # Stages names
 stages = c("Baseline", "Cue", "Early delay", "Late delay", "Match")
 
 data_path = "/home/vinicius/funcog/gda/Results/lucy/mutual_information_csd/"
 file = paste(
-  c(data_path, "mi_df_degree_fdr.csv"),
+  c(data_path, "mi_df_degree_csd_fdr.csv"),
   collapse = "")
 
 for(i in 0:4){
   df = read.csv(
-      file
+    file
   )
   
-
+  df <- df %>% gather(key = metric,
+                      value = t_values,
+                      c("power", "coh"))
+  
   df <- df %>% filter(times==i)
   
-  ggplot(data=df, aes(x=roi, y=coh)) +
+  ggplot(data=df, aes(x=roi, y=t_values, fill = metric)) +
     geom_bar(alpha = 0.7, stat='identity', position="stack") +
     ylim(0, 80) +
     coord_flip() +
@@ -39,6 +41,7 @@ for(i in 0:4){
     width = 12, height = 8)
 }
 
+metrics <- c("coh")
 
 for(metric in metrics) {
   # For each roi determines if the stim is encoded by power uniquely, by FC degree
@@ -47,10 +50,13 @@ for(metric in metrics) {
     file
   )
   
+  df$X <- NULL
+  
   out <- df %>% select(1:3)
   
-  out$fc <- df$coh > 0
-  out$n <- out$fc
+  out$power <- as.integer(df$power > 0)
+  out$fc <- 2*(df$coh > 0)
+  out$n <- out$power + out$fc
   
   mycolors = c("#FFFFFF", "#D800FF", "#178A00", "#000000")
   times.labs <- c("baseline", "cue", "e. delay", "l. delay", "match")
@@ -67,8 +73,8 @@ for(metric in metrics) {
     theme(plot.title = element_text(hjust=0.5),
           axis.text.x = element_text(angle = 90, hjust=1)) +
     labs(x = "", y = "Freqs [Hz]") +
-    ggtitle("Coherence degree encoding")
-    #
+    ggtitle(paste(c(metric, " encoding"), collapse=""))
+  #
   
   ggsave(
     paste(
