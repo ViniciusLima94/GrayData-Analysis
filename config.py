@@ -32,11 +32,17 @@ dirs = {
 ###############################################################################
 
 # Defining parameters
-mode = 'multitaper'  # Wheter to use Morlet or Multitaper
-bandwidth = 10
-fmin, fmax = 3, 80
-# Decimation in freqs
-n_fft = None
+# mode = 'multitaper'  # Wheter to use Morlet or Multitaper
+# bandwidth = 10
+# fmin, fmax = 3, 80
+# # Decimation in freqs
+# n_fft = None
+
+mode = 'morlet'
+n_freqs = 10  # How many frequencies to use
+freqs = np.linspace(3, 75, n_freqs)  # Frequency array
+n_cycles = freqs/4  # Number of cycles
+bandwidth = None
 
 # Times of interest
 t_win = np.array([[-0.5, -0.1],

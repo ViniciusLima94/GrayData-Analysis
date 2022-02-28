@@ -70,7 +70,7 @@ mcp = "fdr"
 
 kernel = None
 estimator = GCMIEstimator(mi_type='cd', copnorm=True,
-                          biascorrect=False, demeaned=False, tensor=True,
+                          biascorrect=True, demeaned=False, tensor=True,
                           gpu=False, verbose=None)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
 

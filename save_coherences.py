@@ -4,8 +4,10 @@ import numpy as np
 import xarray as xr
 import argparse
 
+# from config import (mode, bandwidth, sessions, t_win,
+                    # fmin, fmax, return_evt_dt, n_fft)
 from config import (mode, bandwidth, sessions, t_win,
-                    fmin, fmax, return_evt_dt, n_fft)
+                    freqs, return_evt_dt, n_cycles)
 from GDa.session import session
 from xfrites.conn.conn_csd import conn_csd
 from GDa.signal.surrogates import trial_swap_surrogates
@@ -66,19 +68,20 @@ if __name__ == '__main__':
 
     start = time.time()
 
-    # kw = dict(t0=evt_dt[0], fmin=fmin, fmax=fmax,bandwidth=bandwidth)
-    kw = dict(fmin=fmin, fmax=fmax,bandwidth=bandwidth, n_fft=n_fft)
+    # kw = dict(fmin=fmin, fmax=fmax,bandwidth=bandwidth, n_fft=n_fft)
+    kw = dict(n_cycles=n_cycles)
     coh = []
     for t0, t1 in t_win:
         coh += [conn_csd(ses.data.sel(time=slice(t0,t1)), times='time', roi='roi',
-                         sfreq=ses.data.attrs["fsample"], mode=mode, metric="coh",
-                         freqs=None, n_jobs=20, verbose=None,  csd_kwargs=kw)]
+                         freqs=freqs, sfreq=ses.data.attrs["fsample"], mode=mode, metric="coh",
+                         n_jobs=20, verbose=None,  csd_kwargs=kw)]
     coh = xr.concat(coh, "times")
 
     # reordering dimensions
     coh = coh.transpose("roi", "freqs", "trials", "times")
     # Add areas as attribute
     coh.attrs['areas'] = ses.data.roi.values.astype('str')
+    del coh.attrs['foi_idx'], coh.attrs['foi_s'], coh.attrs['foi_e'], coh.attrs['need_foi']
     del coh.attrs['attrs'], coh.attrs['freqs'], coh.attrs['sm_times'], coh.attrs['sm_freqs']
     del coh.attrs['roi_idx'], coh.attrs['win_sample'], coh.attrs['win_times'], coh.attrs['blocks']
     # Save to file
@@ -94,7 +97,7 @@ if __name__ == '__main__':
         for t0, t1 in t_win:
             coh_surr += [conn_csd(data_surr.sel(time=slice(t0,t1)), times='time', roi='roi',
                              sfreq=ses.data.attrs["fsample"], mode=mode, metric="coh",
-                             freqs=None, n_jobs=20, verbose=None,  csd_kwargs=kw)]
+                             freqs=freqs, n_jobs=20, verbose=None,  csd_kwargs=kw)]
         coh_surr = xr.concat(coh_surr, "times")
         #  Estimate significance level from 95% percentile over trials
         coh_surr = coh_surr.quantile(0.95, dim="trials")
