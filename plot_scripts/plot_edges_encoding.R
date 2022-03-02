@@ -32,8 +32,8 @@ df_pec = read.csv(
 )
 
 df <- df_coh %>% select(1:5)
-df$plv <- df_plv$plv
-df$pec <- df_pec$pec
+df$plv <- 0#df_plv$plv
+df$pec <- 0#df_pec$pec
 
 ################################################################################
 # Number of sig. effects
