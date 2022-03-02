@@ -76,8 +76,8 @@ if avg:
 else:
     mcp = "cluster"
 
-estimator = GCMIEstimator(mi_type='cd', relative=False, copnorm=True,
-                          biascorrect=False, demeaned=False, tensor=True,
+estimator = GCMIEstimator(mi_type='cd', copnorm=True,
+                          biascorrect=True, demeaned=False, tensor=True,
                           gpu=False, verbose=None)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
 
