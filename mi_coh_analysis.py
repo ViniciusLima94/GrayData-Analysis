@@ -20,10 +20,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("METRIC",
                     help="which network metric to use",
                     type=str)
+parser.add_argument("MODE",
+                    help="which spectral decomposition mode to use",
+                    type=str)
 
 args = parser.parse_args()
 
 metric = args.METRIC
+mode = args.MODE
 avg = 0
 
 ##############################################################################
@@ -35,8 +39,8 @@ _ROOT = os.path.expanduser('~/funcog/gda')
 ###############################################################################
 # Iterate over all sessions and concatenate coherece
 ###############################################################################
-coh_file = f'{metric}_csd_multitaper_at_cue.nc'
-coh_sig_file = f'{metric}_csd_multitaper_at_cue_surr.nc'
+coh_file = f'{metric}_csd_{mode}_at_cue.nc'
+coh_sig_file = f'{metric}_csd_{mode}_at_cue_surr.nc'
 
 coh = []
 stim = []
