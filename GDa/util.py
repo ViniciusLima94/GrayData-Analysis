@@ -194,7 +194,7 @@ def average_stages(feature, avg):
         out = out.transpose("trials", "roi", "freqs", "times")
         out.attrs = feature.attrs
     else:
-        out = feature
+        out = feature.transpose("trials", "roi", "freqs", "times")
     return out
 
 

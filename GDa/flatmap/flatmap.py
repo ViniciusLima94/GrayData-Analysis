@@ -62,7 +62,7 @@ class flatmap():
         self.areas = areas
 
     def plot(self, ax, ax_colorbar=None, colormap="viridis", alpha=0.2,
-             vmin=None, vmax=None, extend=None, cbar_title=None,
+             vmin=None, vmax=None, extend=None, cbar_title=None, cbar_fontsize=12,
              figsize=None, dpi=None):
         """
         ax: pyplot.axis | None
@@ -118,7 +118,7 @@ class flatmap():
             cbar = plt.colorbar(
                 mappable=plt.cm.ScalarMappable(cmap=cmap, norm=norm),
                 cax=ax_colorbar, extend=extend)
-            cbar.ax.set_ylabel(cbar_title, rotation='vertical')
+            cbar.ax.set_ylabel(cbar_title, rotation='vertical', fontsize=cbar_fontsize)
 
     def get_flatmap_coordinates(self, area):
         """
