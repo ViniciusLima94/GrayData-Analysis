@@ -73,8 +73,6 @@ inference = 'rfx'
 kernel = None
 
 if avg:
-    # mcp = "maxstats"
-    # check
     mcp = "fdr"
 else:
     mcp = "cluster"
