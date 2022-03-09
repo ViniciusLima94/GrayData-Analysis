@@ -9,7 +9,7 @@ library(RColorBrewer)
 # Loading data
 ################################################################################
 root = "/home/vinicius/funcog/gda"
-results = "/home/vinicius/storage1/projects/GrayData-Analysis/figures/"
+results = "/home/vinicius/storage1/projects/GrayData-Analysis/figures/edge_encoding"
 df_coh = read.csv(
   paste(
     c(root,
@@ -32,8 +32,8 @@ df_pec = read.csv(
 )
 
 df <- df_coh %>% select(1:5)
-df$plv <- 0#df_plv$plv
-df$pec <- 0#df_pec$pec
+df$plv <- df_plv$plv
+df$pec <- 0*df_pec$pec
 
 ################################################################################
 # Number of sig. effects
@@ -158,6 +158,13 @@ ggsave(
 ################################################################################
 # Encoding networks
 ################################################################################
+
+# Load-power encoding
+power <- read.csv(
+  paste(
+    c(root, "/Results/lucy/mutual_information/mi_df_coh_fdr.csv"),
+    collapse = "")
+)[, 1:4]
 
 create_graph <- function(f, t, metric) {
   # Load data
@@ -325,43 +332,101 @@ ggsave(
     collapse = ""),
   width = 14, height = 20)
 
-###############################################################################################################
-f=35
-t=4
-metric="coh"
-# Load data
-df = read.csv(
+################################################################################
+# Encoding networks 2
+################################################################################
+
+# Load-power encoding
+power <- read.csv(
   paste(
-    c(root,
-      "/Results/lucy/mutual_information/mi_",
-      metric,
-      "_fdr.csv"),
-    collapse="")
-)
+    c(root, "/Results/lucy/mutual_information/mi_df_coh_fdr.csv"),
+    collapse = "")
+)[, 1:4]
 
-idx = as.logical((df$freqs == f) & (df$times == t))
-# Filter frequency and time of interest
-df_filt <- df[idx, ]
-
-# Creating network
-edges <- df_filt[df_filt[metric] > 0, 6:7]
-edges <- edges %>% 
-  rename(from = s,
-         to = t)
-
-rois <- unique(c(as.character(edges$from), as.character(edges$to)))
-n_rois <- length(rois)
-n_pairs <- length(weights)
-
-nodes <- as.data.frame(rois)
-nodes <- nodes %>% rename(id = rois)
-
-# Create a graph object
-graph <- igraph::graph_from_data_frame( d=edges, vertices=nodes, directed=F )
-
-clp <- cluster_louvain(graph)
-plot(clp, graph)
-layout <-layout_with_fr(graph)
-V(graph)$community <- clp$membership
-plot(clp, graph, vertex.size=3, layout=layout, asp=1, edge.width = .11,
-     vertex.label.cex = 1, margin = -0.3, rescale=T)
+create_graph <- function(f, t, metric) {
+  # Load data
+  df = read.csv(
+    paste(
+      c(root,
+        "/Results/lucy/mutual_information/mi_",
+        metric,
+        "_fdr.csv"),
+      collapse="")
+  )
+  
+  idx = as.logical((df$freqs == f) & (df$times == t))
+  # Filter frequency and time of interest
+  df_filt <- df[idx, ]
+  
+  # Binary network
+  weights <- as.numeric(df_filt[metric] > 0)
+  # Creating network
+  edges <- df_filt %>% select(6:7)
+  edges$weights <- unlist(weights)
+  edges <- edges %>% 
+    rename(from = s,
+           to = t)
+  
+  edges <- edges[order(edges$from),]
+  
+  
+  rois <- unique(c(as.character(edges$from), as.character(edges$to)))
+  n_rois <- length(rois)
+  n_pairs <- length(weights)
+  
+  nodes <- as.data.frame(rois)
+  nodes <- nodes %>% rename(id = rois)
+  
+  # Create a graph object
+  graph <- igraph::graph_from_data_frame( d=edges, vertices=nodes, directed=F )
+  
+  strengths <- igraph::strength(graph = graph, weights = edges$weights)
+  
+  if(t == 0) {
+    stage <- "baseline"
+  } else if(t == 1) {
+    stage <- "cue"
+  } else if(t == 2) {
+    stage <- "e. delay"
+  } else if(t == 3) {
+    stage <- "l. delay"
+  } else {
+    stage <- "match"
+  }
+  
+  if(f==3) {
+    title <- stage
+  } else {
+    title <- " "
+  }
+  
+  if(t==0) {
+    ylabel <- paste(c(f, "Hz"),
+                    collapse=" ") 
+  } else {
+    ylabel <- " "
+  }
+  
+  filter <- (edges$weights>0) #& ((edges$from=="a8L") | (edges$to=="a8L"))
+  
+  p<-ggraph(graph, layout = 'linear', circular = TRUE) + 
+    geom_edge_arc(aes(filter=filter),
+                  width=.3, color="black",
+                  show.legend=F) +
+    scale_edge_colour_distiller(palette = "RdPu", direction=1,
+                                name="", limits=c(0, 20)) +
+    geom_node_point(aes(x = x*1.07, y=y*1.07, color=rois),
+                    show.legend=F,
+                    alpha=0.6) +
+    geom_node_text(aes(label=rois, x=x*1.15, y=y*1.15), color="black",
+                   size=2, alpha=1, show.legend=F) +
+    theme_void() +
+    ggtitle(title) +
+    ylab(ylabel) +
+    theme(
+      plot.title = element_text(hjust = 0.5, size=10),
+      plot.margin=unit(c(0,0,0,0),"cm"),
+    ) 
+  p
+  return(p)
+}
