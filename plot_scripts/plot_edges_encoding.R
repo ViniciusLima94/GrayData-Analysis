@@ -74,7 +74,7 @@ freqs.labs <- c("3 Hz", "11 Hz", "19 Hz", "27 Hz", "35 Hz",
                 "43 Hz", "51 Hz", "59 Hz", "67 Hz", "75 Hz")
 names(freqs.labs) <- as.character(unique(neff$freqs))
 
-times.labs <- c("baseline", "cue", "e. delay", "l. delay", "match")
+times.labs <- c("P", "S", "D1", "D2", "Dm")
 names(times.labs) <- 0:4
 
 neff %>% ggplot(aes(x=as.factor(times), y = as.numeric(n),
@@ -89,7 +89,6 @@ neff %>% ggplot(aes(x=as.factor(times), y = as.numeric(n),
              labeller = labeller(freqs = freqs.labs),
              scales = "free_y") +
   labs(x = "", y = "#sig. edges")
-
 
 ggsave(
   paste(
@@ -159,13 +158,6 @@ ggsave(
 # Encoding networks
 ################################################################################
 
-# Load-power encoding
-power <- read.csv(
-  paste(
-    c(root, "/Results/lucy/mutual_information/mi_df_coh_fdr.csv"),
-    collapse = "")
-)[, 1:4]
-
 create_graph <- function(f, t, metric) {
   # Load data
   df = read.csv(
@@ -177,7 +169,7 @@ create_graph <- function(f, t, metric) {
       collapse="")
   )
   
-  idx = as.logical((df$freqs == f) & (df$times == t))
+  idx = (df$freqs == f) & (df$times == t)
   # Filter frequency and time of interest
   df_filt <- df[idx, ]
   
@@ -206,15 +198,15 @@ create_graph <- function(f, t, metric) {
   strengths <- igraph::strength(graph = graph, weights = edges$weights)
   
   if(t == 0) {
-    stage <- "baseline"
+    stage <- "P"
   } else if(t == 1) {
-    stage <- "cue"
+    stage <- "S"
   } else if(t == 2) {
-    stage <- "e. delay"
+    stage <- "D1"
   } else if(t == 3) {
-    stage <- "l. delay"
+    stage <- "D2"
   } else {
-    stage <- "match"
+    stage <- "Dm"
   }
   
   if(f==3) {
@@ -236,9 +228,9 @@ create_graph <- function(f, t, metric) {
     geom_edge_arc(aes(filter=filter),
                   width=.3, color="black",
                   show.legend=F) +
-    scale_edge_colour_distiller(palette = "RdPu", direction=1,
+    scale_edge_colour_distiller(palette = "Set1", direction=1,
                                 name="", limits=c(0, 20)) +
-    geom_node_point(aes(x = x*1.07, y=y*1.07, color=rois),
+    geom_node_point(aes(x = x*1.07, y=y*1.07, color=rois, size=strengths),
                     show.legend=F,
                     alpha=0.6) +
     geom_node_text(aes(label=rois, x=x*1.15, y=y*1.15), color="black",
@@ -250,14 +242,13 @@ create_graph <- function(f, t, metric) {
       plot.title = element_text(hjust = 0.5, size=10),
       plot.margin=unit(c(0,0,0,0),"cm"),
     ) 
-  p
   return(p)
 }
 
 ################################################################################
 # Coherence
 ################################################################################
-myplots <- vector('list', length(times))
+myplots <- vector('list', length(times) * length(freqs))
 i<-1
 for(f in freqs) {
   for(t in times) {
@@ -269,10 +260,8 @@ for(f in freqs) {
   i <- i + 1
   }
 }
-
 ggarrange(plotlist=myplots,
           ncol = n_times, nrow = n_freqs) 
-
 ggsave(
   paste(
     c(results,
@@ -283,7 +272,7 @@ ggsave(
 ################################################################################
 # PLV
 ################################################################################
-myplots <- vector('list', length(times))
+myplots <- vector('list', length(times) * length(freqs))
 i<-1
 for(f in freqs) {
   for(t in times) {
@@ -309,8 +298,8 @@ ggsave(
 ################################################################################
 # PEC
 ################################################################################
-myplots <- vector('list', length(times))
-i<-2
+myplots <- vector('list', length(times) * length(freqs))
+i<-1
 for(f in freqs) {
   for(t in times) {
     p1 <- create_graph(f, t, "pec")
@@ -321,10 +310,8 @@ for(f in freqs) {
     i <- i + 1
   }
 }
-
 ggarrange(plotlist=myplots,
           ncol = n_times, nrow = n_freqs) 
-
 ggsave(
   paste(
     c(results,
@@ -333,7 +320,7 @@ ggsave(
   width = 14, height = 20)
 
 ################################################################################
-# Encoding networks 2
+# Encoding networks + power encoding
 ################################################################################
 
 # Load-power encoding
