@@ -26,25 +26,32 @@ from config import sessions
 parser = argparse.ArgumentParser()
 parser.add_argument("SIDX", help="index of the session to run",
                     type=int)
+parser.add_argument("METRIC", help="which dFC metric to use",
+                    type=str)
 args = parser.parse_args()
 # The index of the session to use
 idx = args.SIDX
+# Get name of the dFC metric
+metric = args.METRIC
 
 ###############################################################################
 # Loading power and temporal network
 ###############################################################################
-_ROOT = os.path.expanduser("~/storage1/projects/GrayData-Analysis")
+
+_ROOT = os.path.expanduser("~/funcog/gda")
 _RESULTS = os.path.join("Results", "lucy", sessions[idx], "session01")
 
+# dFC files
 power_file = "power_tt_1_br_1_at_cue.nc"
-coh_sig_file = "coh_k_0.3_multitaper_at_cue_surr.nc"
+coh_file= f"{metric}_k_0.3_multitaper_at_cue.nc"
+coh_sig_file = f"{metric}_k_0.3_multitaper_at_cue_surr.nc"
 wt = None
 
 power = xr.load_dataarray(os.path.join(_ROOT, _RESULTS, power_file))
 power = power.transpose("roi", "freqs", "trials", "times")
 
 net = temporal_network(
-    coh_file="coh_k_0.3_multitaper_at_cue.nc",
+    coh_file=coh_file,
     coh_sig_file=coh_sig_file,
     wt=wt,
     date=sessions[idx],
@@ -125,10 +132,16 @@ for f in range(n_freqs):
     )]
 
 out = pd.concat(out, axis=0)
-out.to_csv(f'Results/lucy/nli/nli_{sessions[idx]}.csv')
+
+nli_path = os.path.join(_ROOT, "Results", "lucy",
+                        f"nli/nli_{metric}_{sessions[idx]}.csv")
+mean_power_path = os.path.join(
+    _ROOT, "Results", "lucy",
+    f"nli/mean_power_{metric}_{sessions[idx]}.csv")
+
+out.to_csv(nli_path)
 
 ###############################################################################
 # DataFrame for mean power
 ###############################################################################
-mean_power.to_dataframe(name="power").reset_index().to_csv(
-    f'Results/lucy/nli/mean_power_{sessions[idx]}.csv')
+mean_power.to_dataframe(name="power").reset_index().to_csv(mean_power_path)

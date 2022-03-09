@@ -208,8 +208,52 @@ def _extract_roi(roi, sep):
     roi_c = np.c_[x_s, x_t]
     idx = np.argsort(np.char.lower(roi_c.astype(str)), axis=1)
     roi_s, roi_t = np.c_[[r[i] for r, i in zip(roi_c, idx)]].T
-    roi_st = [f"{s}{sep}{t}" for s, t in zip(roi_s, roi_t)]
+    # roi_st = [f"{s}{sep}{t}" for s, t in zip(roi_s, roi_t)]
     return roi_s, roi_t
+
+def _create_roi_area_mapping(roi):
+    """
+    Create a mapping between pairs of rois and integer indexes
+
+    Parameters
+    ----------
+    roi: array_like
+       Array of size (n_edges) containing the name of the rois
+       (i, j) that form the FC link separated by "-". 
+       Ex: ["V1-a3", "V6a-LIP", ..., "a46d-a8"]
+
+    Returns
+    -------
+    roi_s: array_like
+        The name of the source areas
+    roi_t: array_like
+        The name of the target areas
+    roi_is: array_like
+        The index of the source areas
+    roi_it: array_like
+        The index of the target areas
+    areas: array_like
+        The name of the areas
+    mapping: dict
+        The mapping area-index created
+    """
+
+    # Get sources and target names
+    roi_s, roi_t = _extract_roi(roi, "-")
+    # Get unique area names
+    areas = np.unique(np.stack((roi_s, roi_t)))
+    # Get number of unique areas
+    n_areas = len(areas)
+    # Assign a index for each area
+    mapping = dict(zip(areas, range(n_areas)))
+    # Convert roi_s roi_t to integer indexes
+    roi_is = np.array([mapping[s] for s in roi_s])
+    roi_it = np.array([mapping[t] for t in roi_t])
+    # return rois names from roi
+    # the index for each edge roi
+    # and the mapping
+    return roi_s, roi_t, roi_is, roi_it, areas, mapping
+
 
 
 def _check_values(values, in_list):
