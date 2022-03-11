@@ -9,28 +9,49 @@ args = commandArgs(trailingOnly=TRUE)
 ################################################################################
 # Loading data
 ################################################################################
-session = c("141017", "141014", "141015", "141016", "141023", "141024", "141029",
-            "141103", "141112", "141113", "141125", "141126", "141127", "141128",
-            "141202", "141203", "141205", "141208", "141209", "141211", "141212",
-            "141215", "141216", "141217", "141218", "150114", "150126", "150128",
-            "150129", "150205", "150210", "150211", "150212", "150213", "150217",
-            "150219", "150223", "150224", "150226", "150227", "150302", "150303",
-            "150304", "150305", "150403", "150407", "150408", "150413", "150414",
-            "150415", "150416", "150427", "150428", "150429", "150430", "150504",
-            "150511", "150512", "150527", "150528", "150529", "150608")
+sessions = c("141017", "141014", "141015", "141016", "141023", "141024", "141029",
+             "141103", "141112", "141113", "141125", "141126", "141127", "141128",
+             "141202", "141203", "141205", "141208", "141209", "141211", "141212",
+             "141215", "141216", "141217", "141218", "150114", "150126", "150128",
+             "150129", "150205", "150210", "150211", "150212", "150213", "150217",
+             "150219", "150223", "150224", "150226", "150227", "150302", "150303",
+             "150304", "150305", "150403", "150407", "150408", "150413", "150414",
+             "150415", "150416", "150427", "150428", "150429", "150430", "150504",
+             "150511", "150512", "150527", "150528", "150529", "150608")
 session <- session[as.integer(args[1])] 
+session <- "141017"
+
+# Path to save figures
+results <- "/home/vinicius/storage1/projects/GrayData-Analysis/figures/nli/"
+# Root path to read the data
+ROOT <- "/home/vinicius/funcog/gda/Results/lucy/nli/"
+
+# Function to return file name
+get_file_name <- function(s_idx) {
+  FILE_NAME <- paste(
+    c(ROOT, "nli_coh_", sessions[s_idx], ".csv"),
+    collapse = "")
+  return(FILE_NAME)
+}
+
+read_data <- function(file_name) {
+  out <- read.csv(file_name)
+  out$X <- NULL
+  out$sources <- NULL
+  out$targets <- NULL 
+  return(out)
+}
 
 df <- read.csv(
-  paste(
-    c("Results/lucy/nli/nli_",
-      session, ".csv"),
-      collapse="")
+  paste(c(ROOT, "nli_coh_",
+          session, ".csv"),
+        collapse="")
 )
 
 # File with area names
 power <- read.csv(
   paste(
-    c("Results/lucy/nli/mean_power_",
+    c(ROOT, "mean_power_coh_",
       session, ".csv"),
       collapse="")
 )
@@ -93,7 +114,7 @@ create_graph <- function(frequency, plot, top) {
         geom_node_text(aes(label=p_filt$roi, x=x*1.15, y=y*1.15), color="black",
                        size=2, alpha=1, show.legend=FALSE) +
         theme_void() +
-        ggtitle(paste(c("freq = ", frequency, " Hz"), collapse="")) +
+        ggtitle(paste(c(frequency, " Hz"), collapse="")) +
         theme(
           plot.title = element_text(hjust = 0.5, size=10),
           plot.margin=unit(c(0,0,0,0),"cm")
