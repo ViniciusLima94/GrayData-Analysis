@@ -18,7 +18,7 @@ sessions = c("141017", "141014", "141015", "141016", "141023", "141024", "141029
              "150304", "150305", "150403", "150407", "150408", "150413", "150414",
              "150415", "150416", "150427", "150428", "150429", "150430", "150504",
              "150511", "150512", "150527", "150528", "150529", "150608")
-session <- session[as.integer(args[1])] 
+session <- sessions[as.integer(args[1])] 
 session <- "141017"
 
 # Path to save figures
@@ -26,109 +26,162 @@ results <- "/home/vinicius/storage1/projects/GrayData-Analysis/figures/nli/"
 # Root path to read the data
 ROOT <- "/home/vinicius/funcog/gda/Results/lucy/nli/"
 
+################################################################################
 # Function to return file name
-get_file_name <- function(s_idx) {
+################################################################################
+get_nli_file_name <- function(s_idx) {
   FILE_NAME <- paste(
     c(ROOT, "nli_coh_", sessions[s_idx], ".csv"),
     collapse = "")
   return(FILE_NAME)
 }
 
-read_data <- function(file_name) {
+get_pow_file_name <- function(s_idx) {
+  FILE_NAME <-   paste(
+    c(ROOT, "mean_power_coh_",
+      session, ".csv"),
+    collapse="")
+  return(FILE_NAME)
+}
+
+read_data_nli <- function(file_name) {
   out <- read.csv(file_name)
   out$X <- NULL
-  out$sources <- NULL
-  out$targets <- NULL 
+  out$s <- NULL
+  out$t <- NULL 
   return(out)
 }
 
-df <- read.csv(
-  paste(c(ROOT, "nli_coh_",
-          session, ".csv"),
-        collapse="")
-)
+read_data_pow <- function(file_name) {
+  out <- read.csv(file_name)
+  out$X <- NULL
+  return(out)
+}
 
-# File with area names
-power <- read.csv(
-  paste(
-    c(ROOT, "mean_power_coh_",
-      session, ".csv"),
-      collapse="")
-)
+load_df <- function(which) {
+  if(which == "nli") {
+    get_file_name <- get_nli_file_name
+    read_data <- read_data_nli
+  } else if (which == "power") {
+    get_file_name <- get_pow_file_name
+    read_data <- read_data_pow   
+  }
+  df <- NULL
+  for(s_idx in 1:length(sessions)) {
+    file_name <- get_file_name(s_idx)
+    if(file.exists(file_name)) {
+      if(is.null(df)) {
+        df <- read_data(file_name)
+      } else {
+        df <- rbind(df, read_data(file_name))
+      }
+    }
+  }
+  return(df)
+}
+
+################################################################################
+# Load data
+################################################################################
+
+nli <- load_df("nli")
+power <- load_df("power")
+
+nli <- nli %>% group_by(roi_s, roi_t, f) %>% 
+  summarise(nli = mean(nli), coh_st = mean(coh_st))
+
+power <- power %>% group_by(roi, freqs) %>%
+  summarise(power = mean(power))
 
 # Get frequencies
-frequencies <- unique(df$f)
+freqs <- unique(nli$f)
 
 ################################################################################
 # Create igraph object
 ################################################################################
-create_graph <- function(frequency, plot, top) {
-
-  p_filt <- power %>% filter(freqs==frequency)
-  df_filt <- df %>% filter(f==frequency)
-  edges <- df_filt %>% select(s, t, plot)
-  edges <- edges %>% 
-    rename(from = s,
-           to = t,
-           weights = plot)
+create_graph <- function(f, metric) {
+  # Get freqs of interest
+  idx <- (nli$f == f) 
+  # Filter data-frame
+  df <- nli[idx, ]
+  # Filter power
+  idx_p <- (power$freqs == f)
+  p_filt <- power[idx_p, ]
+  
+  # Creating network
+  edges <- df %>% select(roi_s, roi_t, metric)
+  colnames(edges) <- c("from", "to", "weights")
+  
+  #edges <- edges[order(edges$weights),]
+  edges <- edges[order(df$nli),]
   
   rois <- unique(c(as.character(edges$from), as.character(edges$to)))
   n_rois <- length(rois)
-  n_pairs <- length(edges$weights)
+  n_pairs <- length(weights)
   
-  # Keep only top edges
-  x <- sort(edges$weights, index.return = TRUE)
-  up <- n_pairs- top
-  idx <- x$ix[1:up]
-  edges$weights[idx]<-0
-  
-  # create a vertices data.frame. One line per object of our hierarchy
-  vertices <- data.frame(
-    name =  rois, 
-    value = runif(n_rois)
-  ) 
+  nodes <- as.data.frame(rois)
+  nodes <- nodes %>% rename(id = rois)
   
   # Create a graph object
-  graph <- igraph::graph_from_data_frame( edges, directed=FALSE, vertices=vertices )
-  
+  graph <- igraph::graph_from_data_frame( d=edges, vertices=nodes, directed=F )
   strengths <- igraph::strength(graph = graph, weights = edges$weights)
-  width <- edges$weights/max(edges$weights)
-  if(plot=="nli") {
-      name <- "NLI"
-  } else {
-      name <- "COH"
+  
+  # Getting power for each ROI
+  node_size <- rep(0, length(rois))
+  i <- 1
+  for(roi in rois) {
+    if(roi %in% p_filt$roi) {
+      node_size[i] <- p_filt[p_filt$roi==roi, ]$power
+    } else {
+      node_size[i] <- 0
+    }
+    i <- i + 1
   }
-  ################################################################################
-  # Create plot
-  ################################################################################
-  #filter=edges$weights>=cut,
-  p<-ggraph(graph, layout = 'linear', circular = TRUE) + 
-        geom_edge_arc(aes(filter=edges$weights>0,
-                          color=edges$weights),
-                      alpha=0.8, width=1) +
-        scale_edge_colour_distiller(palette = "YlOrRd", direction=1,
-                                    name=name) +
-        geom_node_point(aes(x = x*1.07, y=y*1.07, size=p_filt$power*1e10,
-                            color=p_filt$roi,
-                            alpha=0.2), show.legend=FALSE) +
-        geom_node_text(aes(label=p_filt$roi, x=x*1.15, y=y*1.15), color="black",
-                       size=2, alpha=1, show.legend=FALSE) +
-        theme_void() +
-        ggtitle(paste(c(frequency, " Hz"), collapse="")) +
-        theme(
-          plot.title = element_text(hjust = 0.5, size=10),
-          plot.margin=unit(c(0,0,0,0),"cm")
-        )
+  
+  if(metric == "nli") {
+    high <- "blue"
+    limits <- c(0, max(edges$weights))
+  } else {
+    high <- "red"
+    limits <- c(0, max(edges$weights))
+  }
+  
+  node_size <- 
+    5 * (node_size - min(node_size)) / (max(node_size) + min(node_size))
+  
+  filter <- (edges$weights>0)
+  p <- ggraph(graph, layout = 'linear', circular = TRUE) + 
+    geom_edge_arc(aes(filter=filter, width=edges$weights,
+                      color=edges$weights),
+                  show.legend=F) +
+    scale_edge_color_continuous(low = "white", high = high,
+                                na.value=high, limits=limits) +
+    scale_edge_width_continuous(range = c(0, 3)) +
+    geom_node_point(aes(x = x*1.07, y=y*1.07),
+                    color="orange",
+                    size=node_size,
+                    show.legend=F,
+                    alpha=0.6) +
+    geom_node_text(aes(label=rois, x=x*1.15, y=y*1.15), color="black",
+                   size=2, alpha=1, show.legend=F) +
+    theme_void() +
+    ggtitle(paste(c(f, " Hz"), collapse = "")) +
+    theme(
+      plot.title = element_text(hjust = 0.5, size=10),
+      plot.margin=unit(c(0,0,0,0),"cm"),
+    )
+  p
   return(p)
 }
 
+
 ################################################################################
-# Creating plots
+# Plot NLI
 ################################################################################
-myplots <- vector('list', length(frequencies))
+myplots <- vector('list', length(freqs))
 i<-1
-for(f in frequencies) {
-  p1 <- create_graph(f, "nli", 100)
+for(f in freqs) {
+  p1 <- create_graph(f, "nli")
   myplots[[i]] <- local({
     i <- i
     print(p1)
@@ -136,30 +189,26 @@ for(f in frequencies) {
   i <- i + 1
 }
 
-ggarrange(myplots[[1]],
-          myplots[[2]],
-          myplots[[3]],
-          myplots[[4]],
-          myplots[[5]],
-          myplots[[6]],
-          myplots[[7]],
-          myplots[[8]],
-          myplots[[9]],
-          myplots[[10]],
-          labels = c("A", "B", "C", "D", "E",
-                     "F", "G", "H", "I", "J"),
-          ncol = 5, nrow = 2) 
+plot <- ggarrange(plotlist=myplots,
+                  ncol = length(freqs) / 2, nrow = 2) 
+annotate_figure(plot, top = text_grob("NLI", 
+                                      color = "black",
+                                      face = "bold", size = 12))
 ggsave(
-    paste(
-    c("figures/nli/nli_",
-      session, ".png"),
-      collapse="")
-    , dpi=300, width = 30, height = 8)
+  paste(
+    c(results,
+      "nli_plot.png"),
+    collapse = ""),
+  width = 18, height = 6)
 
-myplots <- vector('list', length(frequencies))
+################################################################################
+# Plot mean coherence
+################################################################################
+
+myplots <- vector('list', length(freqs))
 i<-1
-for(f in frequencies) {
-  p1 <- create_graph(f, "coh_st", 100)
+for(f in freqs) {
+  p1 <- create_graph(f, "coh_st")
   myplots[[i]] <- local({
     i <- i
     print(p1)
@@ -167,22 +216,15 @@ for(f in frequencies) {
   i <- i + 1
 }
 
-ggarrange(myplots[[1]],
-          myplots[[2]],
-          myplots[[3]],
-          myplots[[4]],
-          myplots[[5]],
-          myplots[[6]],
-          myplots[[7]],
-          myplots[[8]],
-          myplots[[9]],
-          myplots[[10]],
-          labels = c("A", "B", "C", "D", "E",
-                     "F", "G", "H", "I", "J"),
-          ncol = 5, nrow = 2) 
+plot <- ggarrange(plotlist=myplots,
+                  ncol = length(freqs) / 2, nrow = 2) 
+annotate_figure(plot, top = text_grob("Average coherence", 
+                                      color = "black",
+                                      face = "bold", size = 12))
 ggsave(
-    paste(
-    c("figures/nli/coh_",
-      session, ".png"),
-      collapse="")
-    , dpi=300, width = 30, height = 8)
+  paste(
+    c(results,
+      "coh_plot.png"),
+    collapse = ""),
+  width = 18, height = 6)
+

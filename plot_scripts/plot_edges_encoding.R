@@ -217,7 +217,7 @@ create_graph <- function(f, t, metric) {
   
   if(t==0) {
     ylabel <- paste(c(f, "Hz"),
-                  collapse=" ") 
+                    collapse=" ") 
   } else {
     ylabel <- " "
   }
@@ -254,10 +254,10 @@ for(f in freqs) {
   for(t in times) {
     p1 <- create_graph(f, t, "coh")
     myplots[[i]] <- local({
-    i <- i
-    print(p1)
-  })
-  i <- i + 1
+      i <- i
+      print(p1)
+    })
+    i <- i + 1
   }
 }
 ggarrange(plotlist=myplots,
@@ -352,7 +352,7 @@ create_graph <- function(f, t, metric, title) {
   t_values <- unlist(df_filt[metric])
   t_values <- mean(t_values)
   # Binary network
-  weights <- unlist(df_filt[metric] > 0)
+  weights <- unlist(df_filt[metric])
   # Creating network
   edges <- df_filt %>% select(6:7)
   edges$weights <- weights
@@ -412,18 +412,18 @@ create_graph <- function(f, t, metric, title) {
   filter <- (edges$weights>0) 
   
   p <- ggraph(graph, layout = 'linear', circular = TRUE) + 
-    geom_edge_arc(aes(filter = filter,),
-                  width = t_values,
-                  color = "black",
+    geom_edge_arc(aes(filter = filter,
+                      width = edges$weights,
+                      color = edges$weights),
+                  #width = t_values,
+                  #color = "black",
                   show.legend=F) +
-    scale_edge_width_continuous(name="", minor_breaks=seq(0, 20, 0.1),
-                                limits=c(0,20)) +
-    scale_edge_color_brewer(palette = "Blues",
-                            name="") +
-    geom_node_point(aes(x = x*1.07, y=y*1.07),
-                    color=power_t+1e-10,
+    scale_edge_color_continuous(low = "white", high = "blue",
+                                na.value="blue", limits = c(0, 20)) +
+    scale_edge_width_continuous(range = c(0,3), limits = c(0, 20)) +
+    geom_node_point(aes(x = x*1.07, y=y*1.07,color=power_t+1e-10),
                     size=power_t/2,
-                    alpha=0.6) +
+                    alpha=0.6, show.legend=F) +
     geom_node_text(aes(label=rois, x=x*1.15, y=y*1.15),
                    color="black",
                    size=2, alpha=1, show.legend=F) +
@@ -461,13 +461,13 @@ for(f in freqs) {
   }
   
   plot <- ggarrange(plotlist=myplots,
-            ncol =length(times), nrow = 2,
-            labels = c("A", " ", " ", " ", " ",
-                       "B", " ", " ", " ", " ")) 
+                    ncol =length(times), nrow = 2,
+                    labels = c("A", " ", " ", " ", " ",
+                               "B", " ", " ", " ", " ")) 
   
   title <- paste(c("Enconding netoworks, band ", count), collapse = "")
   annotate_figure(plot, top = text_grob(title, 
-                  color = "black", face = "bold", size = 14))
+                                        color = "black", face = "bold", size = 14))
   
   ggsave(
     paste(
@@ -546,8 +546,8 @@ mycolors <- c("#72CB3B", "#0341AE", "#FF3213")
 agg_df <- agg_df[order(agg_df$edge), ]
 
 agg_df%>% ggplot(aes(x=as.factor(edge),
-                      y=as.factor(times),
-                      fill = as.factor(agg))) + 
+                     y=as.factor(times),
+                     fill = as.factor(agg))) + 
   geom_tile() + 
   scale_y_discrete(labels=times.labs, guide = guide_axis(check.overlap = T)) +
   scale_x_discrete(guide = guide_axis(check.overlap = T)) +
@@ -563,8 +563,8 @@ agg_df%>% ggplot(aes(x=as.factor(edge),
   scale_fill_manual(values = mycolors, name="RPC") +
   xlab("Edges") +
   ylab("")
- 
-  
+
+
 ggsave(
   paste(
     c(results,

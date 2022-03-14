@@ -2,17 +2,17 @@
 Compute number of siginificant links between regions across
 sessions.
 """
-import numpy as np
-import xarray as xr
 import argparse
 import os
 
-from config import (sm_times, sm_kernel, sm_freqs, decim,
-                    mode, freqs, n_cycles, sessions,
-                    return_evt_dt)
+import numpy as np
+import xarray as xr
 from frites.utils import parallel_func
 from frites.conn.conn_spec import conn_spec
 from scipy.stats import ks_2samp, ttest_ind
+from config import (sm_times, sm_kernel, sm_freqs, decim,
+                    mode, freqs, n_cycles, sessions,
+                    return_evt_dt)
 from GDa.signal.surrogates import trial_swap_surrogates
 from GDa.session import session
 from GDa.util import _extract_roi, _create_roi_area_mapping
@@ -147,14 +147,14 @@ p_values = xr.DataArray(p_values, dims=("roi", "p", "freqs"),
 # Significance level
 alpha = 0.01
 # Number of regions between pairs of channels
-p_sig = (p_values <= alpha).groupby("roi").sum("roi")
+p_sig = (p_values <= alpha).groupby("roi").mean("roi")
 # Get rois
 roi = p_sig.roi.data
-# Get map from roi to index
+# # Get map from roi to index
 roi_s, roi_t, roi_is, roi_it, areas, mapping = _create_roi_area_mapping(roi)
-# Number of rois
+# # Number of rois
 n_rois = len(areas)
-# Number of edges
+# # Number of edges
 n_pairs = len(roi_s)
 
 sources, targets = [], []
@@ -183,6 +183,8 @@ df = p_sig.to_dataframe(name='n_edges').reset_index()
 x_s, x_t = _extract_roi(df['roi'].values, '-')
 df['sources'] = x_s
 df['targets'] = x_t
+# df = p_values.to_dataframe(name='pval').reset_index()
 file_path = os.path.join(
     _ROOT, _RESULTS, f"nedges_{metric}_{sessions[idx]}.csv")
+# p_values.to_netcdf(file_path)
 df.to_csv(file_path)
