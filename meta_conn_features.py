@@ -2,10 +2,10 @@
 Computes features for the meta connectivity matrix.
 """
 import os
+import argparse
 import brainconn as bc
 import numpy as np
 import xarray as xr
-import argparse
 
 from tqdm import tqdm
 from GDa.net.layerwise import compute_network_partition
