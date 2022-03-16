@@ -147,7 +147,7 @@ p_values = xr.DataArray(p_values, dims=("roi", "p", "freqs"),
 # Significance level
 alpha = 0.01
 # Number of regions between pairs of channels
-p_sig = (p_values <= alpha).groupby("roi").mean("roi")
+p_sig = (p_values <= alpha).groupby("roi").sum("roi")
 # Get rois
 roi = p_sig.roi.data
 # # Get map from roi to index
@@ -185,6 +185,6 @@ df['sources'] = x_s
 df['targets'] = x_t
 # df = p_values.to_dataframe(name='pval').reset_index()
 file_path = os.path.join(
-    _ROOT, _RESULTS, f"nedges_{metric}_{sessions[idx]}.csv")
+    _ROOT, _RESULTS, f"nedges_{metric}_{sessions[idx]}_sum.csv")
 # p_values.to_netcdf(file_path)
 df.to_csv(file_path)
