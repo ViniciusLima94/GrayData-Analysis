@@ -11,5 +11,4 @@
 #python -O meta_conn.py $SLURM_ARRAY_TASK_ID "plv"
 #python -O meta_conn.py $SLURM_ARRAY_TASK_ID "pec"
 
-python -O trimmer_strengths.py $SLURM_ARRAY_TASK_ID
-
+python -O trimmer_strengths.py "pec" $SLURM_ARRAY_TASK_ID

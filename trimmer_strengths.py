@@ -12,9 +12,14 @@ from config import sessions
 # Argument parsing
 ###############################################################################
 parser = argparse.ArgumentParser()
+parser.add_argument("METRIC",
+                    help="which network metric to use",
+                    type=str)
 parser.add_argument("SIDX", help="index of the session to run",
                     type=int)
 args = parser.parse_args()
+# Which FC metric to use
+metric = args.METRIC
 # The index of the session to use
 idx = args.SIDX
 session = sessions[idx]
@@ -24,7 +29,7 @@ session = sessions[idx]
 ###############################################################################
 _ROOT = os.path.expanduser("~/funcog/gda")
 _RESULTS = "Results/lucy/meta_conn"
-_MCPATH = os.path.join(_ROOT, _RESULTS, f"MC_coh_{session}.nc")
+_MCPATH = os.path.join(_ROOT, _RESULTS, f"MC_{metric}_{session}.nc")
 
 MC = xr.load_dataarray(_MCPATH)
 
@@ -100,6 +105,6 @@ def tensor_trimmer_strengths(meta_conn, n_jobs=1, verbose=False):
 
 
 ts = tensor_trimmer_strengths(MC, n_jobs=1, verbose=False)
-save_path = os.path.join(_ROOT, _RESULTS, f"ts_coh_{session}.nc")
+save_path = os.path.join(_ROOT, _RESULTS, f"ts_{metric}_{session}.nc")
 ts.to_netcdf(save_path)
 # ts.to_dataframe(name="ts").reset_index().to_csv(save_path)
