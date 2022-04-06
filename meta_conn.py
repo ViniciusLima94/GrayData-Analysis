@@ -2,16 +2,13 @@
 Computes meta-connectivity at roi level.
 """
 import os
+import argparse
 import xarray as xr
 import numpy as np
-import argparse
 
-from frites.utils import parallel_func
-from GDa.util import _extract_roi
-from GDa.temporal_network import temporal_network
-from GDa.fc.mc import meta_conn
-from config import sessions
 from tqdm import tqdm
+from GDa.temporal_network import temporal_network
+from config import sessions
 
 ###############################################################################
 # Argument parsing
@@ -22,8 +19,12 @@ parser.add_argument("SIDX", help="index of the session to run",
 parser.add_argument("METRIC",
                     help="which FC metric to use",
                     type=str)
+parser.add_argument("GLOBAL",
+                    help="wheter to measure stage based or global MC",
+                    type=int)
 args = parser.parse_args()
 metric = args.METRIC
+_global = args.GLOBAL
 idx = args.SIDX
 session = sessions[idx]
 
@@ -58,29 +59,42 @@ FC = net.super_tensor.stack(obs=("trials", "times")).data
 ###############################################################################
 n_edges = net.super_tensor.sizes["roi"]
 n_freqs = net.super_tensor.sizes["freqs"]
-stages = net.s_mask.keys()
-n_stages = len(stages)
 
-MC = np.zeros((n_edges, n_edges, n_freqs, n_stages))
-for f in tqdm(range(n_freqs)):
-    for s, stage in enumerate(net.s_mask.keys()):
-        # Get index for the stages of interest
-        idx = net.s_mask[stage].values
-        MC[..., f, s] = np.corrcoef(FC[:, f, idx])
+if not _global:
+    stages = net.s_mask.keys()
+    n_stages = len(stages)
 
-MC = xr.DataArray(MC,
-                  dims = ("sources", "targets", "freqs", "times"),
-                  coords = {"sources": net.super_tensor.roi.values,
-                            "targets": net.super_tensor.roi.values,
-                            "freqs": net.super_tensor.freqs.values,})
+    MC = np.zeros((n_edges, n_edges, n_freqs, n_stages))
+    for f in tqdm(range(n_freqs)):
+        for s, stage in enumerate(net.s_mask.keys()):
+            # Get index for the stages of interest
+            idx = net.s_mask[stage].values
+            MC[..., f, s] = np.corrcoef(FC[:, f, idx])
 
-MC.attrs = net.super_tensor.attrs
+    MC = xr.DataArray(MC,
+                      dims=("sources", "targets", "freqs", "times"),
+                      coords={"sources": net.super_tensor.roi.values,
+                              "targets": net.super_tensor.roi.values,
+                              "freqs": net.super_tensor.freqs.values, })
 
-###############################################################################
-# Saving data
-###############################################################################
-_PATH = os.path.expanduser(os.path.join(_ROOT,
-                                        "Results/lucy/meta_conn"))
+    MC.attrs = net.super_tensor.attrs
+    # Saving data
+    _PATH = os.path.expanduser(os.path.join(_ROOT,
+                                            "Results/lucy/meta_conn"))
+    # Save MC
+    MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}.nc"))
+else:
+    MC = np.zeros((n_edges, n_edges, n_freqs))
+    for f in tqdm(range(n_freqs)):
+        MC[..., f] = np.corrcoef(FC[:, f])
 
-# Save MC
-MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}.nc"))
+    MC = xr.DataArray(MC,
+                      dims=("sources", "targets", "freqs"),
+                      coords={"sources": net.super_tensor.roi.values,
+                              "targets": net.super_tensor.roi.values,
+                              "freqs": net.super_tensor.freqs.values, })
+    # Saving data
+    _PATH = os.path.expanduser(os.path.join(_ROOT,
+                                            "Results/lucy/meta_conn"))
+    # Save MC
+    MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}_global.nc"))
