@@ -43,7 +43,7 @@ _RESULTS = os.path.join("Results", "lucy", sessions[idx], "session01")
 
 # dFC files
 power_file = "power_tt_1_br_1_at_cue.nc"
-coh_file= f"{metric}_k_0.3_multitaper_at_cue.nc"
+coh_file = f"{metric}_k_0.3_multitaper_at_cue.nc"
 coh_sig_file = f"{metric}_k_0.3_multitaper_at_cue_surr.nc"
 wt = None
 
