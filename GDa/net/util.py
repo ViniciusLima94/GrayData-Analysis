@@ -87,7 +87,8 @@ def _reshape_list(array, shapes, dtype):
     return container
 
 
-def convert_to_adjacency(tensor, sources, targets, areas = None, dtype=np.float32):
+def convert_to_adjacency(tensor, sources, targets, areas=None,
+                         dtype=np.float32):
     """
     Convert the tensor with the edge time-series to a matrix representations.
 
@@ -121,7 +122,7 @@ def convert_to_adjacency(tensor, sources, targets, areas = None, dtype=np.float3
         i, j = sources[p], targets[p]
         A[i, j, ...] = A[j, i, ...] = tensor[p, ...]
 
-    # In case adj is and DataArray the output 
+    # In case adj is and DataArray the output
     # will also be
     if isinstance(tensor, xr.DataArray):
         # Check if dimensions have the apropriate labels
@@ -146,6 +147,7 @@ def convert_to_adjacency(tensor, sources, targets, areas = None, dtype=np.float3
                          })
     return A
 
+
 def convert_to_stream(adj, sources, targets, dtype=np.float32):
     """
     Convert adjacency tensor to edge time-series tensor.
@@ -153,7 +155,7 @@ def convert_to_stream(adj, sources, targets, dtype=np.float32):
 
     Parameters:
     ----------
-    adj: array_like 
+    adj: array_like
         The adjacency tensor (roi, roi, freqs, trials, times)
     sources: array_like
         list of source nodes.
@@ -182,7 +184,7 @@ def convert_to_stream(adj, sources, targets, dtype=np.float32):
         i, j = sources[p], targets[p]
         tensor[p, ...] = adj[i, j, ...]
 
-    # In case adj is and DataArray the output 
+    # In case adj is and DataArray the output
     # will also be
     if isinstance(adj, xr.DataArray):
         # Check if dimensions have the apropriate labels
@@ -191,7 +193,7 @@ def convert_to_stream(adj, sources, targets, dtype=np.float32):
             adj.dims, dims)
         # Get sources and targets roi names
         x_s, x_t \
-        = adj.sources.data, adj.targets.data
+            = adj.sources.data, adj.targets.data
         roi_c = np.c_[x_s[sources], x_t[targets]]
         idx = np.argsort(np.char.lower(roi_c.astype(str)), axis=1)
         roi = np.c_[[r[i] for r, i in zip(roi_c, idx)]]
@@ -200,7 +202,7 @@ def convert_to_stream(adj, sources, targets, dtype=np.float32):
         # Convert to DataArray
         tensor = xr.DataArray(tensor,
                               dims=('roi', 'freqs', 'trials', 'times'),
-                              coords = {
+                              coords={
                                   'roi': rois,
                                   'freqs': adj.freqs.data,
                                   'trials': adj.trials.data,

@@ -93,6 +93,7 @@ else:
                       coords={"sources": net.super_tensor.roi.values,
                               "targets": net.super_tensor.roi.values,
                               "freqs": net.super_tensor.freqs.values, })
+    MC.attrs = net.super_tensor.attrs
     # Saving data
     _PATH = os.path.expanduser(os.path.join(_ROOT,
                                             "Results/lucy/meta_conn"))
