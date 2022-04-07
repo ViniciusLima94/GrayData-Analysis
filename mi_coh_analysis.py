@@ -5,12 +5,12 @@ import os
 import argparse
 
 from tqdm import tqdm
-from config import sessions
-from GDa.util import average_stages
-from GDa.temporal_network import temporal_network
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
+from config import sessions
+from GDa.util import average_stages
+from GDa.temporal_network import temporal_network
 
 ###############################################################################
 # Argument parsing

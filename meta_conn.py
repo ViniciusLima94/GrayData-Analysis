@@ -10,9 +10,9 @@ from tqdm import tqdm
 from GDa.temporal_network import temporal_network
 from config import sessions
 
-###############################################################################
+##############################################################################
 # Argument parsing
-###############################################################################
+##############################################################################
 parser = argparse.ArgumentParser()
 parser.add_argument("SIDX", help="index of the session to run",
                     type=int)
@@ -28,9 +28,9 @@ _global = args.GLOBAL
 idx = args.SIDX
 session = sessions[idx]
 
-###############################################################################
+##############################################################################
 # Loading temporal network
-###############################################################################
+##############################################################################
 _ROOT = os.path.expanduser("~/funcog/gda")
 
 # Path in which to save coherence data
@@ -54,9 +54,9 @@ net.create_stage_masks(flatten=True)
 # Stack trials
 FC = net.super_tensor.stack(obs=("trials", "times")).data
 
-###############################################################################
+##############################################################################
 # Compute meta-connectivity
-###############################################################################
+##############################################################################
 n_edges = net.super_tensor.sizes["roi"]
 n_freqs = net.super_tensor.sizes["freqs"]
 
