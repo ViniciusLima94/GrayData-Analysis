@@ -29,7 +29,7 @@ session = sessions[idx]
 ###############################################################################
 _ROOT = os.path.expanduser("~/funcog/gda")
 _RESULTS = "Results/lucy/meta_conn"
-_MCPATH = os.path.join(_ROOT, _RESULTS, f"MC_{metric}_{session}.nc")
+_MCPATH = os.path.join(_ROOT, _RESULTS, f"MC_{metric}_{session}_global.nc")
 
 MC = xr.load_dataarray(_MCPATH)
 
