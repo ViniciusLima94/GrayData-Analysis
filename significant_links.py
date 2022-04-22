@@ -55,7 +55,7 @@ coh = xr.load_dataarray(_COH_PATH).astype(np.float32)
 # Compute surrogate coherence
 #######################################################################
 #  Instantiating session
-ses = session(raw_path="GrayLab/",
+ses = session(raw_path=os.path.join(_ROOT, "GrayLab/"),
               monkey="lucy",
               date=sessions[idx],
               session=1, slvr_msmod=True,
