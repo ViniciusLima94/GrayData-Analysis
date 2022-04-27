@@ -68,10 +68,6 @@ def create_stages_time_grid(t_cue_on, t_cue_off, t_match_on, fsample, tarray,
     tt = np.tile(tarray, (ntrials, 1))
 
     # Get the mask for each stage
-    # t_baseline = tt < t_cue_on
-    # t_cue = ((tt >= t_cue_on)*(tt < t_cue_off))
-    # t_delay = ((tt >= t_cue_off)*(tt < t_match_on))
-    # t_match = ((tt >= t_match_on))
     t = []
     t += [tt < t_cue_on]
     t += [((tt >= t_cue_on)*(tt < t_cue_off))]
@@ -91,18 +87,6 @@ def create_stages_time_grid(t_cue_on, t_cue_off, t_match_on, fsample, tarray,
     else:
         for i, key in enumerate(mask_names):
             s_mask[key] = t[i].reshape(ntrials*len(tarray))
-
-    # Stage masks
-    # if flatten is False:
-        # s_mask = {'baseline': t_baseline,
-                  # 'cue':      t_cue,
-                  # 'delay':    t_delay,
-                  # 'match':    t_match}
-    # else:
-        # s_mask = {'baseline': t_baseline.reshape(ntrials*len(tarray)),
-                  # 'cue':      t_cue.reshape(ntrials*len(tarray)),
-                  # 'delay':    t_delay.reshape(ntrials*len(tarray)),
-                  # 'match':    t_match.reshape(ntrials*len(tarray))}
 
     return s_mask
 
