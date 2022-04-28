@@ -3,8 +3,10 @@ import os
 import argparse
 import numpy as np
 import xarray as xr
+import itertools
 from frites.conn.conn_tf import _tf_decomp
 
+from scipy.signal import find_peaks
 from GDa.session import session
 from GDa.util import create_stages_time_grid
 from config import sessions
@@ -103,13 +105,6 @@ w = xr.DataArray(
 ##############################################################################
 # Compute average spectra per time-stage
 ##############################################################################
-rois = [
-    f"{area} ({channel})" for area,
-    channel in zip(w.roi.values, data.channels_labels)
-]
-
-w = w.assign_coords({"roi": rois})
-
 # Create masks to separate stages
 mask = create_stages_time_grid(data.t_cue_on, data.t_cue_off, data.t_match_on,
                                data.fsample, data.time.values[::decim],
@@ -129,100 +124,33 @@ w_static = xr.concat(w_static, 'times')
 w_static = w_static.assign_coords({'times': list(mask.keys())})
 
 ##############################################################################
-# Compute peaks in each band
+# Compute peaks for each roi
 ##############################################################################
-bands = np.array([[0, 6],
-                  [6, 14],
-                  [14, 26],
-                  [26, 43],
-                  [43, 80]])
+unique_rois = np.unique(w_static.roi.values)
+freqs = w_static.freqs.values
 
-peaks = np.zeros((w_static.sizes['times'], w_static.sizes['trials'],
-                 w_static.sizes['roi'], bands.shape[0]))
-peaks = xr.DataArray(peaks, dims=w_static.dims,
-                     coords={'times': w_static.times.data,
-                             'trials': w_static.trials.data,
-                             'roi': w_static.roi.data})
+peaks = np.zeros((len(unique_rois), w_static.sizes['freqs']))
+peaks = xr.DataArray(peaks, dims=('roi', 'freqs'),
+                     coords={'roi': unique_rois,
+                             'freqs': freqs})
 
-for i, (flow, fhigh) in enumerate(bands):
-    peaks[..., i] = w_static.sel(freqs=slice(flow, fhigh)).max('freqs')
+
+for i, roi in enumerate(unique_rois):
+    counts = np.zeros_like(freqs)
+    idx = w_static.roi.values == roi
+    w_sel = w_static.isel(roi=idx).stack(T=("trials", "roi")).sel(times="baseline")
+    p_idx = []
+    for t in range(w_sel.sizes["T"]):
+        temp, _ = find_peaks(w_sel[:, t], threshold=1e-8)
+        p_idx += [temp]
+    p_idx = list(itertools.chain(*p_idx))
+    p_idx, c = np.unique(p_idx, return_counts=True)
+    counts[p_idx.astype(int)] = c
+    peaks[i, :] = counts
 
 # Path to results folder
 _RESULTS = os.path.join(_ROOT,
-                        "Results/lucy/spectral_content",
+                        "Results/lucy/peaks",
                         f"{sidx}.nc")
 
 peaks.to_netcdf(_RESULTS)
-
-# S_tilda = w_static / w_static.integrate(coord="freqs")  # Normalize spectra
-# S_tilda = S_tilda.assign_coords({"roi": rois})
-# S_tilda = w_static.assign_coords({"roi": rois})
-
-# SC = S_tilda.sel(freqs=band).integrate(coord="freqs")  # Spectral content in beta band
-
-# SC = S_tilda.sel(freqs=band).max('freqs')
-
-# df = SC.to_dataframe(name="SC").reset_index()
-# df = df.sort_values("SC", ascending=False)
-
-# _, rois = _extract_roi(df.roi.values, ' ')
-
-# unique_rois = np.unique(rois)
-# custom_palette = sns.color_palette("pastel", len(unique_rois))
-
-# colors = [(0, 0, 0)] * len(rois)
-# for i_r_u, r_u in enumerate(unique_rois):
-# for i_r, r in enumerate(rois):
-# if r == r_u:
-# colors[i_r] = custom_palette[i_r_u]
-# colors = dict(zip(df.roi.values, colors))
-
-# plt.figure(figsize=(15, 6))
-# ax = plt.subplot(111)
-# sns.boxplot(x=df["roi"], y=df["SC"], palette=colors, showfliers = False)
-# plt.xticks(rotation=90)
-# plt.xlabel("")
-# ax.spines["right"].set_visible(False)
-# ax.spines["top"].set_visible(False)
-# # plt.hlines(0.1, -1, SC.sizes["roi"], color="r", ls="--", lw=0.6)
-# plt.xlim(-1, SC.sizes["roi"])
-# plt.title(f"Ranked spectral content (26-43 Hz) - ({sidx})")
-
-# plt.savefig(f'figures/spectral_content/sc_ranked_{sidx}.png', bbox_inches='tight')
-# plt.close()
-
-##############################################################################
-# Overlap of beta and gamma bands
-##############################################################################
-# beta = slice(26, 43)
-# gamma = slice(43, 80)
-
-# rois = [
-# f"{area} ({channel})" for area, channel in zip(w.roi.values, data.channels_labels)
-# ]
-
-# w_beta = w.sel(freqs=beta).mean('freqs')
-# w_gamma = w.sel(freqs=gamma).mean('freqs')
-
-
-# z_beta = (w_beta - w_beta.mean('times')) / w_beta.std('times')
-# z_gamma = (w_gamma - w_gamma.mean('times')) / w_gamma.std('times')
-
-# cc = (z_beta * z_gamma).mean('times')
-# cc = cc.assign_coords({"roi": rois})
-
-# df = cc.to_dataframe(name='cc').reset_index()
-# df = df.sort_values("cc", ascending=False)
-
-# plt.figure(figsize=(15, 6))
-# ax = plt.subplot(111)
-# sns.boxplot(x=df["roi"], y=df["cc"], palette=colors)
-# plt.xticks(rotation=90)
-# plt.xlabel("")
-# ax.spines["right"].set_visible(False)
-# ax.spines["top"].set_visible(False)
-# plt.hlines(0.1, -1, SC.sizes["roi"], color="r", ls="--", lw=0.6)
-# plt.xlim(-1, SC.sizes["roi"])
-# plt.title(f"Power-correlation between beta and gamma band ({sidx})")
-# plt.savefig(f'figures/spectral_content/correlation_beta_gamma_{sidx}.png', bbox_inches='tight')
-# plt.close()

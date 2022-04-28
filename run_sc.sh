@@ -8,5 +8,6 @@
 #SBATCH --array=0-61
 
 python -O spectral_content.py $SLURM_ARRAY_TASK_ID
+#python -O find_peaks.py $SLURM_ARRAY_TASK_ID
 
 
