@@ -58,14 +58,15 @@ if __name__ == '__main__':
 
     # Add name of the coherence file
     path_st_coh = os.path.join(path_st,
-                               f'{metric}_k_{sm_times}_{mode}_at_{at}.nc')
+                               f'{metric}_at_{at}.nc')
 
     # Remove file if it was already created
     if os.path.isfile(path_st_coh):
         os.system(f'rm {path_st_coh}')
 
     #  Instantiating session
-    ses = session(raw_path="GrayLab/",
+    raw_path = os.path.expanduser("~/funcog/gda/GrayLab")
+    ses = session(raw_path=raw_path,
                   monkey="lucy",
                   date=sessions[idx],
                   session=1, slvr_msmod=True,
@@ -89,8 +90,12 @@ if __name__ == '__main__':
     # Add areas as attribute
     coh.attrs['areas'] = ses.data.roi.values.astype('str')
     coh.attrs['bias'] = _bias_lachaux(sm_times, freqs, n_cycles).tolist()
+    coh.attrs['k'] = sm_times
+    coh.attrs['mode'] = mode
     # Save to file
     coh.to_netcdf(path_st_coh)
+    # Store attributes
+    attrs = coh.attrs
     # To release memory
     del coh
 
@@ -99,12 +104,16 @@ if __name__ == '__main__':
         data_surr = trial_swap_surrogates(
             ses.data.astype(np.float32), seed=seed, verbose=False)
         coh_surr = conn_spec(data_surr, **kw)
-        #  Estimate significance level from 95% percentile over trials
-        coh_surr = coh_surr.quantile(0.95, dim="trials")
+        coh_surr.attrs = attrs
         # Add name of the coherence file
         path_st_surr = os.path.join(
-            path_st, f'{metric}_k_{sm_times}_{mode}_at_{at}_surr.nc')
+            path_st, f'{metric}_at_{at}_surr.nc')
         coh_surr.to_netcdf(path_st_surr)
+        #  Estimate significance level from 95% percentile over trials
+        # coh_surr = coh_surr.quantile(0.95, dim="trials")
+        # path_st_thr = os.path.join(
+            # path_st, f'thr_{metric}_at_{at}.nc')
+        # coh_surr.to_netcdf(path_st_surr)
         del coh_surr
 
     end = time.time()
