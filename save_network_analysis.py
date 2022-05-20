@@ -25,9 +25,6 @@ parser.add_argument("METRIC",
 parser.add_argument("SIDX",
                     help="index of the session to load",
                     type=int)
-parser.add_argument("THRESHOLD",
-                    help="wheter to threshold the coherence or not",
-                    type=int)
 parser.add_argument("ALIGNED", help="wheter to align data to cue or match",
                     type=str)
 
@@ -37,8 +34,6 @@ args = parser.parse_args()
 metric = args.METRIC
 # The index of the session to use
 s_id = args.SIDX
-# Wheter to threshold coherence or not
-thr = args.THRESHOLD
 # Wheter to align data to cue or match
 at = args.ALIGNED
 
@@ -50,28 +45,27 @@ at = args.ALIGNED
 _ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
 
 # Path in which to save coherence data
-_RESULTS = os.path.join('/home/vinicius/funcog/gda',
+_RESULTS = os.path.join('/home/funcog/gda',
                         'Results',
                         'lucy',
                         sessions[s_id],
-                        'session01')
+                        'session01/network')
+
+if not os.path.isdir(_RESULTS):
+    os.mkdir(_RESULTS)
 
 ##############################################################################
 # Get root path
 ###############################################################################
 
-if bool(thr):
-    coh_sig_file = f'{metric}_k_0.3_{mode}_at_{at}_surr.nc'
-    wt = None
-else:
-    coh_sig_file = None
-    wt = (-20, 20)
+coh_sig_file = f'thr_{metric}_at_{at}_surr.nc'
+wt = None
 
 ##############################################################################
 # Load the supertensor and convert to adjacency matrix
 ###############################################################################
 
-net = temporal_network(coh_file=f'{metric}_k_0.3_{mode}_at_{at}.nc',
+net = temporal_network(coh_file=f'{metric}_at_{at}.nc',
                        coh_sig_file=coh_sig_file, wt=wt,
                        date=sessions[s_id], trial_type=[1],
                        behavioral_response=[1])
@@ -101,7 +95,7 @@ degree.attrs = net.super_tensor.attrs
 
 path_degree = os.path.join(_ROOT,
                            _RESULTS,
-                           f"{metric}_degree_thr_{thr}_at_{at}.nc")
+                           f"{metric}_degree_at_{at}.nc")
 
 degree.to_netcdf(path_degree)
 
@@ -127,7 +121,7 @@ coreness.attrs = net.super_tensor.attrs
 
 path_coreness = os.path.join(_ROOT,
                              _RESULTS,
-                             f"{metric}_coreness_thr_{thr}_at_{at}.nc")
+                             f"{metric}_coreness_at_{at}.nc")
 
 coreness.to_netcdf(path_coreness)
 
@@ -143,7 +137,8 @@ for f in tqdm(range(net.A.sizes["freqs"])):
 efficiency = xr.concat(efficiency, "freqs")
 # Assign coords
 efficiency = efficiency.assign_coords({"trials": net.A.trials.data,
-                                       "roi": net.A.sources.data, "freqs": net.A.freqs.data,
+                                       "roi": net.A.sources.data,
+                                       "freqs": net.A.freqs.data,
                                        "times": net.A.times.data})
 
 efficiency = efficiency.transpose("trials", "roi", "freqs", "times")
@@ -151,7 +146,7 @@ efficiency.attrs = net.super_tensor.attrs
 
 path_efficiency = os.path.join(_ROOT,
                                _RESULTS,
-                               f"{metric}_efficiency_thr_{thr}_at_{at}.nc")
+                               f"{metric}_efficiency_at_{at}.nc")
 
 efficiency.to_netcdf(path_efficiency)
 
@@ -188,12 +183,12 @@ modularity.attrs = net.super_tensor.attrs
 # Saving
 path_partition = os.path.join(_ROOT,
                               _RESULTS,
-                              f"{metric}_partition_thr_{thr}_at_{at}.nc")
+                              f"{metric}_partition_at_{at}.nc")
 
 partition.to_netcdf(path_partition)
 
 path_modularity = os.path.join(_ROOT,
                                _RESULTS,
-                               f"{metric}_modularity_thr_{thr}_at_{at}.nc")
+                               f"{metric}_modularity_at_{at}.nc")
 
 modularity.to_netcdf(path_modularity)
