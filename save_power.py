@@ -1,19 +1,19 @@
 import os
 import argparse
+import numpy as np
+import xarray as xr
 
 from tqdm import tqdm
 from GDa.session import session
 from config import (decim, mode, freqs, n_cycles,
                     sessions, return_evt_dt)
-from xfrites.conn.conn_tf import wavelet_spec
+from frites.conn.conn_tf import _tf_decomp
 
 ###############################################################################
 # Argument parsing
 ###############################################################################
 
 parser = argparse.ArgumentParser()
-# parser.add_argument("SIDX", help="index of the session to run",
-                    # type=int)
 parser.add_argument("TT", help="type of the trial",
                     type=int)
 parser.add_argument("BR", help="behavioral response",
@@ -24,15 +24,12 @@ parser.add_argument("ALIGN", help="wheter to align data to cue or match",
 args = parser.parse_args()
 
 # Index of the session to be load
-# idx = args.SIDX
 tt = args.TT
 br = args.BR
 at = args.ALIGN
 
 # Root directory
-_ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
-# Get session number
-# s_id = sessions[idx]
+_ROOT = os.path.expanduser('~/funcog/gda')
 
 for s_id in tqdm(sessions):
     ###########################################################################
@@ -41,9 +38,10 @@ for s_id in tqdm(sessions):
 
     # Window in which the data will be read
     evt_dt = return_evt_dt(at)
-
+    # Path to LFP data
+    raw_path = os.path.expanduser("~/funcog/gda/GrayLab/")
     # Instantiate class
-    ses = session(raw_path='GrayLab/', monkey='lucy', date=s_id, session=1,
+    ses = session(raw_path=raw_path, monkey='lucy', date=s_id, session=1,
                   slvr_msmod=True, align_to=at, evt_dt=evt_dt)
 
     # Read data from .mat files
@@ -56,13 +54,26 @@ for s_id in tqdm(sessions):
     ###########################################################################
     # Compute power spectra
     ###########################################################################
+    sxx = _tf_decomp(
+        data,
+        data.attrs["fsample"],
+        freqs,
+        mode=mode,
+        n_cycles=n_cycles,
+        mt_bandwidth=None,
+        decim=decim,
+        kw_cwt={},
+        kw_mt={},
+        n_jobs=20,
+    )
 
-    sxx = wavelet_spec(data, freqs=freqs, roi=data.roi, times="time",
-                       sfreq=data.attrs["fsample"], foi=None, sm_times=0,
-                       sm_freqs=0, sm_kernel="square", mode=mode,
-                       n_cycles=n_cycles, mt_bandwidth=None,
-                       decim=decim, kw_cwt={}, kw_mt={}, block_size=1,
-                       n_jobs=20, verbose=None)
+    sxx = xr.DataArray(
+        (sxx * np.conj(sxx)).real,
+        name="power",
+        dims=("trials", "roi", "freqs", "times"),
+        coords=(data.trials.values, data.roi.values,
+                freqs, data.time.values[::decim]),
+    )
 
     ###########################################################################
     # Saves file
@@ -78,6 +89,6 @@ for s_id in tqdm(sessions):
     path_pow = os.path.join(_ROOT, results_path,
                             file_name)
 
+    sxx.attrs = data.attrs
     sxx.attrs["evt_dt"] = evt_dt
-    del sxx.attrs["mt_bandwidth"]
     sxx.to_netcdf(path_pow)

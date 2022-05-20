@@ -192,7 +192,6 @@ def _extract_roi(roi, sep):
     roi_c = np.c_[x_s, x_t]
     idx = np.argsort(np.char.lower(roi_c.astype(str)), axis=1)
     roi_s, roi_t = np.c_[[r[i] for r, i in zip(roi_c, idx)]].T
-    # roi_st = [f"{s}{sep}{t}" for s, t in zip(roi_s, roi_t)]
     return roi_s, roi_t
 
 def _create_roi_area_mapping(roi):

@@ -90,7 +90,7 @@ mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
 
 # Path to results folder
 _RESULTS = os.path.join(_ROOT,
-                        "Results/lucy/mutual_information")
+                        "Results/lucy/mutual_information/power/")
 
 path_mi = os.path.join(_RESULTS,
                        f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
@@ -102,4 +102,3 @@ path_pv = os.path.join(_RESULTS,
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)
 pvalues.to_netcdf(path_pv)
-

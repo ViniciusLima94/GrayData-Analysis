@@ -18,11 +18,11 @@
 #python -O mi_net_analysis.py "plv" "coreness" 1
 #python -O mi_net_analysis.py "plv" "efficiency" 1
 
-python -O mi_net_analysis.py "pec" "degree" 1 
-python -O mi_net_analysis.py "pec" "coreness" 1
-python -O mi_net_analysis.py "pec" "efficiency" 1
+#python -O mi_net_analysis.py "pec" "degree" 1 
+#python -O mi_net_analysis.py "pec" "coreness" 1
+#python -O mi_net_analysis.py "pec" "efficiency" 1
 
-#python -O mi_coh_analysis.py "coh" 1
+python -O mi_coh_analysis.py "coh" 1 0
 #python -O mi_coh_analysis.py "plv" 1
 #python -O mi_coh_analysis.py "pec" 1
 
