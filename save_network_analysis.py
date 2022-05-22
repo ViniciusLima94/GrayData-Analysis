@@ -1,6 +1,6 @@
-###############################################################################
+##############################################################################
 # Perform network measurements on the super tensor (coherence data)
-###############################################################################
+##############################################################################
 import numpy as np
 import xarray as xr
 import argparse
@@ -14,9 +14,9 @@ from GDa.net.layerwise import (compute_nodes_degree,
 from config import mode, sessions
 from tqdm import tqdm
 
-###############################################################################
+##############################################################################
 # Argument parsing
-###############################################################################
+##############################################################################
 
 parser = argparse.ArgumentParser()
 parser.add_argument("METRIC",
@@ -40,12 +40,12 @@ at = args.ALIGNED
 
 ##############################################################################
 # Get root path
-###############################################################################
+##############################################################################
 
 _ROOT = os.path.expanduser('~/storage1/projects/GrayData-Analysis')
 
 # Path in which to save coherence data
-_RESULTS = os.path.join('/home/funcog/gda',
+_RESULTS = os.path.join('/home/vinicius/funcog/gda',
                         'Results',
                         'lucy',
                         sessions[s_id],
@@ -56,14 +56,14 @@ if not os.path.isdir(_RESULTS):
 
 ##############################################################################
 # Get root path
-###############################################################################
+##############################################################################
 
 coh_sig_file = f'thr_{metric}_at_{at}_surr.nc'
 wt = None
 
 ##############################################################################
 # Load the supertensor and convert to adjacency matrix
-###############################################################################
+##############################################################################
 
 net = temporal_network(coh_file=f'{metric}_at_{at}.nc',
                        coh_sig_file=coh_sig_file, wt=wt,
@@ -76,9 +76,9 @@ net.convert_to_adjacency()
 if metric == "pec":
     net.super_tensor.values = np.abs(net.super_tensor.values)
 
-###############################################################################
+##############################################################################
 # 1. Strength
-###############################################################################
+##############################################################################
 
 degree = []
 for f in tqdm(range(net.A.sizes["freqs"])):
@@ -99,16 +99,16 @@ path_degree = os.path.join(_ROOT,
 
 degree.to_netcdf(path_degree)
 
-###############################################################################
+##############################################################################
 # 2. Coreness
-###############################################################################
+##############################################################################
 
 coreness = []
 for f in tqdm(range(net.A.sizes["freqs"])):
     coreness += [compute_nodes_coreness(net.A.isel(freqs=f),
                                         backend="brainconn",
                                         kw_bc=dict(delta=0.5),
-                                        verbose=False, n_jobs=20)]
+                                        verbose=False, n_jobs=30)]
 coreness = xr.concat(coreness, "freqs")
 # Assign coords
 coreness = coreness.assign_coords({"trials": net.A.trials.data,
@@ -125,15 +125,15 @@ path_coreness = os.path.join(_ROOT,
 
 coreness.to_netcdf(path_coreness)
 
-###############################################################################
+##############################################################################
 # 3. Efficiency
-###############################################################################
+##############################################################################
 
 efficiency = []
 for f in tqdm(range(net.A.sizes["freqs"])):
     efficiency += [compute_nodes_efficiency(net.A.isel(freqs=f),
                                             backend="igraph",
-                                            verbose=False, n_jobs=20)]
+                                            verbose=False, n_jobs=30)]
 efficiency = xr.concat(efficiency, "freqs")
 # Assign coords
 efficiency = efficiency.assign_coords({"trials": net.A.trials.data,
@@ -150,15 +150,15 @@ path_efficiency = os.path.join(_ROOT,
 
 efficiency.to_netcdf(path_efficiency)
 
-###############################################################################
+##############################################################################
 # 4. Modularity
-###############################################################################
+##############################################################################
 
 partition, modularity = [], []
 for f in tqdm(range(net.A.sizes["freqs"])):
     p, m = compute_network_partition(net.A.isel(freqs=f),
                                      backend="igraph",
-                                     verbose=False, n_jobs=20)
+                                     verbose=False, n_jobs=30)
     partition += [p]
     modularity += [m]
 

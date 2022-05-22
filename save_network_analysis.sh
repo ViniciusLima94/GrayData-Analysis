@@ -2,9 +2,9 @@
 
 #SBATCH -J MI                # Job name
 #SBATCH -o .out/net_%a.out   # Name of stdout output file (%j expands to %jobID)
-#SBATCH --ntasks=40
+#SBATCH --ntasks=60
 #SBATCH --mem-per-cpu=2000
 #SBATCH --cpus-per-task=1
-#SBATCH --array=0-61
+#SBATCH --array=29-61
 
-python -O save_network_analysis.py "pec" $SLURM_ARRAY_TASK_ID 1 "cue"
+python -O save_network_analysis.py "coh" $SLURM_ARRAY_TASK_ID "cue"
