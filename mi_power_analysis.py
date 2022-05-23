@@ -79,7 +79,7 @@ estimator = GCMIEstimator(mi_type='cd', copnorm=True,
                           gpu=False, verbose=None)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
 
-kw = dict(n_jobs=20, n_perm=100)
+kw = dict(n_jobs=20, n_perm=200)
 cluster_th = None
 
 mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
