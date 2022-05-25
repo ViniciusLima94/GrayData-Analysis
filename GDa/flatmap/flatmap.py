@@ -118,7 +118,8 @@ class flatmap():
             cbar = plt.colorbar(
                 mappable=plt.cm.ScalarMappable(cmap=cmap, norm=norm),
                 cax=ax_colorbar, extend=extend)
-            cbar.ax.set_ylabel(cbar_title, rotation='vertical', fontsize=cbar_fontsize)
+            cbar.ax.set_ylabel(
+                cbar_title, rotation='vertical', fontsize=cbar_fontsize)
 
     def get_flatmap_coordinates(self, area):
         """

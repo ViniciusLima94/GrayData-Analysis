@@ -148,7 +148,7 @@ def average_stages(feature, avg):
     Returns:
     -------
     out: xr.DataArray
-        If avg==0 returns features otherwise returns 
+        If avg==0 returns features otherwise returns
         a version of features averaged over stages.
     """
     if avg == 1:

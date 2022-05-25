@@ -23,7 +23,6 @@ parser.add_argument("FEATURE",
 parser.add_argument("AVERAGED",
                     help="wheter to analyse the avg. power or not",
                     type=int)
-
 args = parser.parse_args()
 
 metric = args.METRIC
