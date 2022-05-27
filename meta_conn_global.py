@@ -2,12 +2,15 @@
 Analysis of the global meta-connectivity
 """
 import os
+import sys
 import numpy as np
 import numba as nb
 import xarray as xr
 from config import sessions
 from GDa.util import _extract_roi
 from tqdm import tqdm
+
+surr = bool(sys.argv[-1])
 
 ##############################################################################
 # Auxiliar function
@@ -84,7 +87,10 @@ _RESULTS = "Results/lucy/meta_conn"
 
 
 def get_file_name(session):
-    return os.path.join(_ROOT, _RESULTS, f"MC_coh_{session}_global.nc")
+    if not surr:
+        return os.path.join(_ROOT, _RESULTS, f"MC_coh_{session}_global.nc")
+    else:
+        return os.path.join(_ROOT, _RESULTS, f"MC_coh_{session}_global_surr.nc")
 
 
 # Load all MCs and average over channels |-> ROI
@@ -125,4 +131,7 @@ for i, (s, t) in enumerate(zip(x_s, x_t)):
 ##############################################################################
 # Save global MC
 ##############################################################################
-temp.to_netcdf(os.path.join(_ROOT, _RESULTS, "MC_coh_global.nc"))
+if not surr:
+    temp.to_netcdf(os.path.join(_ROOT, _RESULTS, "MC_coh_global.nc"))
+else:
+    temp.to_netcdf(os.path.join(_ROOT, _RESULTS, "MC_coh_global_surr.nc"))
