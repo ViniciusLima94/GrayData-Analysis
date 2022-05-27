@@ -131,7 +131,7 @@ def filter_trial_indexes(trial_info, trial_type=None,
     return filtered_trials, filtered_trials_idx
 
 
-def average_stages(feature, avg):
+def average_stages(feature, avg, early_cue=0.2, early_delay=0.3):
     """
     Loads the network feature DataArray and average it for each task
     stage if needed (avg=1) otherwise return the feature itself
@@ -144,6 +144,11 @@ def average_stages(feature, avg):
         shape (roi, freqs, trials, times).
     avg: int
         Wheter to average over task stages or not
+    early_cue: float | 0.2
+        Final period of the baseline to condider as cue.
+    early_delay: float | 0.3
+        The period at the beggining of the delay that should
+        be used as early delay.
 
     Returns:
     -------
@@ -154,13 +159,13 @@ def average_stages(feature, avg):
     if avg == 1:
         out = []
         # Creates stage mask
-        mask = create_stages_time_grid(feature.attrs['t_cue_on']-0.2,
-                                       feature.attrs['t_cue_off'],
-                                       feature.attrs['t_match_on'],
-                                       feature.attrs['fsample'],
+        mask = create_stages_time_grid(feature.t_cue_on - early_cue * feature.fsample,
+                                       feature.t_cue_off,
+                                       feature.t_match_on,
+                                       feature.fsample,
                                        feature.times.data,
                                        feature.sizes["trials"],
-                                       early_delay=0.3,
+                                       early_delay=early_delay,
                                        align_to="cue",
                                        flatten=False)
         for stage in mask.keys():

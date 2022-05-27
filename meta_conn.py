@@ -40,12 +40,12 @@ _ROOT = os.path.expanduser("~/funcog/gda")
 # Path in which to save coherence data
 _RESULTS = os.path.join("Results", "lucy", session, "session01")
 
-if not bool(surr):
+if bool(surr) is False:
     coh_file = f'{metric}_at_cue.nc'
     coh_sig_file = f'thr_{metric}_at_cue_surr.nc'
 else:
     coh_file = f'{metric}_at_cue_surr.nc'
-    coh_sig_file = None 
+    coh_sig_file = None
 wt = None
 
 net = temporal_network(

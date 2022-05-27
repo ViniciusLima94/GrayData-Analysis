@@ -104,16 +104,12 @@ if __name__ == '__main__':
         data_surr = trial_swap_surrogates(
             ses.data.astype(np.float32), seed=seed, verbose=False)
         coh_surr = conn_spec(data_surr, **kw)
+        coh_surr = coh_surr.transpose("roi", "freqs", "trials", "times")
         coh_surr.attrs = attrs
         # Add name of the coherence file
         path_st_surr = os.path.join(
             path_st, f'{metric}_at_{at}_surr.nc')
         coh_surr.to_netcdf(path_st_surr)
-        #  Estimate significance level from 95% percentile over trials
-        # coh_surr = coh_surr.quantile(0.95, dim="trials")
-        # path_st_thr = os.path.join(
-            # path_st, f'thr_{metric}_at_{at}.nc')
-        # coh_surr.to_netcdf(path_st_surr)
         del coh_surr
 
     end = time.time()

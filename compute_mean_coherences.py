@@ -1,5 +1,4 @@
 import os
-from itertools import compress
 from tqdm import tqdm
 import numpy as np
 import xarray as xr
@@ -7,18 +6,10 @@ from config import sessions
 from GDa.util import average_stages
 from GDa.temporal_network import temporal_network
 
-
-def get_rois(xrlist):
-    rois = []
-    for out in xrlist:
-        rois += [out.roi.data[0]]
-    return np.array(rois)
-
-
 coh_file = 'coh_at_cue.nc'
 coh_sig_file = 'thr_coh_at_cue_surr.nc'
 
-coh = []
+data = []
 for s_id in tqdm(sessions):
     net = temporal_network(coh_file=coh_file,
                            coh_sig_file=coh_sig_file, wt=None,
@@ -29,21 +20,20 @@ for s_id in tqdm(sessions):
     # To save memory
     del net
     # Convert to format required by the MI workflow
-    coh += [out.isel(roi=[r])
-            for r in range(len(out['roi']))]
+    data += [out.isel(roi=[r]).mean("trials")
+             for r in range(len(out['roi']))]
 
-rois = get_rois(coh)
+# Concatenate channels
+data = xr.concat(data, dim="roi")
+# Get unique rois
+urois, counts = np.unique(data.roi.data, return_counts=True)
+# Get unique rois that has at leats 10 channels
+urois = urois[counts >= 10]
+# Average channels withn the same roi
+data = data.groupby("roi").mean("roi", skipna=True)
+data = data.sel(roi=urois)
 
-out = []
-for roi in tqdm(np.unique(rois.data)):
-    idx = rois == roi
-    out += [xr.concat(list(compress(coh, idx)), "trials")]
+save_path = os.path.expanduser(
+    "~/funcog/gda/Results/lucy/mean_coherences/mean_coh.nc")
 
-rois = get_rois(out)
-
-save_path = os.path.expanduser("~/funcog/gda/Results/lucy/mean_coherences")
-
-for i in range(len(out)):
-    file_names = f"mean_coh_at_cue_{i}.nc"
-    path = os.path.join(save_path, file_names)
-    out[i].to_netcdf(path)
+data.to_netcdf(save_path)
