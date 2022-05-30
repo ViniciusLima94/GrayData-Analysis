@@ -7,5 +7,6 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --array=0-61
 
-python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 0
-python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 1
+#python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 0
+#python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 1
+python -O trimmer_strengths.py "coh" $SLURM_ARRAY_TASK_ID

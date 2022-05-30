@@ -1,37 +1,18 @@
 """ Compute the trimmer-strengths for the MCs of each """
 import os
-import argparse
 
 import numpy as np
 import xarray as xr
 
 from frites.utils import parallel_func
 from config import sessions
-
-###############################################################################
-# Argument parsing
-###############################################################################
-parser = argparse.ArgumentParser()
-parser.add_argument("METRIC",
-                    help="which network metric to use",
-                    type=str)
-parser.add_argument("SIDX", help="index of the session to run",
-                    type=int)
-args = parser.parse_args()
-# Which FC metric to use
-metric = args.METRIC
-# The index of the session to use
-idx = args.SIDX
-session = sessions[idx]
+from tqdm import tqdm
 
 ###############################################################################
 # Loading meta-connectivity
 ###############################################################################
 _ROOT = os.path.expanduser("~/funcog/gda")
 _RESULTS = "Results/lucy/meta_conn"
-_MCPATH = os.path.join(_ROOT, _RESULTS, f"MC_{metric}_{session}.nc")
-
-MC = xr.load_dataarray(_MCPATH)
 
 ###############################################################################
 # Define functions to compute trimmer strengths
@@ -103,8 +84,13 @@ def tensor_trimmer_strengths(meta_conn, n_jobs=1, verbose=False):
 # Compute and store trimmer-strengths
 ###############################################################################
 
+metric = "coh"
 
-ts = tensor_trimmer_strengths(MC, n_jobs=1, verbose=False)
-save_path = os.path.join(_ROOT, _RESULTS, f"ts_{metric}_{session}.nc")
-ts.to_netcdf(save_path)
-# ts.to_dataframe(name="ts").reset_index().to_csv(save_path)
+for session in tqdm(sessions):
+    _MCPATH = os.path.join(_ROOT, _RESULTS, f"MC_{metric}_{session}.nc")
+
+    MC = xr.load_dataarray(_MCPATH)
+
+    ts = tensor_trimmer_strengths(MC, n_jobs=1, verbose=False)
+    save_path = os.path.join(_ROOT, _RESULTS, f"ts_{metric}_{session}.nc")
+    ts.to_netcdf(save_path)
