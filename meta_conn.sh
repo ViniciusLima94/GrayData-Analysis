@@ -2,11 +2,10 @@
 
 #SBATCH -J MC                # Job name
 #SBATCH -o .out/MC_%a.out    # Name of stdout output file (%j expands to %jobID)
-#SBATCH --ntasks=60
+#SBATCH --ntasks=40
 #SBATCH --mem-per-cpu=2000
 #SBATCH --cpus-per-task=1
 #SBATCH --array=0-61
 
-#python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 0
-#python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 1
-python -O trimmer_strengths.py "coh" $SLURM_ARRAY_TASK_ID
+python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 0 0
+

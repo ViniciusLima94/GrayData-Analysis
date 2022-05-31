@@ -1,13 +1,14 @@
 import os
 import sys
 import numpy as np
-import numba as nb
 import xarray as xr
 from config import sessions
 from GDa.util import _extract_roi
 from tqdm import tqdm
 
-surr = bool(sys.argv[-1])
+surr = bool(int(sys.argv[-1]))
+
+print(surr)
 
 ##############################################################################
 # Auxiliar function
@@ -39,8 +40,6 @@ def convert_to_stream(adj, sources, targets, dtype=np.float32):
     n_roi, _, n_bands, n_times = adj.shape
     # Number of edges
     n_pairs = int(n_roi * (n_roi - 1) / 2)
-
-    nb.jit(nopython=True)
 
     def _convert(adj):
         # Edge time-series tensor
@@ -115,15 +114,18 @@ x_s, x_t = _extract_roi(MC_avg.roi.values, "~")  # Get rois
 unique_rois = np.unique(np.stack((x_s, x_t)))
 index_rois = dict(zip(unique_rois, range(len(unique_rois))))
 
+temp = np.zeros((len(unique_rois), len(unique_rois), 10, 5))
+
+for i, (s, t) in enumerate(zip(x_s, x_t)):
+    i_s, i_t = index_rois[s], index_rois[t]
+    temp[i_s, i_t, ...] = temp[i_t, i_s, ...] = MC_avg[i]
+
 temp = xr.DataArray(
-    np.zeros((len(unique_rois), len(unique_rois), 10, 5)),
+    temp,
     dims=("sources", "targets", "freqs", "times"),
     coords=(unique_rois, unique_rois, MC_avg.freqs.values,
             MC_avg.times.values),
 )
-for i, (s, t) in enumerate(zip(x_s, x_t)):
-    i_s, i_t = index_rois[s], index_rois[t]
-    temp[i_s, i_t, ...] = temp[i_t, i_s, ...] = MC_avg[i]
 
 ##############################################################################
 # Save global MC

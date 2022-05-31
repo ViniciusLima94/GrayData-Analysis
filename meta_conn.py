@@ -25,11 +25,15 @@ parser.add_argument("GLOBAL",
 parser.add_argument("SURR",
                     help="wheter to use original or surrogate MC",
                     type=int)
+parser.add_argument("THR",
+                    help="wheter to threshold or not the coherence",
+                    type=int)
 args = parser.parse_args()
 metric = args.METRIC
 _global = args.GLOBAL
 surr = args.SURR
 idx = args.SIDX
+thr = args.THR
 session = sessions[idx]
 
 ##############################################################################
@@ -40,12 +44,13 @@ _ROOT = os.path.expanduser("~/funcog/gda")
 # Path in which to save coherence data
 _RESULTS = os.path.join("Results", "lucy", session, "session01")
 
+coh_sig_file = None
 if bool(surr) is False:
     coh_file = f'{metric}_at_cue.nc'
-    coh_sig_file = f'thr_{metric}_at_cue_surr.nc'
+    if bool(thr):
+        coh_sig_file = f'thr_{metric}_at_cue_surr.nc'
 else:
     coh_file = f'{metric}_at_cue_surr.nc'
-    coh_sig_file = None
 wt = None
 
 net = temporal_network(
@@ -93,7 +98,10 @@ if not _global:
     if bool(surr):
         MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}_surr.nc"))
     else:
-        MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}.nc"))
+        if bool(thr):
+            MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}.nc"))
+        else:
+            MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}_nothr.nc"))
 else:
     MC = np.zeros((n_edges, n_edges, n_freqs))
     for f in tqdm(range(n_freqs)):
@@ -113,5 +121,9 @@ else:
         MC.to_netcdf(os.path.join(
             _PATH, f"MC_{metric}_{session}_global_surr.nc"))
     else:
-        MC.to_netcdf(os.path.join(
-            _PATH, f"MC_{metric}_{session}_global.nc"))
+        if bool(thr):
+            MC.to_netcdf(os.path.join(
+                _PATH, f"MC_{metric}_{session}_global.nc"))
+        else:
+            MC.to_netcdf(os.path.join(
+                _PATH, f"MC_{metric}_{session}_global_nothr.nc"))

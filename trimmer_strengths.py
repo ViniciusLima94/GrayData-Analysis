@@ -84,6 +84,7 @@ def tensor_trimmer_strengths(meta_conn, n_jobs=1, verbose=False):
 # Compute and store trimmer-strengths
 ###############################################################################
 
+
 metric = "coh"
 
 for session in tqdm(sessions):
