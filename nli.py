@@ -16,13 +16,16 @@ import os
 import numba as nb
 import numpy as np
 import xarray as xr
-import pandas as pd
+# import pandas as pd
 import argparse
 
 from GDa.temporal_network import temporal_network
 from config import sessions
 
+
+###############################################################################
 # Argument parsing
+###############################################################################
 parser = argparse.ArgumentParser()
 parser.add_argument("SIDX", help="index of the session to run",
                     type=int)
@@ -43,8 +46,8 @@ _RESULTS = os.path.join("Results", "lucy", sessions[idx], "session01")
 
 # dFC files
 power_file = "power_tt_1_br_1_at_cue.nc"
-coh_file = f"{metric}_k_0.3_multitaper_at_cue.nc"
-coh_sig_file = f"{metric}_k_0.3_multitaper_at_cue_surr.nc"
+coh_file = f"{metric}_at_cue.nc"
+coh_sig_file = f"thr_{metric}_at_cue_surr.nc"
 wt = None
 
 power = xr.load_dataarray(os.path.join(_ROOT, _RESULTS, power_file))
@@ -102,6 +105,7 @@ for p, (s, t) in enumerate(zip(sources, targets)):
     nli[p] = np.mean(H(Zpower[s]) * H(Zpower[t]) * H(Zcoh[p]), -1) + np.mean(
         H_tilde(Zpower[s]) * H_tilde(Zpower[t]) * H_tilde(Zcoh[p]), -1
     )
+
 nli = xr.DataArray(
     nli,
     dims=("roi", "freqs"),
@@ -109,39 +113,48 @@ nli = xr.DataArray(
     coords={"roi": net.super_tensor.roi.data,
             "freqs": net.super_tensor.freqs.data}
 )
-
 # Create data frame with the data
 mean_power = power.mean("samples")
 mean_coh = coh.mean("samples")
 
+nli.to_netcdf(os.path.join(_ROOT, "Results", "lucy",
+                           f"nli/nli_{metric}_{sessions[idx]}.nc")
+              )
+mean_power.to_netcdf(os.path.join(_ROOT, "Results", "lucy",
+                           f"nli/mean_power_{metric}_{sessions[idx]}.nc")
+              )
+mean_coh.to_netcdf(os.path.join(_ROOT, "Results", "lucy",
+                           f"nli/mean_coh_{metric}_{sessions[idx]}.nc")
+              )
+
 ###############################################################################
 # DataFrame for NLI
 ###############################################################################
-out = []
-for f in range(n_freqs):
-    data = np.array([areas[sources],
-                     areas[targets],
-                     sources,
-                     targets,
-                     [freqs[f]]*n_rois,
-                     nli.isel(freqs=f),
-                     mean_coh.isel(freqs=f)])
-    out += [pd.DataFrame(
-        data=data.T,
-        columns=["roi_s", "roi_t", "s", "t", "f", "nli", "coh_st"],
-    )]
+# out = []
+# for f in range(n_freqs):
+    # data = np.array([areas[sources],
+                     # areas[targets],
+                     # sources,
+                     # targets,
+                     # [freqs[f]]*n_rois,
+                     # nli.isel(freqs=f),
+                     # mean_coh.isel(freqs=f)])
+    # out += [pd.DataFrame(
+        # data=data.T,
+        # columns=["roi_s", "roi_t", "s", "t", "f", "nli", "coh_st"],
+    # )]
 
-out = pd.concat(out, axis=0)
+# out = pd.concat(out, axis=0)
 
-nli_path = os.path.join(_ROOT, "Results", "lucy",
-                        f"nli/nli_{metric}_{sessions[idx]}.csv")
-mean_power_path = os.path.join(
-    _ROOT, "Results", "lucy",
-    f"nli/mean_power_{metric}_{sessions[idx]}.csv")
+# nli_path = os.path.join(_ROOT, "Results", "lucy",
+                        # f"nli/nli_{metric}_{sessions[idx]}.csv")
+# mean_power_path = os.path.join(
+    # _ROOT, "Results", "lucy",
+    # f"nli/mean_power_{metric}_{sessions[idx]}.csv")
 
-out.to_csv(nli_path)
+# out.to_csv(nli_path)
 
 ###############################################################################
 # DataFrame for mean power
 ###############################################################################
-mean_power.to_dataframe(name="power").reset_index().to_csv(mean_power_path)
+# mean_power.to_dataframe(name="power").reset_index().to_csv(mean_power_path)

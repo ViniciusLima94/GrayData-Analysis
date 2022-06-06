@@ -1,0 +1,266 @@
+import os
+
+import argparse
+import numpy as np
+import xarray as xr
+from frites.conn.conn_spec import conn_spec
+from frites.conn.conn_tf import _tf_decomp
+from frites.utils import parallel_func
+from scipy.signal import find_peaks
+from tqdm import tqdm
+from config import sessions
+
+from fooof import FOOOFGroup
+from fooof.analysis import get_band_peak_fg
+from fooof.bands import Bands
+
+from GDa.session import session
+from GDa.signal.surrogates import trial_swap_surrogates
+# from GDa.util import _extract_roi
+
+
+###############################################################################
+# Argument parsing
+###############################################################################
+parser = argparse.ArgumentParser()
+parser.add_argument("SIDX", help="index of the session to run",
+                    type=int)
+parser.add_argument("METRIC", help="which dFC metric to use",
+                    type=str)
+args = parser.parse_args()
+# The index of the session to use
+sidx = args.SIDX
+# Get name of the dFC metric
+metric = args.METRIC
+
+
+###############################################################################
+# Define function to perform the analysis
+###############################################################################
+def detect_peaks(
+    data, norm=None, kw_peaks={}, return_value=None, verbose=False, n_jobs=1
+):
+
+    assert isinstance(data, xr.DataArray)
+    np.testing.assert_array_equal(data.dims, ["trials", "roi", "freqs"])
+
+    # Names of properties in kw_peaks
+    p_names = ["".join(list(key)) for key in kw_peaks.keys()]
+
+    if norm:
+        assert norm in ["max", "area"]
+        if norm == "max":
+            norm_values = data.max("freqs")
+        else:
+            norm_values = data.integrate("freqs")
+        data = data / norm_values
+
+    n_trials, n_rois = data.sizes["trials"], data.sizes["roi"]
+
+    # Compute for each roi
+    def _for_roi(i):
+        peaks = np.zeros((n_trials, n_freqs))
+        for t in range(n_trials):
+            out, properties = find_peaks(data[t, i, :].data, **kw_peaks)
+            if return_value is None:
+                peaks[t, out] = 1
+            else:
+                peaks[t, out] = properties[return_value]
+        return peaks
+
+    # define the function to compute in parallel
+    parallel, p_fun = parallel_func(
+        _for_roi, n_jobs=n_jobs, verbose=verbose, total=n_rois
+    )
+    # Compute the single trial coherence
+    peaks = parallel(p_fun(i) for i in range(n_rois))
+
+    peaks = xr.DataArray(
+        np.stack(peaks, 1), dims=data.dims, coords=data.coords,
+        name="prominence"
+    )
+
+    return peaks
+
+
+###############################################################################
+# Spectral analysis parameters
+###############################################################################
+# Smoothing windows
+sm_times = 0.3  # In seconds
+sm_freqs = 1
+sm_kernel = "square"
+
+# Defining parameters
+decim = 20  # Downsampling factor
+mode = "multitaper"  # Wheter to use Morlet or Multitaper
+
+n_freqs = 40  # How many frequencies to use
+freqs = np.linspace(3, 75, n_freqs)  # Frequency array
+n_cycles = freqs / 4  # Number of cycles
+mt_bandwidth = None
+
+
+def return_evt_dt(align_at):
+    """Return the window in which the data will be loaded
+    depending on the alignment"""
+    assert align_at in ["cue", "match"]
+    if align_at == "cue":
+        return [-0.65, 3.00]
+    else:
+        return [-2.2, 0.65]
+
+
+###############################################################################
+# Loading data
+###############################################################################
+# Instantiate class
+ses = session(
+    raw_path=os.path.expanduser("~/funcog/gda/GrayLab/"),
+    monkey="lucy",
+    date=sessions[sidx],
+    session=1,
+    slvr_msmod=False,
+    align_to="cue",
+    evt_dt=[-0.65, 3.00],
+)
+
+# Read data from .mat files
+ses.read_from_mat()
+
+# Filtering by trials
+data = ses.filter_trials(trial_type=[1], behavioral_response=[1])
+# ROIs with channels
+rois = [
+    f"{roi} ({channel})" for roi, channel in zip(data.roi.data, data.channels_labels)
+]
+data = data.assign_coords({"roi": rois})
+
+data_surr = trial_swap_surrogates(data, seed=123456, verbose=False)
+
+###############################################################################
+# Computing power and coherence
+###############################################################################
+
+w = _tf_decomp(
+    data,
+    data.attrs["fsample"],
+    freqs,
+    mode=mode,
+    n_cycles=n_cycles,
+    mt_bandwidth=None,
+    decim=decim,
+    kw_cwt={},
+    kw_mt={},
+    n_jobs=20,
+)
+
+# Compute power spectra and average over time
+w = (w * np.conj(w)).real.mean(-1)
+
+w = xr.DataArray(
+    w,
+    name="power",
+    dims=("trials", "roi", "freqs"),
+    coords=(data.trials.values, data.roi.values, freqs),
+)
+
+kw = dict(
+    freqs=freqs,
+    times="time",
+    roi="roi",
+    foi=None,
+    n_jobs=20,
+    pairs=None,
+    sfreq=ses.data.attrs["fsample"],
+    mode=mode,
+    n_cycles=n_cycles,
+    decim=decim,
+    metric="coh",
+    sm_times=sm_times,
+    sm_freqs=sm_freqs,
+    sm_kernel=sm_kernel,
+    block_size=2,
+)
+
+# compute the coherence
+coh = conn_spec(data, **kw).astype(np.float32, keep_attrs=True)
+coh_surr = conn_spec(data_surr, **kw).astype(np.float32, keep_attrs=True)
+coh = np.clip(coh - coh_surr.quantile(0.95, "trials"), 0, np.inf).mean("times")
+
+###############################################################################
+# Finding peaks in the spectra
+###############################################################################
+
+bands = Bands(
+    {
+        "theta": [0, 6],
+        "alpha": [6, 14],
+        "beta": [14, 26],
+        "high_beta": [26, 43],
+        "gamma": [26, 43],
+    }
+)
+
+# Number of spectra per roi
+n_spectra = w.sizes["trials"]
+# Frequency axis
+freqs = w.freqs.data
+# Frequency range
+freq_range = [freqs[0], freqs[-1]]
+# ROI names
+rois = w.roi.data
+# Trial labels
+trials = w.trials.data
+
+peak_freqs = np.zeros((bands.n_bands, n_spectra, len(rois)))
+
+for b in tqdm(range(bands.n_bands)):
+    label = bands.labels[b]
+    for i, roi in enumerate(rois):
+        spectra = w.isel(roi=i).data
+        fg = FOOOFGroup(verbose=False)
+        fg.fit(freqs, spectra, n_jobs=-1)
+        peak_freqs[b, :, i] = get_band_peak_fg(fg, bands[label])[:, 1]
+
+peak_freqs = xr.DataArray(
+    peak_freqs, dims=("freqs", "trials", "roi"),
+    coords={"trials": trials, "roi": rois}
+)
+
+
+###############################################################################
+# Compute peak coherence prominence
+###############################################################################
+
+p_coh = detect_peaks(
+    coh,
+    kw_peaks=dict(height=0.1, prominence=0),
+    return_value="prominences",
+    norm=None,
+)
+
+max_pro_coh = p_coh.max().data
+
+p_coh = detect_peaks(
+    coh,
+    kw_peaks=dict(height=0.1, prominence=0.1 * max_pro_coh),
+    return_value=None,
+    norm=None,
+)
+
+###############################################################################
+# Detecting false positives
+###############################################################################
+
+p_band = (peak_freqs > 0).astype(int)
+
+p_coh_band = []
+for i, label in enumerate(bands.labels):
+    flow, fhigh = bands[label][0], bands[label][1]
+    p_coh_band += [(p_coh.sel(freqs=slice(flow, fhigh)
+                              ).sum("freqs") > 0).astype(int)]
+
+p_coh_band = xr.concat(p_coh_band, "freqs")
+
+Om = p_coh_band * (p_band + p_band) + p_coh_band
