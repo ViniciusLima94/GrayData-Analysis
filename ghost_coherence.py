@@ -16,7 +16,7 @@ from fooof.bands import Bands
 
 from GDa.session import session
 from GDa.signal.surrogates import trial_swap_surrogates
-# from GDa.util import _extract_roi
+from GDa.util import _extract_roi
 
 
 ###############################################################################
@@ -263,4 +263,21 @@ for i, label in enumerate(bands.labels):
 
 p_coh_band = xr.concat(p_coh_band, "freqs")
 
-Om = p_coh_band * (p_band + p_band) + p_coh_band
+
+roi_s, roi_t = _extract_roi(p_coh_band.roi.data, "-")
+
+
+Om = np.zeros((bands.n_bands, n_spectra, len(roi_s)))
+
+for i in tqdm(range(p_coh_band.sizes["roi"])):
+    s, t = roi_s[i], roi_t[i]
+    Om[..., i] = p_coh_band.isel(roi=i) * (p_band.sel(roi=s) +
+                                           p_band.sel(roi=t)) + p_coh_band.isel(roi=i)
+
+Om = xr.DataArray(
+    Om, dims=("freqs", "trials", "roi"),
+    coords={"trials": trials, "roi": p_coh_band.roi.data}
+)
+
+save_path = os.path.expanduser("~/funcog/gda/Results/lucy/ghost_coherence")
+Om.to_netcdf(f"om_{metric}_{sessions[sidx]}.nc")
