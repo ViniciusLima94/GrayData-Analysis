@@ -170,7 +170,7 @@ kw = dict(
     times="time",
     roi="roi",
     foi=None,
-    n_jobs=20,
+    n_jobs=10,
     pairs=None,
     sfreq=ses.data.attrs["fsample"],
     mode=mode,
@@ -180,14 +180,15 @@ kw = dict(
     sm_times=sm_times,
     sm_freqs=sm_freqs,
     sm_kernel=sm_kernel,
-    block_size=2,
+    block_size=4,
 )
 
 # compute the coherence
-coh = conn_spec(data, **kw).astype(np.float32, keep_attrs=True)
-coh_surr = conn_spec(data_surr, **kw).astype(np.float32, keep_attrs=True)
-coh = np.clip(coh - coh_surr.quantile(0.95, "trials"), 0, np.inf).mean("times")
+coh = conn_spec(data, **kw).astype(np.float32, keep_attrs=True).mean("times")
+coh_surr = conn_spec(data_surr, **kw).astype(np.float32,
+                                             keep_attrs=True).mean("times")
 
+coh = np.clip(coh - coh_surr.quantile(0.95, "trials"), 0, np.inf)
 ###############################################################################
 # Finding peaks in the spectra
 ###############################################################################
@@ -280,4 +281,4 @@ Om = xr.DataArray(
 )
 
 save_path = os.path.expanduser("~/funcog/gda/Results/lucy/ghost_coherence")
-Om.to_netcdf(f"om_{metric}_{sessions[sidx]}.nc")
+Om.to_netcdf(os.path.join(save_path, f"om_{metric}_{sessions[sidx]}.nc"))
