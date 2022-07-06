@@ -92,7 +92,7 @@ sm_freqs = 1
 sm_kernel = "square"
 
 # Defining parameters
-decim = 20  # Downsampling factor
+decim = 30  # Downsampling factor
 mode = "multitaper"  # Wheter to use Morlet or Multitaper
 
 n_freqs = 40  # How many frequencies to use
@@ -199,7 +199,7 @@ bands = Bands(
         "alpha": [6, 14],
         "beta": [14, 26],
         "high_beta": [26, 43],
-        "gamma": [26, 43],
+        "gamma": [43, 80],
     }
 )
 

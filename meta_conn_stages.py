@@ -83,7 +83,7 @@ _RESULTS = "Results/lucy/meta_conn"
 
 def get_file_name(session):
     if not surr:
-        return os.path.join(_ROOT, _RESULTS, f"MC_coh_{session}.nc")
+        return os.path.join(_ROOT, _RESULTS, f"MC_coh_{session}_nothr.nc")
     return os.path.join(_ROOT, _RESULTS, f"MC_coh_{session}_surr.nc")
 
 

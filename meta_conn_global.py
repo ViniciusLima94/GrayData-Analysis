@@ -10,8 +10,8 @@ from config import sessions
 from GDa.util import _extract_roi
 from tqdm import tqdm
 
-surr = bool(sys.argv[-1])
-
+surr = bool(int(sys.argv[-1]))
+print(surr)
 ##############################################################################
 # Auxiliar function
 ##############################################################################
