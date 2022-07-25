@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from config import sessions
 from GDa.session import session
-from GDa.signal.surrogates import trial_swap_surrogates
+# from GDa.signal.surrogates import trial_swap_surrogates
 
 
 idx = int(sys.argv[-1])
@@ -99,8 +99,8 @@ if not os.path.exists(save_path):
 decim = 10  # Downsampling factor
 mode = "multitaper"  # Wheter to use Morlet or Multitaper
 n_freqs = 100  # How many frequencies to use
-fc = np.linspace(20, 80, n_freqs)  # Frequency array
-n_cycles = fc / 4  # Number of cycles
+fc = np.linspace(4, 80, n_freqs)  # Frequency array
+n_cycles = fc / 2  # Number of cycles
 mt_bandwidth = None
 
 bands = {
@@ -194,12 +194,14 @@ w = xr.DataArray(
 )
 
 # Power time series for beta and gamma bands
+alpha = slice(6, 14)
 beta = slice(28, 38)
 gamma = slice(60, 70)
 
 # Power
 power = (w * np.conj(w)).real
 
+power_alpha = power.sel(freqs=alpha).mean("freqs")
 power_beta = power.sel(freqs=beta).mean("freqs")
 power_gamma = power.sel(freqs=gamma).mean("freqs")
 
@@ -214,28 +216,31 @@ phi = xr.DataArray(phi, dims=power_beta.dims, coords=power_beta.coords)
 ##############################################################################
 
 # Z-scored time series
+z_alpha = (power_alpha - power_alpha.mean("times")) / power_alpha.std("times")
 z_beta = (power_beta - power_beta.mean("times")) / power_beta.std("times")
 z_gamma = (power_gamma - power_gamma.mean("times")) / power_gamma.std("times")
 
 # Correlation
 cc = (z_beta * z_gamma).mean("times")
+# Gamma correlation as chance level
+CC = (z_alpha * z_gamma).mean("times")
 
 # Surrogates
-CC = []
-for i in tqdm(range(1000)):
+# CC = []
+# for i in tqdm(range(1000)):
 
-    x1 = trial_swap_surrogates(z_beta.copy(), seed=i + 1000)
-    x2 = trial_swap_surrogates(z_gamma.copy(), seed=i + 2000)
+    # x1 = trial_swap_surrogates(z_beta.copy(), seed=i + 1000)
+    # x2 = trial_swap_surrogates(z_gamma.copy(), seed=i + 2000)
 
-    cc_surr = (x1 * x2).mean("times")
+    # cc_surr = (x1 * x2).mean("times")
 
-    CC += [cc_surr]
+    # CC += [cc_surr]
 
-CC = xr.DataArray(
-    np.vstack(CC),
-    dims=("trials", "roi"),
-    coords={"roi": z_gamma.roi},
-)
+# CC = xr.DataArray(
+    # np.vstack(CC),
+    # dims=("trials", "roi"),
+    # coords={"roi": z_gamma.roi},
+# )
 
 ##############################################################################
 # Phase between beta and gamma LFP
@@ -379,6 +384,8 @@ peak_prominences.to_netcdf(os.path.join(save_path, "peak_prominences.nc"))
 has_peak.to_netcdf(os.path.join(save_path, "has_peak.nc"))
 # Save LFP data for channels with beta and gamma peaks
 data_sel.to_netcdf(os.path.join(save_path, "data_sel.nc"))
+# Power time series for alpha band
+power_alpha.to_netcdf(os.path.join(save_path, "power_alpha.nc"))
 # Power time series for beta band
 power_beta.to_netcdf(os.path.join(save_path, "power_beta.nc"))
 # Power time series for gamma band

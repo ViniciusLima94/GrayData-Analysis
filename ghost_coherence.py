@@ -92,24 +92,13 @@ sm_freqs = 1
 sm_kernel = "square"
 
 # Defining parameters
-decim = 30  # Downsampling factor
+decim = 20  # Downsampling factor
 mode = "multitaper"  # Wheter to use Morlet or Multitaper
 
 n_freqs = 40  # How many frequencies to use
 freqs = np.linspace(3, 75, n_freqs)  # Frequency array
 n_cycles = freqs / 4  # Number of cycles
 mt_bandwidth = None
-
-
-def return_evt_dt(align_at):
-    """Return the window in which the data will be loaded
-    depending on the alignment"""
-    assert align_at in ["cue", "match"]
-    if align_at == "cue":
-        return [-0.65, 3.00]
-    else:
-        return [-2.2, 0.65]
-
 
 ###############################################################################
 # Loading data
@@ -122,7 +111,7 @@ ses = session(
     session=1,
     slvr_msmod=False,
     align_to="cue",
-    evt_dt=[-0.65, 3.00],
+    evt_dt=[-0.7, 0.00],
 )
 
 # Read data from .mat files
@@ -263,7 +252,6 @@ for i, label in enumerate(bands.labels):
                               ).sum("freqs") > 0).astype(int)]
 
 p_coh_band = xr.concat(p_coh_band, "freqs")
-
 
 roi_s, roi_t = _extract_roi(p_coh_band.roi.data, "-")
 
