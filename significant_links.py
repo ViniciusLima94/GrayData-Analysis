@@ -150,7 +150,7 @@ alpha = 0.01
 p_sig = (p_values <= alpha).groupby("roi").sum("roi")
 # Get rois
 roi = p_sig.roi.data
-# # Get map from roi to index
+# Get map from roi to index
 roi_s, roi_t, roi_is, roi_it, areas, mapping = _create_roi_area_mapping(roi)
 # # Number of rois
 n_rois = len(areas)
