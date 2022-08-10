@@ -98,10 +98,10 @@ if not os.path.exists(save_path):
 # Defining parameters
 decim = 10  # Downsampling factor
 mode = "multitaper"  # Wheter to use Morlet or Multitaper
-n_freqs = 100  # How many frequencies to use
-fc = np.linspace(5, 80, n_freqs)  # Frequency array
-n_cycles = fc / 2  # Number of cycles
-mt_bandwidth = None
+n_freqs = 30  # How many frequencies to use
+fc = np.linspace(4, 80, n_freqs)  # Frequency array
+n_cycles = fc / 4  # Number of cycles
+mt_bandwidth = 4
 
 bands = {
     "theta": [0, 6],
@@ -237,7 +237,7 @@ CC = xr.DataArray(
     np.vstack(CC),
     dims=("trials", "roi"),
     coords={"roi": z_gamma.roi},
-)
+) 
 
 ##############################################################################
 # Phase between beta and gamma LFP
