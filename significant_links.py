@@ -8,13 +8,8 @@ import os
 import numpy as np
 import xarray as xr
 from frites.utils import parallel_func
-from frites.conn.conn_spec import conn_spec
 from scipy.stats import ks_2samp, ttest_ind
-from config import (sm_times, sm_kernel, sm_freqs, decim,
-                    mode, freqs, n_cycles, sessions,
-                    return_evt_dt)
-from GDa.signal.surrogates import trial_swap_surrogates
-from GDa.session import session
+from config import sessions
 from GDa.util import _extract_roi, _create_roi_area_mapping
 
 #######################################################################
@@ -34,49 +29,32 @@ metric = args.METRIC
 
 at = 'cue'
 _SEED = 8179273
-evt_dt = return_evt_dt(at)
 
 #######################################################################
-# Compute coherence for original and surrogate data
+# Define path to load and save data
 #######################################################################
 
 _ROOT = os.path.expanduser("~/funcog/gda")
 _RESULTS = os.path.join("Results", "lucy", "significance_analysis")
-_COH_PATH = os.path.join(_ROOT,
-                         f"Results/lucy/{sessions[idx]}/session01",
-                         f"{metric}_k_0.3_multitaper_at_cue.nc")
-
-#######################################################################
-# Load original coherence
-#######################################################################
-coh = xr.load_dataarray(_COH_PATH).astype(np.float32)
-
-#######################################################################
-# Compute surrogate coherence
-#######################################################################
-#  Instantiating session
-ses = session(raw_path=os.path.join(_ROOT, "GrayLab/"),
-              monkey="lucy",
-              date=sessions[idx],
-              session=1, slvr_msmod=True,
-              align_to=at, evt_dt=evt_dt)
-# Load data
-ses.read_from_mat()
-
-kw = dict(
-    freqs=freqs, times="time", roi="roi", foi=None,
-    n_jobs=20, pairs=None, sfreq=ses.data.attrs['fsample'],
-    mode=mode, n_cycles=n_cycles, decim=decim, metric=metric,
-    sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel, block_size=4
+# Path to coherence
+_COH_PATH = os.path.join(
+    _ROOT, f"Results/lucy/{sessions[idx]}/session01", f"{metric}_at_cue.nc"
+)
+# Path to surrogate coherence
+_COH_PATH_SURR = os.path.join(
+    _ROOT, f"Results/lucy/{sessions[idx]}/session01", f"{metric}_at_cue_surr.nc"
 )
 
-data_surr = trial_swap_surrogates(
-    ses.data.astype(np.float32), seed=_SEED, verbose=False)
 
-coh_surr = conn_spec(data_surr, **kw).astype(np.float32)
-
+#######################################################################
+# Load original and surrogate coherence
+#######################################################################
+coh = xr.load_dataarray(_COH_PATH).astype(np.float32)
 coh = coh.transpose("roi", "freqs", "trials", "times")
+
+coh_surr = xr.load_dataarray(_COH_PATH_SURR).astype(np.float32)
 coh_surr = coh_surr.transpose("roi", "freqs", "trials", "times")
+
 
 #######################################################################
 # Statistical testing the distributions (KS-test and t-test)
@@ -93,30 +71,32 @@ that our observation is not so unlikely to have occurred by chance.
 """
 
 
-def significance_test(verbose=False, n_jobs=5):
+def significance_test(coh=None, verbose=False, n_jobs=5):
     """
     Method to compute the ks- and t-test for each frequency band
     in parallel.
     """
-    n_bands = coh.shape[1]
+    n_rois, n_bands, n_trials, n_times = coh.shape
 
     def _for_band(band):
+
         # Store p-value for KS-test
         ks = np.zeros(coh.shape[0])
-        # Store p-value for t-test
-        tt = np.zeros(coh.shape[0])
+
         for i in range(coh.shape[0]):
             ks[i] = ks_2samp(
                 coh[i, band, ...].values.flatten(),
                 coh_surr[i, band, ...].values.flatten(),
                 alternative="two-sided",
             )[1]
-            tt[i] = ttest_ind(
-                coh[i, band, ...].values.flatten(),
-                coh_surr[i, band, ...].values.flatten(),
-                alternative="two-sided",
-                equal_var=False,
-            )[1]
+
+        tt = ttest_ind(
+            coh[:, band, :, :].values.reshape(n_rois, n_trials * n_times),
+            coh_surr[:, band, :, :].values.reshape(n_rois, n_trials * n_times),
+            alternative="greater",
+            axis=-1,
+            #equal_var=False,
+        )[1]
         return np.array([ks, tt])
 
     # define the function to compute in parallel
@@ -124,7 +104,10 @@ def significance_test(verbose=False, n_jobs=5):
         _for_band, n_jobs=n_jobs, verbose=verbose, total=n_bands
     )
     p_values = parallel(p_fun(band) for band in range(n_bands))
-    return np.asarray(p_values).T
+
+    p_values = np.asarray(p_values).T
+
+    return p_values
 
 
 # Compute p-values
@@ -133,21 +116,35 @@ if coh.nbytes * 1e-9 * 2 > 70:
 else:
     n_jobs = 5
 
-p_values = significance_test(verbose=True, n_jobs=n_jobs)
+p_values = significance_test(coh, verbose=True, n_jobs=n_jobs)
 # Convert to xarray
-p_values = xr.DataArray(p_values, dims=("roi", "p", "freqs"),
-                        coords=dict(roi=coh.roi.data,
-                                    freqs=coh.freqs.data,
-                                    p=["ks", "t"]))
+p_values = xr.DataArray(
+    p_values,
+    dims=("roi", "p", "freqs"),
+    coords=dict(roi=coh.roi.data, freqs=coh.freqs.data, p=["ks", "t"]),
+)
 
 #######################################################################
 # Compute number of sig. links between each pair of regions
 #######################################################################
 
+# Remove with ROI edges
+roi_s, roi_t = _extract_roi(p_values.roi.data, "-")
+p_values = p_values.isel(roi=np.logical_not(roi_s == roi_t))
+
 # Significance level
-alpha = 0.01
+alpha = 0.0001
 # Number of regions between pairs of channels
-p_sig = (p_values <= alpha).groupby("roi").sum("roi")
+p_sig = (p_values <= alpha).astype(int).groupby("roi").mean("roi")
+
+# Remove links with less than 10 samples
+rois, counts = np.unique(p_values.roi.data, return_counts=True)
+p_sig = p_sig.sel(roi=rois[counts >= 10])
+
+#######################################################################
+# Convert p_sig to matrix
+#######################################################################
+
 # Get rois
 roi = p_sig.roi.data
 # Get map from roi to index
@@ -161,13 +158,12 @@ sources, targets = [], []
 sources += [mapping[s] for s in roi_s]
 targets += [mapping[t] for t in roi_t]
 
-p_mat = xr.DataArray(np.zeros((n_rois, n_rois, 2, p_sig.sizes["freqs"])),
-                     dims=("sources", "targets", "p", "freqs"),
-                     coords=dict(sources=areas,
-                                 targets=areas,
-                                 p=["ks", "t"],
-                                 freqs=p_sig.freqs.data)
-                     )
+p_mat = xr.DataArray(
+    np.zeros((n_rois, n_rois, 2, p_sig.sizes["freqs"])),
+    dims=("sources", "targets", "p", "freqs"),
+    coords=dict(sources=areas, targets=areas, p=[
+                "ks", "t"], freqs=p_sig.freqs.data),
+)
 
 for p, roi in enumerate(roi):
     x, y = roi.split("-")

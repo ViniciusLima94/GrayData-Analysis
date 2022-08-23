@@ -126,35 +126,3 @@ mean_power.to_netcdf(os.path.join(_ROOT, "Results", "lucy",
 mean_coh.to_netcdf(os.path.join(_ROOT, "Results", "lucy",
                            f"nli/mean_coh_{metric}_{sessions[idx]}.nc")
               )
-
-###############################################################################
-# DataFrame for NLI
-###############################################################################
-# out = []
-# for f in range(n_freqs):
-    # data = np.array([areas[sources],
-                     # areas[targets],
-                     # sources,
-                     # targets,
-                     # [freqs[f]]*n_rois,
-                     # nli.isel(freqs=f),
-                     # mean_coh.isel(freqs=f)])
-    # out += [pd.DataFrame(
-        # data=data.T,
-        # columns=["roi_s", "roi_t", "s", "t", "f", "nli", "coh_st"],
-    # )]
-
-# out = pd.concat(out, axis=0)
-
-# nli_path = os.path.join(_ROOT, "Results", "lucy",
-                        # f"nli/nli_{metric}_{sessions[idx]}.csv")
-# mean_power_path = os.path.join(
-    # _ROOT, "Results", "lucy",
-    # f"nli/mean_power_{metric}_{sessions[idx]}.csv")
-
-# out.to_csv(nli_path)
-
-###############################################################################
-# DataFrame for mean power
-###############################################################################
-# mean_power.to_dataframe(name="power").reset_index().to_csv(mean_power_path)
