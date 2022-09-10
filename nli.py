@@ -21,6 +21,7 @@ import argparse
 
 from GDa.temporal_network import temporal_network
 from config import sessions
+from tqdm import tqdm
 
 
 ###############################################################################
@@ -63,12 +64,15 @@ net = temporal_network(
 )
 
 # Concatenate trials and times
-power = power.stack(samples=("trials", "times"))
-coh = net.super_tensor.stack(samples=("trials", "times"))
+# power = power.stack(samples=("trials", "times"))
+coh = net.super_tensor  # .stack(samples=("trials", "times"))
+
+rois = coh.roi.values
+channels = coh.attrs["channels_labels"]
 
 # z-score
-Zpower = (power - power.mean("samples")) / power.std("samples")
-Zcoh = (coh - coh.mean("samples")) / coh.std("samples")
+Zpower = (power - power.mean("times")) / power.std("times")
+Zcoh = (coh - coh.mean("times")) / coh.std("times")
 
 roi = Zcoh.roi.data
 freqs = Zcoh.freqs.data
@@ -82,47 +86,96 @@ n_freqs = len(freqs)
 
 @nb.vectorize([nb.float64(nb.float64)])
 def H(x):
-    if x >= 0:
-        return x
-    else:
-        return 0
+    if x > 0:
+        return 1
+    return 0
 
 
 @nb.vectorize([nb.float64(nb.float64)])
 def H_tilde(x):
-    if x <= 0:
-        return -x
-    else:
-        return 0
+    if x < 0:
+        return 1
+    return 0
+
+
+@nb.vectorize([nb.int64(nb.float64, nb.float64)])
+def heaviside(x, thr=0.0):
+    if x > thr:
+        return 1
+    return 0
 
 
 sources = net.super_tensor.attrs["sources"].astype(int)
 targets = net.super_tensor.attrs["targets"].astype(int)
 areas = np.asarray(net.super_tensor.attrs["areas"])
 
-nli = np.zeros((Zcoh.shape[0], Zcoh.shape[1]))
-for p, (s, t) in enumerate(zip(sources, targets)):
-    nli[p] = np.mean(H(Zpower[s]) * H(Zpower[t]) * H(Zcoh[p]), -1) + np.mean(
-        H_tilde(Zpower[s]) * H_tilde(Zpower[t]) * H_tilde(Zcoh[p]), -1
+
+def compute_NLI(x, y, z):
+    return np.mean(H(x) * H(y) * H(z), axis=-1) + np.mean(
+        H_tilde(x) * H_tilde(y) * H_tilde(z), axis=-1
     )
+
+
+def compute_thr_NLI(x, y, z, thr):
+    return np.mean(heaviside(x, thr) * heaviside(y, thr) * heaviside(z, 0.0), axis=-1)
+
+
+# NLI
+nli = np.zeros((Zcoh.shape[0], Zcoh.shape[1], Zcoh.shape[2]))
+
+dpower = power.diff("times")
+dcoh = coh.diff("times")
+
+p = 0
+for s, t in tqdm(zip(sources, targets)):
+    nli[p] = compute_NLI(dpower[s], dpower[t], dcoh[p])
+    p = p + 1
 
 nli = xr.DataArray(
     nli,
-    dims=("roi", "freqs"),
+    dims=("roi", "freqs", "trials"),
     name="nli",
-    coords={"roi": net.super_tensor.roi.data,
-            "freqs": net.super_tensor.freqs.data}
+    coords={
+        "roi": net.super_tensor.roi.data,
+        "freqs": net.super_tensor.freqs.data,
+        "trials": net.super_tensor.trials.data,
+    },
 )
+
+# tNLI
+thresholds = power.quantile(0.70, ("roi", "trials", "times"))
+
+nli_thr = np.zeros((Zcoh.shape[0], Zcoh.shape[1], Zcoh.shape[2]))
+
+p = 0
+for s, t in tqdm(zip(sources, targets)):
+    nli_thr[p] = compute_thr_NLI(power[s], power[t], coh[p], thresholds)
+    p = p + 1
+
+nli_thr = xr.DataArray(
+    nli_thr,
+    dims=("roi", "freqs", "trials"),
+    name="nli",
+    coords={
+        "roi": net.super_tensor.roi.data,
+        "freqs": net.super_tensor.freqs.data,
+        "trials": net.super_tensor.trials.data,
+    },
+)
+
 # Create data frame with the data
-mean_power = power.mean("samples")
-mean_coh = coh.mean("samples")
+mean_power = power.mean(("trials", "times"))
+mean_coh = coh.mean(("trials", "times"))
 
 nli.to_netcdf(os.path.join(_ROOT, "Results", "lucy",
                            f"nli/nli_{metric}_{sessions[idx]}.nc")
               )
+nli_thr.to_netcdf(os.path.join(_ROOT, "Results", "lucy",
+                               f"nli/nli_thr_{metric}_{sessions[idx]}.nc")
+                  )
 mean_power.to_netcdf(os.path.join(_ROOT, "Results", "lucy",
-                           f"nli/mean_power_{metric}_{sessions[idx]}.nc")
-              )
+                                  f"nli/mean_power_{metric}_{sessions[idx]}.nc")
+                     )
 mean_coh.to_netcdf(os.path.join(_ROOT, "Results", "lucy",
-                           f"nli/mean_coh_{metric}_{sessions[idx]}.nc")
-              )
+                                f"nli/mean_coh_{metric}_{sessions[idx]}.nc")
+                   )

@@ -5,7 +5,6 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from frites.conn.conn_spec import conn_spec
-from frites.conn.conn_tf import _tf_decomp
 from mne.time_frequency import psd_array_multitaper
 from frites.utils import parallel_func
 from scipy.signal import find_peaks
@@ -34,6 +33,7 @@ args = parser.parse_args()
 sidx = args.SIDX
 # Get name of the dFC metric
 metric = args.METRIC
+print(sessions[sidx])
 
 
 ###############################################################################
@@ -45,9 +45,6 @@ def detect_peaks(
 
     assert isinstance(data, xr.DataArray)
     np.testing.assert_array_equal(data.dims, ["trials", "roi", "freqs"])
-
-    # Names of properties in kw_peaks
-    p_names = ["".join(list(key)) for key in kw_peaks.keys()]
 
     if norm:
         assert norm in ["max", "area"]
@@ -111,7 +108,7 @@ ses = session(
     monkey="lucy",
     date=sessions[sidx],
     session=1,
-    slvr_msmod=False,
+    slvr_msmod=True,
     align_to="cue",
     evt_dt=[-0.7, 0.00],
 )
@@ -302,8 +299,7 @@ def compute_TPR(data):
 
 
 def compute_FPR(data):
-
-    TN = (data == 0).sum("trials")
+    TN = (np.logical_or(data == -1, data == 0)).sum("trials")
     FP = (np.logical_or(data == 2, data == 1)).sum("trials")
 
     return FP / (FP + TN)
