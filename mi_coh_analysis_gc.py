@@ -30,7 +30,7 @@ parser.add_argument("SURR",
                     type=int)
 parser.add_argument("TRIALS",
                     help="which kind of trials to use",
-                    type=int)
+                    type=str)
 
 args = parser.parse_args()
 
@@ -85,7 +85,12 @@ for s_id in tqdm(sessions):
         roi_key = f"{roi_s[r]} ({chn_s[r]})-{roi_t[r]} ({chn_t[r]})"
         x = Om.loc[(Om.freqs == 2) & (Om.roi == roi_key)]
         x = np.stack((x.trials.values, x.Om.values), 1)
-        idx = np.logical_not(np.logical_or(x[:, 1] == 1, x[:, 1] == 2))
+        if tt == "TN":
+            idx = np.logical_or(x[:, 1] == -1, x[:, 1] == 0)
+        elif tt == "FP":
+            idx = np.logical_not(x[:, 1] == 3)
+        elif tt == "TP":
+            idx = np.logical_not(np.logical_or(x[:, 1] == 1, x[:, 1] == 2))
         if np.sum(idx) <= 0:
             continue
         trials = x[idx][:, 0]

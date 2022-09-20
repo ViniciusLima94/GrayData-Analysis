@@ -29,4 +29,4 @@
 #python -O mi_net_analysis.py "coh" "degree" 1 
 #python -O mi_net_analysis.py "plv" "degree" 1 
 #python -O mi_net_analysis.py "pec" "degree" 1 
-python -O mi_coh_analysis_gc.py "coh" 1 1 3
+python -O mi_coh_analysis_gc.py "coh" 1 1 2
