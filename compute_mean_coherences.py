@@ -1,10 +1,19 @@
 import os
+import argparse
 from tqdm import tqdm
 import numpy as np
 import xarray as xr
 from config import sessions
 from GDa.util import average_stages
 from GDa.temporal_network import temporal_network
+
+parser = argparse.ArgumentParser()
+parser.add_argument("MONKEY", help="which monkey to use",
+                    type=str)
+
+args = parser.parse_args()
+
+monkey = args.MONKEY
 
 coh_file = 'coh_at_cue.nc'
 coh_sig_file = 'thr_coh_at_cue_surr.nc'
@@ -34,6 +43,6 @@ data = data.groupby("roi").mean("roi", skipna=True)
 data = data.sel(roi=urois)
 
 save_path = os.path.expanduser(
-    "~/funcog/gda/Results/lucy/mean_coherences/mean_coh.nc")
+    f"~/funcog/gda/Results/{monkey}/mean_coherences/mean_coh.nc")
 
 data.to_netcdf(save_path)

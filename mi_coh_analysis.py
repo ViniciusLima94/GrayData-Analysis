@@ -26,12 +26,15 @@ parser.add_argument("AVERAGED",
 parser.add_argument("SURR",
                     help="wheter to use the surrogate coherence or not",
                     type=int)
+parser.add_argument("MONKEY", help="which monkey to use",
+                    type=str)
 
 args = parser.parse_args()
 
 metric = args.METRIC
 avg = args.AVERAGED
 surr = args.SURR
+monkey = args.MONKEY
 
 ##############################################################################
 # Get root path
@@ -54,7 +57,7 @@ stim = []
 for s_id in tqdm(sessions[0]):
     net = temporal_network(coh_file=coh_file,
                            coh_sig_file=coh_sig_file, wt=None,
-                           date=s_id, trial_type=[1],
+                           date=s_id, trial_type=[1], monkey=monkey,
                            behavioral_response=[1])
     # Average if needed
     out = average_stages(net.super_tensor, avg)
@@ -99,7 +102,7 @@ mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
 
 # Path to results folder
 _RESULTS = os.path.join(_ROOT,
-                        "Results/lucy/mutual_information/coherence/")
+                        f"Results/{monkey}/mutual_information/coherence/")
 
 path_mi = os.path.join(_RESULTS,
                        f"mi_{metric}_avg_{avg}_{mcp}.nc")

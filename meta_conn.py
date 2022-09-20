@@ -28,13 +28,18 @@ parser.add_argument("SURR",
 parser.add_argument("THR",
                     help="wheter to threshold or not the coherence",
                     type=int)
+parser.add_argument("MONKEY", help="which monkey to use",
+                    type=str)
+
 args = parser.parse_args()
+
 metric = args.METRIC
 _global = args.GLOBAL
 surr = args.SURR
 idx = args.SIDX
 thr = args.THR
 session = sessions[idx]
+monkey = args.MONKEY
 
 ##############################################################################
 # Loading temporal network
@@ -42,7 +47,7 @@ session = sessions[idx]
 _ROOT = os.path.expanduser("~/funcog/gda")
 
 # Path in which to save coherence data
-_RESULTS = os.path.join("Results", "lucy", session, "session01")
+_RESULTS = os.path.join("Results", monkey, session, "session01")
 
 coh_sig_file = None
 if bool(surr) is False:
@@ -56,7 +61,7 @@ wt = None
 net = temporal_network(
     coh_file=coh_file,
     coh_sig_file=coh_sig_file,
-    wt=wt,
+    wt=wt, monkey=monkey,
     date=session,
     trial_type=[1],
     behavioral_response=[1],
@@ -93,7 +98,7 @@ if not _global:
     MC.attrs = net.super_tensor.attrs
     # Saving data
     _PATH = os.path.expanduser(os.path.join(_ROOT,
-                                            "Results/lucy/meta_conn"))
+                                            f"Results/{monkey}/meta_conn"))
     # Save MC
     if bool(surr):
         MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}_surr.nc"))
@@ -115,7 +120,7 @@ else:
     MC.attrs = net.super_tensor.attrs
     # Saving data
     _PATH = os.path.expanduser(os.path.join(_ROOT,
-                                            "Results/lucy/meta_conn"))
+                                            f"Results/{monkey}/meta_conn"))
     # Save MC
     if bool(surr):
         MC.to_netcdf(os.path.join(

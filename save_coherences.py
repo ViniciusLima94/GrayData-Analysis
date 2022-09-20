@@ -22,6 +22,8 @@ parser.add_argument("SURR", help="wheter to compute for surrogate data or not",
                     type=int)
 parser.add_argument("SEED", help="seed for create surrogates",
                     type=int)
+parser.add_argument("MONKEY", help="which monkey to use",
+                    type=str)
 
 args = parser.parse_args()
 # The connectivity metric that should be used
@@ -34,6 +36,8 @@ idx = args.SIDX
 surr = bool(args.SURR)
 # Wheter to use surrogate or not
 seed = args.SEED
+# Wheter to use Lucy or Ethyl's data 
+monkey = args.MONKEY
 
 # Window in which the data will be read
 evt_dt = return_evt_dt(at)
@@ -51,7 +55,7 @@ if __name__ == '__main__':
 
     # Path in which to save coherence data
     path_st = os.path.join('/home/vinicius/funcog/gda/Results',
-                           'lucy', sessions[idx], 'session01')
+                           monkey, sessions[idx], 'session01')
     # Check if path existis, if not it will be created
     if not os.path.exists(path_st):
         os.makedirs(path_st)
@@ -67,7 +71,7 @@ if __name__ == '__main__':
     #  Instantiating session
     raw_path = os.path.expanduser("~/funcog/gda/GrayLab")
     ses = session(raw_path=raw_path,
-                  monkey="lucy",
+                  monkey=monkey,
                   date=sessions[idx],
                   session=1, slvr_msmod=True,
                   align_to=at, evt_dt=evt_dt)

@@ -22,6 +22,8 @@ parser.add_argument("ALIGN", help="wheter to align data to cue or match",
                     type=str)
 parser.add_argument("AVERAGED", help="wheter to analyse the avg. power or not",
                     type=int)
+parser.add_argument("MONKEY", help="which monkey to use",
+                    type=str)
 
 args = parser.parse_args()
 
@@ -30,6 +32,7 @@ tt = args.TT
 br = args.BR
 at = args.ALIGN
 avg = args.AVERAGED
+monkey = args.MONKEY
 
 ##############################################################################
 # Get root path
@@ -47,7 +50,7 @@ for s_id in tqdm(sessions):
     _FILE_NAME = f"power_tt_{tt}_br_{br}_at_{at}.nc"
     path_pow = \
         os.path.join(_ROOT,
-                     f"Results/lucy/{s_id}/session01",
+                     f"Results/{monkey}/{s_id}/session01",
                      _FILE_NAME)
     power = xr.load_dataarray(path_pow)
     # Averages power for each period (baseline, cue, delay, match) if needed
@@ -90,7 +93,7 @@ mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
 
 # Path to results folder
 _RESULTS = os.path.join(_ROOT,
-                        "Results/lucy/mutual_information/power/")
+                        f"Results/{monkey}/mutual_information/power/")
 
 path_mi = os.path.join(_RESULTS,
                        f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")

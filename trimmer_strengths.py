@@ -17,14 +17,17 @@ parser = argparse.ArgumentParser()
 parser.add_argument("THR",
                     help="wheter to use the thresholded coherence or not ",
                     type=int)
+parser.add_argument("MONKEY", help="which monkey to use",
+                    type=str)
 args = parser.parse_args()
 thr = args.THR
+monkey = args.MONKEY
 
 ###############################################################################
 # Loading meta-connectivity
 ###############################################################################
 _ROOT = os.path.expanduser("~/funcog/gda")
-_RESULTS = "Results/lucy/meta_conn"
+_RESULTS = f"Results/{monkey}/meta_conn"
 
 ###############################################################################
 # Define functions to compute trimmer strengths

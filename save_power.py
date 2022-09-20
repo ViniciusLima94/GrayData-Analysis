@@ -20,6 +20,8 @@ parser.add_argument("BR", help="behavioral response",
                     type=int)
 parser.add_argument("ALIGN", help="wheter to align data to cue or match",
                     type=str)
+parser.add_argument("MONKEY", help="which monkey to use",
+                    type=str)
 
 args = parser.parse_args()
 
@@ -27,6 +29,7 @@ args = parser.parse_args()
 tt = args.TT
 br = args.BR
 at = args.ALIGN
+monkey = args.MONKEY
 
 # Root directory
 _ROOT = os.path.expanduser('~/funcog/gda')
@@ -41,7 +44,7 @@ for s_id in tqdm(sessions):
     # Path to LFP data
     raw_path = os.path.expanduser("~/funcog/gda/GrayLab/")
     # Instantiate class
-    ses = session(raw_path=raw_path, monkey='lucy', date=s_id, session=1,
+    ses = session(raw_path=raw_path, monkey=monkey, date=s_id, session=1,
                   slvr_msmod=True, align_to=at, evt_dt=evt_dt)
 
     # Read data from .mat files
@@ -79,7 +82,7 @@ for s_id in tqdm(sessions):
     # Saves file
     ###########################################################################
 
-    results_path = f"Results/lucy/{s_id}/session01"
+    results_path = f"Results/{monkey}/{s_id}/session01"
 
     # Create results path in case it does not exist
     if not os.path.exists(results_path):
