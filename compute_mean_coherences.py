@@ -3,7 +3,7 @@ import argparse
 from tqdm import tqdm
 import numpy as np
 import xarray as xr
-from config import sessions
+from config import get_dates
 from GDa.util import average_stages
 from GDa.temporal_network import temporal_network
 
@@ -14,6 +14,8 @@ parser.add_argument("MONKEY", help="which monkey to use",
 args = parser.parse_args()
 
 monkey = args.MONKEY
+
+sessions = get_dates(monkey)
 
 coh_file = 'coh_at_cue.nc'
 coh_sig_file = 'thr_coh_at_cue_surr.nc'

@@ -8,7 +8,7 @@ import numpy as np
 import xarray as xr
 from tqdm import tqdm
 import numba as nb
-from config import sessions
+from config import get_dates
 from GDa.util import average_stages, _extract_roi
 
 
@@ -33,6 +33,9 @@ tt = args.TT
 br = args.BR
 at = args.ALIGN
 monkey = args.MONKEY
+
+
+sessions = get_dates(monkey)
 
 ##############################################################################
 # Get root path

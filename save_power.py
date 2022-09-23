@@ -6,7 +6,7 @@ import xarray as xr
 from tqdm import tqdm
 from GDa.session import session
 from config import (decim, mode, freqs, n_cycles,
-                    sessions, return_evt_dt)
+                    get_dates, return_evt_dt)
 from frites.conn.conn_tf import _tf_decomp
 
 ###############################################################################
@@ -30,6 +30,8 @@ tt = args.TT
 br = args.BR
 at = args.ALIGN
 monkey = args.MONKEY
+
+sessions = get_dates(monkey)
 
 # Root directory
 _ROOT = os.path.expanduser('~/funcog/gda')
