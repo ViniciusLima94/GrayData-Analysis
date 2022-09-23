@@ -8,7 +8,7 @@ from tqdm import tqdm
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
-from config import sessions
+from config import get_dates
 from GDa.util import average_stages
 from GDa.temporal_network import temporal_network
 
@@ -35,6 +35,9 @@ metric = args.METRIC
 avg = args.AVERAGED
 surr = args.SURR
 monkey = args.MONKEY
+
+
+sessions = get_dates(monkey)
 
 ##############################################################################
 # Get root path

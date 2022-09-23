@@ -8,7 +8,7 @@ import numpy as np
 
 from tqdm import tqdm
 from GDa.temporal_network import temporal_network
-from config import sessions
+from config import get_dates
 
 ##############################################################################
 # Argument parsing
@@ -38,8 +38,10 @@ _global = args.GLOBAL
 surr = args.SURR
 idx = args.SIDX
 thr = args.THR
-session = sessions[idx]
 monkey = args.MONKEY
+
+sessions = get_dates(monkey)
+session = sessions[idx]
 
 ##############################################################################
 # Loading temporal network

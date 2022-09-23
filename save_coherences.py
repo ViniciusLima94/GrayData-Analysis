@@ -4,7 +4,7 @@ import numpy as np
 import argparse
 
 from config import (sm_times, sm_kernel, sm_freqs, decim,
-                    mode, freqs, n_cycles, sessions,
+                    mode, freqs, n_cycles, get_dates,
                     return_evt_dt)
 from GDa.session import session
 from frites.conn.conn_spec import conn_spec
@@ -38,6 +38,8 @@ surr = bool(args.SURR)
 seed = args.SEED
 # Wheter to use Lucy or Ethyl's data 
 monkey = args.MONKEY
+
+sessions = get_dates(monkey)
 
 # Window in which the data will be read
 evt_dt = return_evt_dt(at)

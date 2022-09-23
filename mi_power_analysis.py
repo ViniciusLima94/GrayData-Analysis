@@ -2,7 +2,7 @@ import os
 import xarray as xr
 import argparse
 
-from config import sessions
+from config import get_dates
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
@@ -33,6 +33,8 @@ br = args.BR
 at = args.ALIGN
 avg = args.AVERAGED
 monkey = args.MONKEY
+
+sessions = get_dates(monkey)
 
 ##############################################################################
 # Get root path

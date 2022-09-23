@@ -6,7 +6,7 @@ import numpy as np
 import xarray as xr
 
 from frites.utils import parallel_func
-from config import sessions
+from config import get_dates
 from tqdm import tqdm
 
 
@@ -22,6 +22,8 @@ parser.add_argument("MONKEY", help="which monkey to use",
 args = parser.parse_args()
 thr = args.THR
 monkey = args.MONKEY
+
+sessions = get_dates(monkey)
 
 ###############################################################################
 # Loading meta-connectivity
