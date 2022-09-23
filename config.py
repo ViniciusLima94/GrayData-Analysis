@@ -60,11 +60,18 @@ n_cycles = freqs/4  # Number of cycles
 mt_bandwidth = None
 
 
-def return_evt_dt(align_at):
+def return_evt_dt(align_at, monkey="lucy"):
     """ Return the window in which the data will be loaded
     depending on the alignment """
     assert align_at in ["cue", "match"]
-    if align_at == "cue":
-        return [-0.65, 3.00]
+    assert monkey in ["lucy", "ethyl"]
+    if monkey == "lucy":
+        if align_at == "cue":
+            return [-0.65, 3.00]
+        else:
+            return [-2.2, 0.65]
     else:
-        return [-2.2, 0.65]
+        if align_at == "cue":
+            return [-0.5, 3.00]
+        else:
+            return [-2.2, 0.65]
