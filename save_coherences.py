@@ -42,7 +42,7 @@ monkey = args.MONKEY
 sessions = get_dates(monkey)
 
 # Window in which the data will be read
-evt_dt = return_evt_dt(at)
+evt_dt = return_evt_dt(at, monkey=monkey)
 
 ###############################################################################
 # Method to compute the bias accordingly to Lachaux et. al. (2002)

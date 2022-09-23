@@ -68,10 +68,7 @@ def return_evt_dt(align_at, monkey="lucy"):
     if monkey == "lucy":
         if align_at == "cue":
             return [-0.65, 3.00]
-        else:
-            return [-2.2, 0.65]
-    else:
-        if align_at == "cue":
-            return [-0.5, 3.00]
-        else:
-            return [-2.2, 0.65]
+        return [-2.2, 0.65]
+    if align_at == "cue":
+        return [-0.5, 2.7]
+    return [-2.2, 0.65]

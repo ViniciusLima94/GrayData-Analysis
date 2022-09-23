@@ -179,6 +179,7 @@ class session(session_info):
                 t0[i] + self.recording_info['lfp_sampling_rate']*self.evt_dt[0])
             inde = int(
                 t0[i] + self.recording_info['lfp_sampling_rate']*self.evt_dt[1])
+            # print(f"{t0[i]} - {indb}:{inde}")
             # Time index array
             # ind = np.arange(indb, inde+1, dtype=int)
             # LFP data, dimension NtrialsxNchannelsxTime

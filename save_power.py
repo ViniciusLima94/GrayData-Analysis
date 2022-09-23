@@ -42,7 +42,7 @@ for s_id in tqdm(sessions):
     ###########################################################################
 
     # Window in which the data will be read
-    evt_dt = return_evt_dt(at)
+    evt_dt = return_evt_dt(at, monkey=monkey)
     # Path to LFP data
     raw_path = os.path.expanduser("~/funcog/gda/GrayLab/")
     # Instantiate class
@@ -84,15 +84,17 @@ for s_id in tqdm(sessions):
     # Saves file
     ###########################################################################
 
-    results_path = f"Results/{monkey}/{s_id}/session01"
-
+    # Path in which to save coherence data
+    results_path = os.path.join(_ROOT, 'Results',
+                           monkey, s_id, 'session01')
     # Create results path in case it does not exist
     if not os.path.exists(results_path):
         os.makedirs(results_path)
 
     file_name = f"power_tt_{tt}_br_{br}_at_{at}.nc"
-    path_pow = os.path.join(_ROOT, results_path,
+    path_pow = os.path.join(results_path,
                             file_name)
+    # print(path_pow)
 
     sxx.attrs = data.attrs
     sxx.attrs["evt_dt"] = evt_dt
