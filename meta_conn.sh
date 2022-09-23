@@ -7,5 +7,8 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --array=0-61
 
-python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 0 0
+# Original
+python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 1 "lucy"
+# Surrogate
+python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 1 0 "lucy"
 

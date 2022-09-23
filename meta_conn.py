@@ -8,6 +8,7 @@ import numpy as np
 
 from tqdm import tqdm
 from GDa.temporal_network import temporal_network
+from GDa.signal.surrogates import trial_swap_surrogates
 from config import get_dates
 
 ##############################################################################
@@ -19,9 +20,6 @@ parser.add_argument("SIDX", help="index of the session to run",
 parser.add_argument("METRIC",
                     help="which FC metric to use",
                     type=str)
-parser.add_argument("GLOBAL",
-                    help="wheter to measure stage based or global MC",
-                    type=int)
 parser.add_argument("SURR",
                     help="wheter to use original or surrogate MC",
                     type=int)
@@ -34,7 +32,6 @@ parser.add_argument("MONKEY", help="which monkey to use",
 args = parser.parse_args()
 
 metric = args.METRIC
-_global = args.GLOBAL
 surr = args.SURR
 idx = args.SIDX
 thr = args.THR
@@ -42,6 +39,9 @@ monkey = args.MONKEY
 
 sessions = get_dates(monkey)
 session = sessions[idx]
+
+print(surr)
+print(thr)
 
 ##############################################################################
 # Loading temporal network
@@ -51,13 +51,15 @@ _ROOT = os.path.expanduser("~/funcog/gda")
 # Path in which to save coherence data
 _RESULTS = os.path.join("Results", monkey, session, "session01")
 
-coh_sig_file = None
-if bool(surr) is False:
+if bool(surr):
+    coh_file = f'{metric}_at_cue_surr.nc'
+    coh_sig_file = None
+else:
     coh_file = f'{metric}_at_cue.nc'
+    coh_sig_file = None
     if bool(thr):
         coh_sig_file = f'thr_{metric}_at_cue_surr.nc'
-else:
-    coh_file = f'{metric}_at_cue_surr.nc'
+
 wt = None
 
 net = temporal_network(
@@ -71,8 +73,15 @@ net = temporal_network(
 
 # Masks for each stage
 net.create_stage_masks(flatten=True)
-# Stack trials
-FC = net.super_tensor.stack(obs=("trials", "times")).data
+
+if bool(surr):
+    FC = net.super_tensor.transpose("trials", "roi", "times", "freqs")
+    FC_surr = [trial_swap_surrogates(FC[..., f], verbose=True) for f in range(10)]
+    FC = xr.concat(FC_surr, "freqs").assign_coords({"freqs": FC.freqs})
+    FC = FC.transpose("roi", "freqs", "trials", "times").stack(obs=("trials", "times")).data
+else:
+    # Stack trials
+    FC = net.super_tensor.stack(obs=("trials", "times")).data
 
 ##############################################################################
 # Compute meta-connectivity
@@ -80,57 +89,30 @@ FC = net.super_tensor.stack(obs=("trials", "times")).data
 n_edges = net.super_tensor.sizes["roi"]
 n_freqs = net.super_tensor.sizes["freqs"]
 
-if not _global:
-    stages = net.s_mask.keys()
-    n_stages = len(stages)
+stages = net.s_mask.keys()
+n_stages = len(stages)
 
-    MC = np.zeros((n_edges, n_edges, n_freqs, n_stages))
-    for f in tqdm(range(n_freqs)):
-        for s, stage in enumerate(net.s_mask.keys()):
-            # Get index for the stages of interest
-            idx = net.s_mask[stage].values
-            MC[..., f, s] = np.corrcoef(FC[:, f, idx])
+print(FC.shape)
 
-    MC = xr.DataArray(MC,
-                      dims=("sources", "targets", "freqs", "times"),
-                      coords={"sources": net.super_tensor.roi.values,
-                              "targets": net.super_tensor.roi.values,
-                              "freqs": net.super_tensor.freqs.values, })
+MC = np.zeros((n_edges, n_edges, n_freqs, n_stages))
+for f in tqdm(range(n_freqs)):
+    for s, stage in enumerate(net.s_mask.keys()):
+        # get index for the stages of interest
+        idx = net.s_mask[stage].values
+        MC[..., f, s] = np.corrcoef(FC[:, f, idx])
 
-    MC.attrs = net.super_tensor.attrs
-    # Saving data
-    _PATH = os.path.expanduser(os.path.join(_ROOT,
-                                            f"Results/{monkey}/meta_conn"))
-    # Save MC
-    if bool(surr):
-        MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}_surr.nc"))
-    else:
-        if bool(thr):
-            MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}.nc"))
-        else:
-            MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}_nothr.nc"))
+MC = xr.DataArray(MC,
+                  dims=("sources", "targets", "freqs", "times"),
+                  coords={"sources": net.super_tensor.roi.values,
+                          "targets": net.super_tensor.roi.values,
+                          "freqs": net.super_tensor.freqs.values, })
+
+MC.attrs = net.super_tensor.attrs
+# Saving data
+_PATH = os.path.expanduser(os.path.join(_ROOT,
+                                        f"Results/{monkey}/meta_conn"))
+# Save MC
+if bool(surr):
+    MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}_surr.nc"))
 else:
-    MC = np.zeros((n_edges, n_edges, n_freqs))
-    for f in tqdm(range(n_freqs)):
-        MC[..., f] = np.corrcoef(FC[:, f])
-
-    MC = xr.DataArray(MC,
-                      dims=("sources", "targets", "freqs"),
-                      coords={"sources": net.super_tensor.roi.values,
-                              "targets": net.super_tensor.roi.values,
-                              "freqs": net.super_tensor.freqs.values, })
-    MC.attrs = net.super_tensor.attrs
-    # Saving data
-    _PATH = os.path.expanduser(os.path.join(_ROOT,
-                                            f"Results/{monkey}/meta_conn"))
-    # Save MC
-    if bool(surr):
-        MC.to_netcdf(os.path.join(
-            _PATH, f"MC_{metric}_{session}_global_surr.nc"))
-    else:
-        if bool(thr):
-            MC.to_netcdf(os.path.join(
-                _PATH, f"MC_{metric}_{session}_global.nc"))
-        else:
-            MC.to_netcdf(os.path.join(
-                _PATH, f"MC_{metric}_{session}_global_nothr.nc"))
+    MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}_thr_{thr}.nc"))

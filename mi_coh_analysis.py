@@ -36,7 +36,6 @@ avg = args.AVERAGED
 surr = args.SURR
 monkey = args.MONKEY
 
-
 sessions = get_dates(monkey)
 
 ##############################################################################
@@ -48,12 +47,15 @@ _ROOT = os.path.expanduser('~/funcog/gda')
 ###############################################################################
 # Iterate over all sessions and concatenate coherece
 ###############################################################################
-if not surr:
+print(bool(surr))
+print(monkey)
+if not bool(surr):
     coh_file = f'{metric}_at_cue.nc'
     coh_sig_file = f'thr_{metric}_at_cue_surr.nc'
 else:
     coh_file = f'{metric}_at_cue_surr.nc'
     coh_sig_file = None
+print(coh_sig_file)
 
 coh = []
 stim = []
