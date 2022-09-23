@@ -156,7 +156,7 @@ class temporal_network():
             self.super_tensor = self.super_tensor[..., wt[0]:-wt[1]]
 
         # Get euclidean distances
-        self.super_tensor.attrs['d_eu'] = self.__get_euclidean_distances()
+        # self.super_tensor.attrs['d_eu'] = self.__get_euclidean_distances()
 
         # Correct values bellow significance level
         if self.coh_sig_file is not None:

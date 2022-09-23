@@ -57,7 +57,7 @@ else:
 
 coh = []
 stim = []
-for s_id in tqdm(sessions[0]):
+for s_id in tqdm(sessions):
     net = temporal_network(coh_file=coh_file,
                            coh_sig_file=coh_sig_file, wt=None,
                            date=s_id, trial_type=[1], monkey=monkey,
