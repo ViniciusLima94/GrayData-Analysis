@@ -9,9 +9,10 @@
 
 # Original
                        # SIDX           METRIC SURR THR MONKEY
-python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 0 "lucy"
+python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 0 "ethyl"
+python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 1 "ethyl"
 # Surrogate
-python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 1 0 "lucy"
+python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 1 0 "ethyl"
 # Surrogate strong
-python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 2 0 "lucy"
+python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 2 0 "ethyl"
 

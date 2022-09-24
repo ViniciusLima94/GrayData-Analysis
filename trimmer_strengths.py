@@ -177,23 +177,31 @@ metric = "coh"
 
 for session in tqdm(sessions):
     # Defining paths
-    if bool(thr):
-        _MCPATH = os.path.join(_ROOT, _RESULTS, f"MC_{metric}_{session}.nc")
-        save_path_ts = os.path.join(
-            _ROOT, _RESULTS, f"ts_{metric}_{session}.nc")
-        save_path_ent = os.path.join(
-            _ROOT, _RESULTS, f"ent_{metric}_{session}.nc")
-        save_path_tsent = os.path.join(
-            _ROOT, _RESULTS, f"ts_ent_{metric}_{session}.nc")
-    else:
-        _MCPATH = os.path.join(
-            _ROOT, _RESULTS, f"MC_{metric}_{session}_nothr.nc")
-        save_path_ts = os.path.join(
-            _ROOT, _RESULTS, f"ts_{metric}_{session}_nothr.nc")
-        save_path_ent = os.path.join(
-            _ROOT, _RESULTS, f"ent_{metric}_{session}_nothr.nc")
-        save_path_tsent = os.path.join(
-            _ROOT, _RESULTS, f"ts_ent_{metric}_{session}_nothr.nc")
+    # if bool(thr):
+        # _MCPATH = os.path.join(_ROOT, _RESULTS,
+                               # f"MC_{metric}_{session}_thr_{thr}.nc")
+        # save_path_ts = os.path.join(
+            # _ROOT, _RESULTS, f"ts_{metric}_{session}.nc")
+        # save_path_ent = os.path.join(
+            # _ROOT, _RESULTS, f"ent_{metric}_{session}.nc")
+        # save_path_tsent = os.path.join(
+            # _ROOT, _RESULTS, f"ts_ent_{metric}_{session}.nc")
+    # else:
+        # _MCPATH = os.path.join(
+            # _ROOT, _RESULTS, f"MC_{metric}_{session}_nothr.nc")
+        # save_path_ts = os.path.join(
+            # _ROOT, _RESULTS, f"ts_{metric}_{session}_nothr.nc")
+        # save_path_ent = os.path.join(
+            # _ROOT, _RESULTS, f"ent_{metric}_{session}_nothr.nc")
+        # save_path_tsent = os.path.join(
+            # _ROOT, _RESULTS, f"ts_ent_{metric}_{session}_nothr.nc")
+
+    _MCPATH = os.path.join(_ROOT, _RESULTS,
+                           f"MC_{metric}_{session}_thr_{thr}.nc")
+    save_path_ts = os.path.join(
+        _ROOT, _RESULTS, f"ts_{metric}_{session}_thr_{thr}.nc")
+    save_path_ent = os.path.join(
+        _ROOT, _RESULTS, f"ent_{metric}_{session}_thr_{thr}.nc")
 
     # Loading MC
     MC = xr.load_dataarray(_MCPATH)
@@ -201,8 +209,8 @@ for session in tqdm(sessions):
     ts = tensor_trimmer_strengths(MC, n_jobs=1, verbose=False)
     ts.to_netcdf(save_path_ts)
     # Computing trimmer entanglement
-    ets = tensor_trimmer_entanglement(MC, n_jobs=20, verbose=False)
-    ets.to_netcdf(save_path_tsent)
+    # ets = tensor_trimmer_entanglement(MC, n_jobs=20, verbose=False)
+    # ets.to_netcdf(save_path_tsent)
     # Computing entanglement
     ent = MC.sum("targets").rename({"sources": "roi"})
     ent.to_netcdf(save_path_ent)
