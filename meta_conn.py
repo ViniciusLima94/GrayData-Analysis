@@ -51,7 +51,7 @@ _ROOT = os.path.expanduser("~/funcog/gda")
 # Path in which to save coherence data
 _RESULTS = os.path.join("Results", monkey, session, "session01")
 
-if bool(surr):
+if surr == 1:
     coh_file = f'{metric}_at_cue_surr.nc'
     coh_sig_file = None
 else:
@@ -74,7 +74,7 @@ net = temporal_network(
 # Masks for each stage
 net.create_stage_masks(flatten=True)
 
-if bool(surr):
+if surr == 2:
     FC = net.super_tensor.transpose("trials", "roi", "times", "freqs")
     FC_surr = [trial_swap_surrogates(FC[..., f], verbose=True) for f in range(10)]
     FC = xr.concat(FC_surr, "freqs").assign_coords({"freqs": FC.freqs})
@@ -113,6 +113,6 @@ _PATH = os.path.expanduser(os.path.join(_ROOT,
                                         f"Results/{monkey}/meta_conn"))
 # Save MC
 if bool(surr):
-    MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}_surr.nc"))
+    MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}_surr_{surr}.nc"))
 else:
     MC.to_netcdf(os.path.join(_PATH, f"MC_{metric}_{session}_thr_{thr}.nc"))
