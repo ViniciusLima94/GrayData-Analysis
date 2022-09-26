@@ -41,6 +41,13 @@ at = args.ALIGNED
 # Wheter to use Lucy or Ethyl's data 
 monkey = args.MONKEY
 
+if monkey == "lucy":
+    early_cue=0.2
+    early_delay=0.3
+elif monkey == "ethyl":
+    early_cue=0.2
+    early_delay=0.24
+
 sessions = get_dates(monkey)
 
 
@@ -73,6 +80,7 @@ wt = None
 
 net = temporal_network(coh_file=f'{metric}_at_{at}.nc',
                        coh_sig_file=coh_sig_file, wt=wt,
+                       early_cue=early_cue, early_delay=early_delay,
                        date=sessions[s_id], trial_type=[1],
                        behavioral_response=[1], monkey=monkey)
 

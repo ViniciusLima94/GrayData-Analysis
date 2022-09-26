@@ -38,6 +38,13 @@ monkey = args.MONKEY
 
 sessions = get_dates(monkey)
 
+if monkey == "lucy":
+    early_cue=0.2
+    early_delay=0.3
+elif monkey == "ethyl":
+    early_cue=0.2
+    early_delay=0.24
+
 ##############################################################################
 # Get root path
 ###############################################################################
@@ -60,12 +67,14 @@ print(coh_sig_file)
 coh = []
 stim = []
 for s_id in tqdm(sessions):
-    net = temporal_network(coh_file=coh_file,
+    net = temporal_network(coh_file=coh_file, early_delay=early_delay,
+                           early_cue=early_cue,
                            coh_sig_file=coh_sig_file, wt=None,
                            date=s_id, trial_type=[1], monkey=monkey,
                            behavioral_response=[1])
     # Average if needed
-    out = average_stages(net.super_tensor, avg)
+    out = average_stages(net.super_tensor, avg, early_cue=early_cue,
+                         early_delay=early_delay)
     # To save memory
     del net
     # Convert to format required by the MI workflow

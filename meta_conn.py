@@ -37,6 +37,13 @@ idx = args.SIDX
 thr = args.THR
 monkey = args.MONKEY
 
+if monkey == "lucy":
+    early_cue=0.2
+    early_delay=0.3
+elif monkey == "ethyl":
+    early_cue=0.2
+    early_delay=0.24
+
 sessions = get_dates(monkey)
 session = sessions[idx]
 
@@ -65,6 +72,7 @@ wt = None
 net = temporal_network(
     coh_file=coh_file,
     coh_sig_file=coh_sig_file,
+    early_cue=early_cue, early_delay=early_delay,
     wt=wt, monkey=monkey,
     date=session,
     trial_type=[1],

@@ -37,6 +37,13 @@ monkey = args.MONKEY
 
 sessions = get_dates(monkey)
 
+if monkey == "lucy":
+    early_cue=0.2
+    early_delay=0.3
+elif monkey == "ethyl":
+    early_cue=0.2
+    early_delay=0.24
+
 ##############################################################################
 # Get root path
 ###############################################################################
@@ -56,7 +63,8 @@ def load_session_power(s_id, z_score=False, avg=0, roi=None):
     if z_score:
         power.values = (power - power.mean("times")) / power.std("times")
     # Averages power for each period (baseline, cue, delay, match) if needed
-    out = average_stages(power, avg)
+    out = average_stages(power, avg, early_cue=early_cue,
+                         early_delay=early_delay)
 
     if isinstance(roi, str):
         out = out.sel(roi=roi)

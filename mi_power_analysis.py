@@ -36,6 +36,13 @@ monkey = args.MONKEY
 
 sessions = get_dates(monkey)
 
+if monkey == "lucy":
+    early_cue=0.2
+    early_delay=0.3
+elif monkey == "ethyl":
+    early_cue=0.2
+    early_delay=0.24
+
 ##############################################################################
 # Get root path
 ###############################################################################
@@ -56,7 +63,8 @@ for s_id in tqdm(sessions):
                      _FILE_NAME)
     power = xr.load_dataarray(path_pow)
     # Averages power for each period (baseline, cue, delay, match) if needed
-    out = average_stages(power, avg)
+    out = average_stages(power, avg, early_cue=early_cue,
+                         early_delay=early_delay)
 
     sxx += [out.isel(roi=[r]) for r in range(len(out['roi']))]
     stim += [out.attrs["stim"].astype(int)]*len(out['roi'])
