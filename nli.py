@@ -20,7 +20,7 @@ import xarray as xr
 import argparse
 
 from GDa.temporal_network import temporal_network
-from config import sessions
+from config import get_dates
 from tqdm import tqdm
 
 
@@ -32,18 +32,24 @@ parser.add_argument("SIDX", help="index of the session to run",
                     type=int)
 parser.add_argument("METRIC", help="which dFC metric to use",
                     type=str)
+parser.add_argument("MONKEY", help="which monkey to use",
+                    type=str)
 args = parser.parse_args()
 # The index of the session to use
 idx = args.SIDX
 # Get name of the dFC metric
 metric = args.METRIC
+# Wheter to use Lucy or Ethyl's data 
+monkey = args.MONKEY
+
+sessions = get_dates(monkey)
 
 ###############################################################################
 # Loading power and temporal network
 ###############################################################################
 
 _ROOT = os.path.expanduser("~/funcog/gda")
-_RESULTS = os.path.join("Results", "lucy", sessions[idx], "session01")
+_RESULTS = os.path.join("Results", monkey, sessions[idx], "session01")
 
 # dFC files
 power_file = "power_tt_1_br_1_at_cue.nc"
@@ -57,7 +63,7 @@ power = power.transpose("roi", "freqs", "trials", "times")
 net = temporal_network(
     coh_file=coh_file,
     coh_sig_file=coh_sig_file,
-    wt=wt,
+    wt=wt, monkey=monkey,
     date=sessions[idx],
     trial_type=[1],
     behavioral_response=[1],
@@ -167,15 +173,15 @@ nli_thr = xr.DataArray(
 mean_power = power.mean(("trials", "times"))
 mean_coh = coh.mean(("trials", "times"))
 
-nli.to_netcdf(os.path.join(_ROOT, "Results", "lucy",
+nli.to_netcdf(os.path.join(_ROOT, "Results", monkey,
                            f"nli/nli_{metric}_{sessions[idx]}.nc")
               )
-nli_thr.to_netcdf(os.path.join(_ROOT, "Results", "lucy",
+nli_thr.to_netcdf(os.path.join(_ROOT, "Results", monkey,
                                f"nli/nli_thr_{metric}_{sessions[idx]}.nc")
                   )
-mean_power.to_netcdf(os.path.join(_ROOT, "Results", "lucy",
+mean_power.to_netcdf(os.path.join(_ROOT, "Results", monkey,
                                   f"nli/mean_power_{metric}_{sessions[idx]}.nc")
                      )
-mean_coh.to_netcdf(os.path.join(_ROOT, "Results", "lucy",
+mean_coh.to_netcdf(os.path.join(_ROOT, "Results", monkey,
                                 f"nli/mean_coh_{metric}_{sessions[idx]}.nc")
                    )

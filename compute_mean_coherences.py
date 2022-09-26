@@ -24,7 +24,7 @@ data = []
 for s_id in tqdm(sessions):
     net = temporal_network(coh_file=coh_file,
                            coh_sig_file=coh_sig_file, wt=None,
-                           date=s_id, trial_type=[1],
+                           date=s_id, trial_type=[1], monkey=monkey,
                            behavioral_response=[1])
     # Average if needed
     out = average_stages(net.super_tensor, 1)
