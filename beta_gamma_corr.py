@@ -8,6 +8,7 @@ import xarray as xr
 from frites.conn.conn_tf import _tf_decomp
 from mne.time_frequency import psd_array_multitaper
 from scipy.signal import find_peaks
+from scipy.stats import ks_2samp
 from tqdm import tqdm
 
 from config import sessions
@@ -224,7 +225,7 @@ cc = (z_beta * z_gamma).mean("times")
 
 # Surrogates
 CC = []
-for i in tqdm(range(1000)):
+for i in tqdm(range(100)):
 
     x1 = trial_swap_surrogates(z_beta.copy(), seed=i + 1000)
     x2 = trial_swap_surrogates(z_gamma.copy(), seed=i + 2000)
@@ -237,7 +238,16 @@ CC = xr.DataArray(
     np.vstack(CC),
     dims=("trials", "roi"),
     coords={"roi": z_gamma.roi},
-) 
+)
+
+p_values = []
+
+for i in tqdm(range(cc.sizes["roi"])):
+
+    p_values += [ks_2samp(cc.isel(roi=i), CC.isel(roi=i),
+                          alternative="two-sided", method="exact")[1]]
+
+p_values = xr.DataArray(p_values, dims=("roi"), coords={"roi": cc.roi})
 
 ##############################################################################
 # Phase between beta and gamma LFP
@@ -389,6 +399,8 @@ power_gamma.to_netcdf(os.path.join(save_path, "power_gamma.nc"))
 cc.to_netcdf(os.path.join(save_path, "cc.nc"))
 # Surrogate correlation between beta and gamma power time-series
 CC.to_netcdf(os.path.join(save_path, "cc_surr.nc"))
+# P-values
+p_values.to_netcdf(os.path.join(save_path, "pvalues.nc"))
 # Phase between beta and gamma correlation
 phi.to_netcdf(os.path.join(save_path, "phi.nc"))
 # Beta band LFP triggered average
