@@ -1,6 +1,7 @@
 *.mp4
 *.sh
 *.csv
+*.eps
 *.nc
 *.gif
 *.dat
