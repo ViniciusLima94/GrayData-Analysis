@@ -11,12 +11,13 @@ from scipy.signal import find_peaks
 from scipy.stats import ks_2samp
 from tqdm import tqdm
 
-from config import sessions
+from config import get_dates
 from GDa.session import session
 from GDa.signal.surrogates import trial_swap_surrogates
 
 
 idx = int(sys.argv[-1])
+sessions = get_dates("lucy")
 sid = sessions[idx]
 
 
