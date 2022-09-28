@@ -8,7 +8,7 @@ import numpy as np
 import xarray as xr
 from tqdm import tqdm
 import numba as nb
-from config import get_dates
+from config import get_dates, return_delay_split
 from GDa.util import average_stages, _extract_roi
 
 
@@ -25,6 +25,8 @@ parser.add_argument("ALIGN", help="wheter to align data to cue or match",
                     type=str)
 parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
+parser.add_argument("DELAY", help="which type of delay split to use",
+                    type=int)
 
 args = parser.parse_args()
 
@@ -32,17 +34,12 @@ args = parser.parse_args()
 tt = args.TT
 br = args.BR
 at = args.ALIGN
+ds = args.DELAY
 monkey = args.MONKEY
 
+early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 
 sessions = get_dates(monkey)
-
-if monkey == "lucy":
-    early_cue=0.2
-    early_delay=0.3
-elif monkey == "ethyl":
-    early_cue=0.2
-    early_delay=0.24
 
 ##############################################################################
 # Get root path
@@ -177,6 +174,6 @@ if __name__ == "__main__":
                      # monkey, session, "session01",
                      # f"pec_tt_{tt}_br_{br}_at_cue.nc"))
         dd.to_netcdf(os.path.join(_ROOT, "Results",
-                     monkey, "pec", f"pec_st_{session}.nc"))
+                     monkey, "pec", f"pec_st_{session}_at_{at}.nc"))
         # cc_mat.to_netcdf(os.path.join(_ROOT, "Results",
                      # monkey, "pec", f"pec_st_mat_{session}.nc"))

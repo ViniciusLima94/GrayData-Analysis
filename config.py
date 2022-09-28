@@ -72,3 +72,21 @@ def return_evt_dt(align_at, monkey="lucy"):
     if align_at == "cue":
         return [-0.5, 2.7]
     return [-2.2, 0.65]
+
+
+def return_delay_split(monkey="lucy", delay_type=0):
+    assert monkey in ["lucy", "ethyl"]
+    assert delay_type in [0, 1, 2]
+
+    early_cue = .2
+
+    if delay_type == 0:
+        early_delay = None
+    elif delay_type == 1:
+        if monkey == "lucy":
+            early_delay = .3
+        else:
+            early_delay = .24
+    elif delay_type == 2:
+        early_delay = .5
+    return early_cue, early_delay

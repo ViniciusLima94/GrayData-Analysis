@@ -20,7 +20,7 @@ import xarray as xr
 import argparse
 
 from GDa.temporal_network import temporal_network
-from config import get_dates
+from config import get_dates, return_delay_split
 from tqdm import tqdm
 
 
@@ -34,20 +34,23 @@ parser.add_argument("METRIC", help="which dFC metric to use",
                     type=str)
 parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
+parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
+                    type=str)
+parser.add_argument("DELAY", help="which type of delay split to use",
+                    type=int)
 args = parser.parse_args()
 # The index of the session to use
 idx = args.SIDX
 # Get name of the dFC metric
 metric = args.METRIC
-# Wheter to use Lucy or Ethyl's data 
+# Get value of alignment
+at = args.ALIGNED
+# delay split
+ds = args.DELAY
+# Wheter to use Lucy or Ethyl's data
 monkey = args.MONKEY
 
-if monkey == "lucy":
-    early_cue=0.2
-    early_delay=0.3
-elif monkey == "ethyl":
-    early_cue=0.2
-    early_delay=0.24
+early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 
 sessions = get_dates(monkey)
 
@@ -59,9 +62,9 @@ _ROOT = os.path.expanduser("~/funcog/gda")
 _RESULTS = os.path.join("Results", monkey, sessions[idx], "session01")
 
 # dFC files
-power_file = "power_tt_1_br_1_at_cue.nc"
-coh_file = f"{metric}_at_cue.nc"
-coh_sig_file = f"thr_{metric}_at_cue_surr.nc"
+power_file = f"power_tt_1_br_1_at_{at}.nc"
+coh_file = f"{metric}_at_{at}.nc"
+coh_sig_file = f"thr_{metric}_at_{at}_surr.nc"
 wt = None
 
 power = xr.load_dataarray(os.path.join(_ROOT, _RESULTS, power_file))
@@ -73,7 +76,7 @@ net = temporal_network(
     early_cue=early_cue, early_delay=early_delay,
     wt=wt, monkey=monkey,
     date=sessions[idx],
-    trial_type=[1],
+    trial_type=[1], align_to=at,
     behavioral_response=[1],
 )
 
@@ -83,7 +86,6 @@ coh = net.super_tensor  # .stack(samples=("trials", "times"))
 
 rois = coh.roi.values
 channels = coh.attrs["channels_labels"]
-
 # z-score
 Zpower = (power - power.mean("times")) / power.std("times")
 Zcoh = (coh - coh.mean("times")) / coh.std("times")
@@ -182,14 +184,14 @@ mean_power = power.mean(("trials", "times"))
 mean_coh = coh.mean(("trials", "times"))
 
 nli.to_netcdf(os.path.join(_ROOT, "Results", monkey,
-                           f"nli/nli_{metric}_{sessions[idx]}.nc")
+              f"nli/nli_{metric}_{sessions[idx]}_at_{at}_ds_{ds}.nc")
               )
 nli_thr.to_netcdf(os.path.join(_ROOT, "Results", monkey,
-                               f"nli/nli_thr_{metric}_{sessions[idx]}.nc")
+                  f"nli/nli_thr_{metric}_{sessions[idx]}_at_{at}_ds_{ds}.nc")
                   )
 mean_power.to_netcdf(os.path.join(_ROOT, "Results", monkey,
-                                  f"nli/mean_power_{metric}_{sessions[idx]}.nc")
+                     f"nli/mean_power_{metric}_{sessions[idx]}_at_{at}_ds_{ds}.nc")
                      )
 mean_coh.to_netcdf(os.path.join(_ROOT, "Results", monkey,
-                                f"nli/mean_coh_{metric}_{sessions[idx]}.nc")
+                   f"nli/mean_coh_{metric}_{sessions[idx]}_at_{at}_ds_{ds}.nc")
                    )

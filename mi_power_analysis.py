@@ -2,7 +2,7 @@ import os
 import xarray as xr
 import argparse
 
-from config import get_dates
+from config import get_dates, return_delay_split
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
@@ -24,6 +24,8 @@ parser.add_argument("AVERAGED", help="wheter to analyse the avg. power or not",
                     type=int)
 parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
+parser.add_argument("DELAY", help="which type of delay split to use",
+                    type=int)
 
 args = parser.parse_args()
 
@@ -31,17 +33,13 @@ args = parser.parse_args()
 tt = args.TT
 br = args.BR
 at = args.ALIGN
+ds = args.DELAY
 avg = args.AVERAGED
 monkey = args.MONKEY
 
-sessions = get_dates(monkey)
+early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 
-if monkey == "lucy":
-    early_cue=0.2
-    early_delay=0.3
-elif monkey == "ethyl":
-    early_cue=0.2
-    early_delay=0.24
+sessions = get_dates(monkey)
 
 ##############################################################################
 # Get root path
@@ -106,11 +104,11 @@ _RESULTS = os.path.join(_ROOT,
                         f"Results/{monkey}/mutual_information/power/")
 
 path_mi = os.path.join(_RESULTS,
-                       f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
+                       f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
 path_tv = os.path.join(_RESULTS,
-                       f"tval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
+                       f"tval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
 path_pv = os.path.join(_RESULTS,
-                       f"pval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
+                       f"pval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
 
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)

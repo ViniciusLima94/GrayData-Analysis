@@ -6,7 +6,7 @@ import numpy as np
 import xarray as xr
 
 from frites.utils import parallel_func
-from config import get_dates
+from config import get_dates, return_delay_split
 from tqdm import tqdm
 
 
@@ -19,9 +19,17 @@ parser.add_argument("THR",
                     type=int)
 parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
+parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
+                    type=str)
+parser.add_argument("DELAY", help="which type of delay split to use",
+                    type=int)
 args = parser.parse_args()
 thr = args.THR
 monkey = args.MONKEY
+at = args.ALIGNED
+ds = args.DELAY
+
+early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 
 sessions = get_dates(monkey)
 
@@ -176,32 +184,13 @@ def tensor_trimmer_entanglement(meta_conn, n_jobs=1, verbose=False):
 metric = "coh"
 
 for session in tqdm(sessions):
-    # Defining paths
-    # if bool(thr):
-        # _MCPATH = os.path.join(_ROOT, _RESULTS,
-                               # f"MC_{metric}_{session}_thr_{thr}.nc")
-        # save_path_ts = os.path.join(
-            # _ROOT, _RESULTS, f"ts_{metric}_{session}.nc")
-        # save_path_ent = os.path.join(
-            # _ROOT, _RESULTS, f"ent_{metric}_{session}.nc")
-        # save_path_tsent = os.path.join(
-            # _ROOT, _RESULTS, f"ts_ent_{metric}_{session}.nc")
-    # else:
-        # _MCPATH = os.path.join(
-            # _ROOT, _RESULTS, f"MC_{metric}_{session}_nothr.nc")
-        # save_path_ts = os.path.join(
-            # _ROOT, _RESULTS, f"ts_{metric}_{session}_nothr.nc")
-        # save_path_ent = os.path.join(
-            # _ROOT, _RESULTS, f"ent_{metric}_{session}_nothr.nc")
-        # save_path_tsent = os.path.join(
-            # _ROOT, _RESULTS, f"ts_ent_{metric}_{session}_nothr.nc")
 
     _MCPATH = os.path.join(_ROOT, _RESULTS,
-                           f"MC_{metric}_{session}_thr_{thr}.nc")
+                           f"MC_{metric}_{session}_at_{at}_ds_{ds}_thr_{thr}.nc")
     save_path_ts = os.path.join(
-        _ROOT, _RESULTS, f"ts_{metric}_{session}_thr_{thr}.nc")
+        _ROOT, _RESULTS, f"ts_{metric}_{session}_at_{at}_ds_{ds}_thr_{thr}.nc")
     save_path_ent = os.path.join(
-        _ROOT, _RESULTS, f"ent_{metric}_{session}_thr_{thr}.nc")
+        _ROOT, _RESULTS, f"ent_{metric}_{session}_at_{at}_ds_{ds}_thr_{thr}.nc")
 
     # Loading MC
     MC = xr.load_dataarray(_MCPATH)
