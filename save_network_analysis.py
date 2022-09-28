@@ -11,7 +11,7 @@ from GDa.net.layerwise import (compute_nodes_degree,
                                compute_nodes_efficiency,
                                compute_nodes_coreness,
                                compute_network_partition)
-from config import mode, get_dates, return_delay_split
+from config import get_dates, return_delay_split
 
 from tqdm import tqdm
 
@@ -30,8 +30,6 @@ parser.add_argument("ALIGNED", help="wheter to align data to cue or match",
                     type=str)
 parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
-parser.add_argument("DELAY", help="which type of delay split to use",
-                    type=int)
 
 args = parser.parse_args()
 
@@ -41,12 +39,10 @@ metric = args.METRIC
 s_id = args.SIDX
 # Wheter to align data to cue or match
 at = args.ALIGNED
-# delay split
-ds = args.DELAY
 # Wheter to use Lucy or Ethyl's data 
 monkey = args.MONKEY
 
-early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
+early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=0)
 
 sessions = get_dates(monkey)
 
@@ -79,7 +75,7 @@ wt = None
 ##############################################################################
 
 net = temporal_network(coh_file=f'{metric}_at_{at}.nc',
-                       coh_sig_file=coh_sig_file, wt=wt, align_at=at,
+                       coh_sig_file=coh_sig_file, wt=wt, align_to=at,
                        early_cue=early_cue, early_delay=early_delay,
                        date=sessions[s_id], trial_type=[1],
                        behavioral_response=[1], monkey=monkey)
@@ -109,7 +105,7 @@ degree.attrs = net.super_tensor.attrs
 
 path_degree = os.path.join(_ROOT,
                            _RESULTS,
-                           f"{metric}_degree_at_{at}_ds_{ds}.nc")
+                           f"{metric}_degree_at_{at}.nc")
 
 degree.to_netcdf(path_degree)
 

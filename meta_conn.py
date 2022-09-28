@@ -48,9 +48,6 @@ early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 sessions = get_dates(monkey)
 session = sessions[idx]
 
-print(surr)
-print(thr)
-
 ##############################################################################
 # Loading temporal network
 ##############################################################################
@@ -63,7 +60,7 @@ if surr == 1:
     coh_file = f'{metric}_at_{at}_surr.nc'
     coh_sig_file = None
 else:
-    coh_file = f'{metric}_{at}_{at}.nc'
+    coh_file = f'{metric}_at_{at}.nc'
     coh_sig_file = None
     if bool(thr):
         coh_sig_file = f'thr_{metric}_at_{at}_surr.nc'

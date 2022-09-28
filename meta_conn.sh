@@ -7,12 +7,32 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --array=0-25
 
+#parser.add_argument("SIDX", help="index of the session to run",
+                    #type=int)
+#parser.add_argument("METRIC",
+                    #help="which FC metric to use",
+                    #type=str)
+#parser.add_argument("SURR",
+                    #help="wheter to use original or surrogate MC",
+                    #type=int)
+#parser.add_argument("THR",
+                    #help="wheter to threshold or not the coherence",
+                    #type=int)
+#parser.add_argument("MONKEY", help="which monkey to use",
+                    #type=str)
+#parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
+                    #type=str)
+#parser.add_argument("DELAY", help="which type of delay split to use",
+                    #type=int)
+
+
 # Original
                        # SIDX           METRIC SURR THR MONKEY
-python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 0 "ethyl"
-python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 1 "ethyl"
+python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 0 "ethyl" "cue" 0 
+python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 0 1 "ethyl" "cue" 0
 # Surrogate
-python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 1 0 "ethyl"
+python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 1 0 "ethyl" "cue" 0
 # Surrogate strong
-python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 2 0 "ethyl"
+python -O meta_conn.py $SLURM_ARRAY_TASK_ID "coh" 2 0 "ethyl" "cue" 0
+
 
