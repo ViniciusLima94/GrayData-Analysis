@@ -69,7 +69,7 @@ coh = []
 stim = []
 for s_id in tqdm(sessions):
     net = temporal_network(coh_file=coh_file, early_delay=early_delay,
-                           early_cue=early_cue, align_at=at,
+                           early_cue=early_cue, align_to=at,
                            coh_sig_file=coh_sig_file, wt=None,
                            date=s_id, trial_type=[1], monkey=monkey,
                            behavioral_response=[1])
