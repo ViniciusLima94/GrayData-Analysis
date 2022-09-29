@@ -42,6 +42,9 @@ at = args.ALIGNED
 ds = args.DELAY
 monkey = args.MONKEY
 
+if not avg:
+    ds = 0
+
 early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 
 sessions = get_dates(monkey)
