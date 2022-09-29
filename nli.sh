@@ -7,4 +7,4 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --array=0-25
 
-python -O nli.py $SLURM_ARRAY_TASK_ID 'coh' "ethyl" "cue" 0
+python -O nli.py $SLURM_ARRAY_TASK_ID 'coh' "ethyl" "cue" 1 
