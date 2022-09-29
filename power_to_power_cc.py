@@ -25,8 +25,6 @@ parser.add_argument("ALIGN", help="wheter to align data to cue or match",
                     type=str)
 parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
-parser.add_argument("DELAY", help="which type of delay split to use",
-                    type=int)
 
 args = parser.parse_args()
 
@@ -34,10 +32,9 @@ args = parser.parse_args()
 tt = args.TT
 br = args.BR
 at = args.ALIGN
-ds = args.DELAY
 monkey = args.MONKEY
 
-early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
+early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=0)
 
 sessions = get_dates(monkey)
 
