@@ -15,10 +15,11 @@ from config import get_dates
 from GDa.session import session
 from GDa.signal.surrogates import trial_swap_surrogates
 
-
+bw = int(sys.argv[-2])
 idx = int(sys.argv[-1])
 sessions = get_dates("lucy")
 sid = sessions[idx]
+print(f"bw = {bw}, session = {sid}")
 
 
 ##############################################################################
@@ -88,7 +89,7 @@ figs_path = f"figures/betagamma/{sid}"
 if not os.path.exists(figs_path):
     os.makedirs(figs_path)
 
-save_path = os.path.expanduser(f"~/funcog/gda/Results/lucy/harmonics/{sid}")
+save_path = os.path.expanduser(f"~/funcog/gda/Results/lucy/harmonics/{sid}/bw{bw}")
 
 if not os.path.exists(save_path):
     os.makedirs(save_path)
@@ -125,7 +126,7 @@ sfreq = data.fsample
 
 
 power_static, freqs = psd_array_multitaper(
-    data, sfreq, fmin=0, fmax=80, bandwidth=1, n_jobs=20
+    data, sfreq, fmin=0, fmax=80, bandwidth=bw, n_jobs=20
 )
 
 power_static = xr.DataArray(
@@ -174,6 +175,7 @@ peak_prominences = xr.DataArray(
 
 # Get areas with both beta and gamma peak
 indexes = np.logical_and(has_peak[:, 3], has_peak[:, 4])
+power_static = power_static.isel(roi=indexes)
 data_sel = data.isel(roi=indexes)
 
 w = _tf_decomp(
@@ -198,8 +200,8 @@ w = xr.DataArray(
 )
 
 # Power time series for beta and gamma bands
-beta = slice(28, 38)
-gamma = slice(60, 70)
+beta = slice(26, 43)
+gamma = slice(58, 74)
 
 # Power
 power = (w * np.conj(w)).real
@@ -246,7 +248,7 @@ p_values = []
 for i in tqdm(range(cc.sizes["roi"])):
 
     p_values += [ks_2samp(cc.isel(roi=i), CC.isel(roi=i),
-                          alternative="two-sided", method="exact")[1]]
+                          alternative="greater", method="exact")[1]]
 
 p_values = xr.DataArray(p_values, dims=("roi"), coords={"roi": cc.roi})
 
@@ -392,6 +394,8 @@ peak_prominences.to_netcdf(os.path.join(save_path, "peak_prominences.nc"))
 has_peak.to_netcdf(os.path.join(save_path, "has_peak.nc"))
 # Save LFP data for channels with beta and gamma peaks
 data_sel.to_netcdf(os.path.join(save_path, "data_sel.nc"))
+# Power time series for beta band
+power_static.to_netcdf(os.path.join(save_path, "power_static.nc"))
 # Power time series for beta band
 power_beta.to_netcdf(os.path.join(save_path, "power_beta.nc"))
 # Power time series for gamma band
