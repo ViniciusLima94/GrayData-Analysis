@@ -40,6 +40,7 @@ def load_session_data(sid):
         date=sid,
         session=1,
         slvr_msmod=False,
+        only_unique_recordings=True,
         align_to="cue",
         evt_dt=[-0.65, 1.50],
     )
@@ -200,7 +201,7 @@ w = xr.DataArray(
 )
 
 # Power time series for beta and gamma bands
-beta = slice(26, 43)
+beta = slice(28, 43)
 gamma = slice(58, 74)
 
 # Power
@@ -248,7 +249,7 @@ p_values = []
 for i in tqdm(range(cc.sizes["roi"])):
 
     p_values += [ks_2samp(cc.isel(roi=i), CC.isel(roi=i),
-                          alternative="greater", method="exact")[1]]
+                          alternative="less", method="exact")[1]]
 
 p_values = xr.DataArray(p_values, dims=("roi"), coords={"roi": cc.roi})
 

@@ -75,7 +75,7 @@ class session_info():
 class session(session_info):
 
     def __init__(self, raw_path='GrayLab/', monkey='lucy', date='150128',
-                 session=1, slvr_msmod=False, unique_recordings_path=None,
+                 session=1, slvr_msmod=False, only_unique_recordings=False,
                  align_to='cue', evt_dt=[-0.65, 3.00]):
         """
         Session class, it will store the data with the recording and
@@ -93,8 +93,8 @@ class session(session_info):
             session number
         slvr_msmod: bool | False
             Whether to load or not channels with slvr_msmod
-        unique_recordings: str | None
-            Wheter to use only recordings or not
+        only_unique_recordings: str | False
+            Wheter to use only unique recording channels or not.
         align_to: string | 'cue'
             Wheter data is aligned to cue or match
         evt_dt: array_like | [-0.65, 3.00]
@@ -107,10 +107,10 @@ class session(session_info):
         assert align_to in [
             'cue', 'match'], 'align_to should be either "cue" or "match"'
 
+        self.only_unique_recordings = only_unique_recordings
         # Check if the path to unique recordings was passed.
-        self.unique_recordings_path = os.path.join(unique_recordings_path,
+        self.unique_recordings_path = os.path.join(raw_path, monkey,
                                                    "unique_recordings.nc")
-        self.use_unique_recordings = isinstance(unique_recordings_path, str)
 
         # Instantiating father class session_info
         super().__init__(raw_path=raw_path, monkey=monkey,
@@ -153,13 +153,6 @@ class session(session_info):
         # Channels index array
         indch = np.arange(self.recording_info['channel_count'], dtype=int)
 
-        idx_unique_recordings = np.ones(len(indch))
-        idx_slvr_msmod = np.ones(len(indch))
-
-        if self.use_unique_recordings:
-            unique_recordings = xr.load_dataset(self.unique_recordings_path)
-            idx_unique_recordings = (
-                unique_recordings.sel(dates=session).data == self.date)
 
         # Exclude channels with short latency visual respose (slvr)
         # and microsacade modulation (ms_mod)
@@ -167,7 +160,7 @@ class session(session_info):
             idx_slvr_msmod = (self.recording_info['slvr'] == 0) & (
                 self.recording_info['ms_mod'] == 0)
             indch = indch[idx_slvr_msmod]
-
+        
         # Number of trials selected
         n_trials = len(self.trial_info)
         # Number of time points
@@ -208,6 +201,18 @@ class session(session_info):
         # Area names for selected channels
         area = self.recording_info['area'][indch]
         area = np.array(area, dtype='<U13')
+
+        # If unique recordings remove redundant channels
+        if self.only_unique_recordings:
+            unique_recordings = xr.load_dataarray(self.unique_recordings_path)
+            ch_unique_rec = np.where(
+                unique_recordings.sel(dates=self.date).data == 1)[0] + 1
+            ch_unique_rec = np.hstack(
+                [i for i in range(len(labels)) if labels[i] in ch_unique_rec])
+            indch = indch[ch_unique_rec]
+            labels = labels[ch_unique_rec]
+            area = area[ch_unique_rec]
+            self.data = self.data[:, ch_unique_rec, :]
 
         # Convert the data to an xarray
         self.data = xr.DataArray(
