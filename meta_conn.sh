@@ -5,7 +5,7 @@
 #SBATCH --ntasks=40
 #SBATCH --mem-per-cpu=2000
 #SBATCH --cpus-per-task=1
-#SBATCH --array=4-61
+#SBATCH --array=5-61
 
 #parser.add_argument("SIDX", help="index of the session to run",
                     #type=int)

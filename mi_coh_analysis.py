@@ -23,9 +23,6 @@ parser.add_argument("METRIC",
 parser.add_argument("AVERAGED",
                     help="wheter to analyse the avg. power or not",
                     type=int)
-parser.add_argument("SURR",
-                    help="wheter to use the surrogate coherence or not",
-                    type=int)
 parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
 parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
@@ -37,7 +34,6 @@ args = parser.parse_args()
 
 metric = args.METRIC
 avg = args.AVERAGED
-surr = args.SURR
 at = args.ALIGNED
 ds = args.DELAY
 monkey = args.MONKEY
@@ -46,7 +42,7 @@ if not avg:
     ds = 0
 
 early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
-
+print(early_cue, early_delay)
 sessions = get_dates(monkey)
 
 ##############################################################################
@@ -58,14 +54,9 @@ _ROOT = os.path.expanduser('~/funcog/gda')
 ###############################################################################
 # Iterate over all sessions and concatenate coherece
 ###############################################################################
-print(bool(surr))
-print(monkey)
-if not bool(surr):
-    coh_file = f'{metric}_at_{at}.nc'
-    coh_sig_file = f'thr_{metric}_at_{at}_surr.nc'
-else:
-    coh_file = f'{metric}_at_{at}_surr.nc'
-    coh_sig_file = None
+
+coh_file = f'{metric}_at_{at}.nc'
+coh_sig_file = f'thr_{metric}_at_{at}_surr.nc'
 print(coh_sig_file)
 
 coh = []
