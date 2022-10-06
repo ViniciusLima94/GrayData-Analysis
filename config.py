@@ -79,6 +79,7 @@ def return_delay_split(monkey="lucy", delay_type=0):
     assert delay_type in [0, 1, 2]
 
     early_cue = .2
+    early_delay = .5
 
     if delay_type == 0:
         early_delay = None
@@ -87,6 +88,4 @@ def return_delay_split(monkey="lucy", delay_type=0):
             early_delay = .3
         else:
             early_delay = .24
-    elif delay_type == 2:
-        early_delay = .5
     return early_cue, early_delay
