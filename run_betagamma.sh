@@ -8,5 +8,6 @@
 #SBATCH --array=0-61
 
 #python -O beta_gamma_corr.py 1 $SLURM_ARRAY_TASK_ID
-python -O beta_gamma_corr.py 2 $SLURM_ARRAY_TASK_ID
+python -O beta_gamma_corr.py 3 $SLURM_ARRAY_TASK_ID 1
+python -O beta_gamma_corr.py 3 $SLURM_ARRAY_TASK_ID 0
 #python -O beta_gamma_corr.py 3 $SLURM_ARRAY_TASK_ID

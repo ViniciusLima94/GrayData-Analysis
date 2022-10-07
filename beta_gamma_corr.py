@@ -1,5 +1,5 @@
 import os
-import sys
+import argparse
 
 from mne.filter import filter_data
 import numpy as np
@@ -12,11 +12,27 @@ from scipy.stats import ks_2samp
 from tqdm import tqdm
 
 from config import get_dates
+from GDa.util import _extract_roi
 from GDa.session import session
 from GDa.signal.surrogates import trial_swap_surrogates
 
-bw = int(sys.argv[-2])
-idx = int(sys.argv[-1])
+parser = argparse.ArgumentParser()
+parser.add_argument("BW",
+                    help="which bandwidth to use in MT",
+                    type=int)
+parser.add_argument("IDX",
+                    help="index of the session to use",
+                    type=int)
+parser.add_argument("LINEAR",
+                    help="whether to use the linear or semi-log power",
+                    type=int)
+args = parser.parse_args()
+
+
+bw = args.BW
+idx = args.IDX
+linear = bool(args.LINEAR)
+
 sessions = get_dates("lucy")
 sid = sessions[idx]
 print(f"bw = {bw}, session = {sid}")
@@ -26,6 +42,11 @@ print(f"bw = {bw}, session = {sid}")
 # Utils
 ##############################################################################
 
+def node_xr_remove_sca(xar):
+    sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
+    _, rois = _extract_roi(xar.roi.data, " ")
+    idx = np.array([r in sca for r in rois])
+    return xar.isel(roi=~idx)
 
 def flatten(xss):
     return [x for xs in xss for x in xs]
@@ -49,7 +70,8 @@ def load_session_data(sid):
     ses.read_from_mat()
 
     # Filtering by trials
-    data = ses.filter_trials(trial_type=[1], behavioral_response=[1])
+    data = ses.filter_trials(
+        trial_type=[1], behavioral_response=[1])
     # ROIs with channels
     rois = [
         f"{roi} ({channel})"
@@ -57,7 +79,7 @@ def load_session_data(sid):
     ]
     data = data.assign_coords({"roi": rois})
 
-    return data
+    return node_xr_remove_sca(data)
 
 
 def detect_peak_frequencies(power=None, prominence=0.01, verbose=False):
@@ -90,7 +112,8 @@ figs_path = f"figures/betagamma/{sid}"
 if not os.path.exists(figs_path):
     os.makedirs(figs_path)
 
-save_path = os.path.expanduser(f"~/funcog/gda/Results/lucy/harmonics/{sid}/bw{bw}")
+save_path = os.path.expanduser(
+    f"~/funcog/gda/Results/lucy/harmonics/{sid}/bw{bw}")
 
 if not os.path.exists(save_path):
     os.makedirs(save_path)
@@ -119,7 +142,7 @@ bands = {
 # Loading data
 ##############################################################################
 data = [load_session_data(sid) for sid in [sid]][0]
-
+print(data.roi.data)
 ##############################################################################
 # Static spectra
 ##############################################################################
@@ -139,12 +162,18 @@ power_static = xr.DataArray(
 
 power_static = power_static.mean("trials")
 power_static = power_static / power_static.max("freqs")
+if not linear:
+    power_static = np.log10(power_static)
 
 ##############################################################################
 # Peaks and peak promincences
 ##############################################################################
+prominence_thr = 0.01
+if not linear:
+    prominence_thr = 0.044
+
 peak_freqs, peak_prominences, rois = detect_peak_frequencies(
-    power_static, verbose=True)
+    power_static, prominence=prominence_thr, verbose=True)
 
 has_peak = np.zeros((power_static.sizes["roi"], len(bands)), dtype=bool)
 
@@ -176,6 +205,7 @@ peak_prominences = xr.DataArray(
 
 # Get areas with both beta and gamma peak
 indexes = np.logical_and(has_peak[:, 3], has_peak[:, 4])
+print(np.sum(indexes))
 power_static = power_static.isel(roi=indexes)
 data_sel = data.isel(roi=indexes)
 
@@ -388,28 +418,32 @@ snipets_gamma = cycle_triggered_avg(
 ##############################################################################
 
 # Save frequency of detected peaks
-peak_freqs.to_netcdf(os.path.join(save_path, "peak_freqs.nc"))
+peak_freqs.to_netcdf(os.path.join(save_path, f"peak_freqs_linear_{linear}.nc"))
 # Save prominence of detected peaks
-peak_prominences.to_netcdf(os.path.join(save_path, "peak_prominences.nc"))
+peak_prominences.to_netcdf(os.path.join(
+    save_path, f"peak_prominences_linear_{linear}.nc"))
 # Save which channes has peaks in each band
-has_peak.to_netcdf(os.path.join(save_path, "has_peak.nc"))
+has_peak.to_netcdf(os.path.join(save_path, f"has_peak_linear_{linear}.nc"))
 # Save LFP data for channels with beta and gamma peaks
-data_sel.to_netcdf(os.path.join(save_path, "data_sel.nc"))
+data_sel.to_netcdf(os.path.join(save_path, f"data_sel_linear_{linear}.nc"))
 # Power time series for beta band
-power_static.to_netcdf(os.path.join(save_path, "power_static.nc"))
+power_static.to_netcdf(os.path.join(
+    save_path, f"power_static_linear_{linear}.nc"))
 # Power time series for beta band
-power_beta.to_netcdf(os.path.join(save_path, "power_beta.nc"))
+power_beta.to_netcdf(os.path.join(save_path, f"power_beta_linear_{linear}.nc"))
 # Power time series for gamma band
-power_gamma.to_netcdf(os.path.join(save_path, "power_gamma.nc"))
+power_gamma.to_netcdf(os.path.join(
+    save_path, f"power_gamma_linear_{linear}.nc"))
 # Correlation between beta and gamma power time-series
-cc.to_netcdf(os.path.join(save_path, "cc.nc"))
+cc.to_netcdf(os.path.join(save_path, f"cc_linear_{linear}.nc"))
 # Surrogate correlation between beta and gamma power time-series
-CC.to_netcdf(os.path.join(save_path, "cc_surr.nc"))
+CC.to_netcdf(os.path.join(save_path, f"cc_surr_linear_{linear}.nc"))
 # P-values
-p_values.to_netcdf(os.path.join(save_path, "pvalues.nc"))
+p_values.to_netcdf(os.path.join(save_path, f"pvalues_linear_{linear}.nc"))
 # Phase between beta and gamma correlation
-phi.to_netcdf(os.path.join(save_path, "phi.nc"))
+phi.to_netcdf(os.path.join(save_path, f"phi_linear_{linear}.nc"))
 # Beta band LFP triggered average
-snipets.to_netcdf(os.path.join(save_path, "snipets.nc"))
+snipets.to_netcdf(os.path.join(save_path, f"snipets_linear_{linear}.nc"))
 # Gamma band LFP triggered average
-snipets_gamma.to_netcdf(os.path.join(save_path, "snipets_gamma.nc"))
+snipets_gamma.to_netcdf(os.path.join(
+    save_path, f"snipets_gamma_linear_{linear}.nc"))
