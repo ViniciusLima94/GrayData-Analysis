@@ -167,10 +167,10 @@ if __name__ == "__main__":
         dd = convert_to_degree(cc)
         cc.attrs = power.attrs
         dd.attrs = power.attrs
-        # cc.to_netcdf(os.path.join(_ROOT, "Results",
-                     # monkey, session, "session01",
-                     # f"pec_tt_{tt}_br_{br}_at_cue.nc"))
-        dd.to_netcdf(os.path.join(_ROOT, "Results",
-                     monkey, "pec", f"pec_st_{session}_at_{at}.nc"))
+        cc.to_netcdf(os.path.join(_ROOT, "Results",
+                     monkey, session, "session01",
+                     f"pec_tt_{tt}_br_{br}_at_cue.nc"))
+        # dd.to_netcdf(os.path.join(_ROOT, "Results",
+                     # monkey, "pec", f"pec_st_{session}_at_{at}.nc"))
         # cc_mat.to_netcdf(os.path.join(_ROOT, "Results",
                      # monkey, "pec", f"pec_st_mat_{session}.nc"))
