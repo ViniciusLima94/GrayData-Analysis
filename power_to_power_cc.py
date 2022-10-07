@@ -102,7 +102,7 @@ def power_correlations(power, verbose=False):
     cc = np.stack([_per_edge(i, j) for i, j in _iter], 1)
 
     cc = xr.DataArray(
-        cc,
+        cc.astype(np.float32),
         dims=("trials", "roi", "freqs", "times"),
         coords=(trials, edges, freqs, times),
         attrs=attrs,
