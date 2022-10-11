@@ -254,3 +254,80 @@ def _check_values(values, in_list):
                 is_valid = False
                 break
         return is_valid
+
+
+def remove_same_roi(df):
+
+    rois = df.roi.values
+    roi_s, roi_t = _extract_roi(rois, "-")
+    return df.iloc[~(roi_s == roi_t), :]
+
+def xr_remove_same_roi(xar):
+    
+    roi_s, roi_t = _extract_roi(xar.roi.data, "-")
+    return xar.isel(roi=~(roi_s == roi_t))
+
+def xr_remove_same_roi_mc(xar):
+    
+    roi_s, roi_t = _extract_roi(xar.roi.data, "~")
+    
+    roi_s_1, roi_s_2 = _extract_roi(roi_s, "-")
+    roi_t_1, roi_t_2 = _extract_roi(roi_t, "-")
+    
+    idx1 = (roi_s == roi_t)
+    idx2 = (roi_s_1 == roi_t_1)
+    idx3 = (roi_s_2 == roi_t_2)
+    
+    idx = np.logical_or(idx1, idx2)
+    idx = np.logical_or(idx, idx3)
+    
+    return xar.isel(roi=~idx)
+
+def remove_sca(df):
+    
+    sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
+    roi_s, roi_t = _extract_roi(df.roi.values, "-")
+    idx = np.logical_or([s in sca for s in roi_s],
+                         [t in sca for t in roi_t])
+    return df.iloc[~idx, :]
+
+def node_remove_sca(df):
+    
+    sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
+    idx = np.array([r in sca for r in df.roi.values])
+    return df.iloc[~idx, :]
+
+def node_xr_remove_sca(xar):
+    
+    sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
+    idx = np.array([r in sca for r in xar.roi.data])
+    return xar.isel(roi=~idx)
+
+def edge_xr_remove_sca(xar):
+    
+    sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
+    roi_s, roi_t = _extract_roi(xar.roi.data, "-")
+    idx = np.logical_or([s in sca for s in roi_s],
+                         [t in sca for t in roi_t])
+    return xar.isel(roi=~idx)
+
+def mc_edge_xr_remove_sca(xar):
+    
+    sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
+    roi_s, roi_t = _extract_roi(xar.roi.data, "~")
+    
+    roi_s_1, roi_s_2 = _extract_roi(roi_s, "-")
+    roi_t_1, roi_t_2 = _extract_roi(roi_t, "-")
+    
+    idx_1 = np.logical_or([s in sca for s in roi_s_1],
+                         [t in sca for t in roi_t_1])
+    
+    idx_2 = np.logical_or([s in sca for s in roi_s_2],
+                          [t in sca for t in roi_t_2])
+    
+    
+    return xar.isel(roi=~np.logical_or(idx_1, idx_2))
+
+def shuffle_along_axis(a, axis):
+    idx = np.random.rand(*a.shape).argsort(axis=axis)
+    return np.take_along_axis(a, idx, axis=axis)
