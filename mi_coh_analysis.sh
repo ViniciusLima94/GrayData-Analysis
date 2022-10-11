@@ -8,7 +8,7 @@
 
 echo "Monkey: $1";
 
-# METRIC AVERAGED SURR MONKEY ALIGNED DELAY
+# METRIC AVERAGED MONKEY ALIGNED DELAY
 #python -O mi_coh_analysis.py "coh" 1 0 "$1" "cue" 0
 #python -O mi_coh_analysis.py "coh" 1 0 "$1" "cue" 1
-python -O mi_coh_analysis.py "coh" 1 "lucy" "cue" 1
+python -O mi_coh_analysis.py "pec" 1 "lucy" "cue" 1

@@ -55,8 +55,14 @@ _ROOT = os.path.expanduser('~/funcog/gda')
 # Iterate over all sessions and concatenate coherece
 ###############################################################################
 
-coh_file = f'{metric}_at_{at}.nc'
-coh_sig_file = f'thr_{metric}_at_{at}_surr.nc'
+if metric == "coh":
+    coh_file = f'{metric}_at_{at}.nc'
+    coh_sig_file = f'thr_{metric}_at_{at}_surr.nc'
+    tt = br = [1]
+elif metric == "pec":
+    coh_file = "pec_tt_1_br_1_at_cue.nc"
+    coh_sig_file = None
+    tt = br = None
 print(coh_sig_file)
 
 coh = []
@@ -65,8 +71,8 @@ for s_id in tqdm(sessions):
     net = temporal_network(coh_file=coh_file, early_delay=early_delay,
                            early_cue=early_cue, align_to=at,
                            coh_sig_file=coh_sig_file, wt=None,
-                           date=s_id, trial_type=[1], monkey=monkey,
-                           behavioral_response=[1])
+                           date=s_id, trial_type=tt, monkey=monkey,
+                           behavioral_response=br)
     # Average if needed
     out = average_stages(net.super_tensor, avg, early_cue=early_cue,
                          early_delay=early_delay)
