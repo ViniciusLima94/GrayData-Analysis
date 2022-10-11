@@ -7,7 +7,7 @@ from tqdm import tqdm
 from config import get_dates, return_delay_split
 from GDa.session import session
 from GDa.temporal_network import temporal_network
-from GDa.util import (_extract_roi, average_stages, remove_sca, shuffle_along_axis
+from GDa.util import (_extract_roi, average_stages, remove_sca, shuffle_along_axis,
                       node_remove_sca, node_xr_remove_sca, edge_xr_remove_sca)
 
 ###############################################################################
@@ -21,9 +21,6 @@ parser.add_argument("SIDX",
 parser.add_argument("METRIC",
                     help="which network metric to use",
                     type=str)
-parser.add_argument("AVERAGED",
-                    help="wheter to analyse the avg. power or not",
-                    type=int)
 parser.add_argument("TT",   help="type of the trial",
                     type=int)
 parser.add_argument("BR",   help="behavioral response",
@@ -39,19 +36,15 @@ args = parser.parse_args()
 
 sid = args.SIDX
 metric = args.METRIC
-avg = args.AVERAGED
 at = args.ALIGNED
 tt = args.TT
 br = args.BR
 ds = args.DELAY
 monkey = args.MONKEY
 
-if not avg:
-    ds = 0
-
 early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 sessions = get_dates(monkey)
-session = sessions[sid]
+s_id = sessions[sid]
 ##############################################################################
 # Get root path
 ###############################################################################
@@ -175,7 +168,7 @@ def compute_median_rate(
 ##############################################################################
 # Power
 ###############################################################################
-out, trials, stim = load_session_power(session, z_score=True, avg=0)
+out, trials, stim = load_session_power(s_id, z_score=True, avg=0)
 
 # Rate modulation
 P_b = []
@@ -223,10 +216,11 @@ for stim in tqdm(range(1, 6)):
         SP_b_s += [spb]
 
     P_b_stim += [xr.concat(P_b_s, "roi").assign_coords({"roi": rois})]
+    SP_b_stim += [xr.concat(SP_b_s, "roi").assign_coords({"roi": rois})]
 
 # Load PEC degree
 path_to_pec = os.path.join(_ROOT, "Results", monkey,
-                           f"pec_st_{session}_at_cue.nc")
+                           f"pec_st_{s_id}_at_cue.nc")
 
 #
 P_b = xr.concat(P_b, "roi")
@@ -245,9 +239,14 @@ t_u = P_b.quantile(0.95, "boot")
 RMI = ((p > t_u) + (p < t_d)).mean("times").mean("stim")
 
 # Save
-P_b.to_netcdf(f"P_b_{sessions}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc")
-SP_b.to_netcdf(f"SP_b_{sessions}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc")
+P_b.to_netcdf(os.path.join(
+    _SAVE, f"P_b_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc"))
+SP_b.to_netcdf(os.path.join(
+    _SAVE, f"SP_b_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc"))
 
-P_b_stim.to_netcdf(f"P_b_stim_{sessions}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc")
-SP_b_stim.to_netcdf(f"SP_b_stim_{sessions}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc")
-RMI.to_netcdf(f"RMI_{sessions}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc")
+P_b_stim.to_netcdf(os.path.join(
+    _SAVE, f"P_b_stim_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc"))
+SP_b_stim.to_netcdf(os.path.join(
+    _SAVE, f"SP_b_stim_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc"))
+RMI.to_netcdf(os.path.join(
+    _SAVE, f"RMI_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc"))
