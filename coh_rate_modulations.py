@@ -6,7 +6,9 @@ import xarray as xr
 from tqdm import tqdm
 from config import get_dates, return_delay_split
 from GDa.temporal_network import temporal_network
-from GDa.util import average_stages, shuffle_along_axis
+from GDa.util import (average_stages, shuffle_along_axis,
+                      xr_remove_same_roi,
+                      edge_xr_remove_sca)
 
 ###############################################################################
 # Argument parsing
@@ -19,10 +21,6 @@ parser.add_argument("SIDX",
 parser.add_argument("METRIC",
                     help="which network metric to use",
                     type=str)
-parser.add_argument("TT",   help="type of the trial",
-                    type=int)
-parser.add_argument("BR",   help="behavioral response",
-                    type=int)
 parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
 parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
@@ -35,8 +33,6 @@ args = parser.parse_args()
 sid = args.SIDX
 metric = args.METRIC
 at = args.ALIGNED
-tt = args.TT
-br = args.BR
 ds = args.DELAY
 monkey = args.MONKEY
 
@@ -48,28 +44,35 @@ s_id = sessions[sid]
 ###############################################################################
 
 _ROOT = os.path.expanduser('~/funcog/gda')
-_SAVE = os.path.join(_ROOT, "Results", monkey, "rate_modulations")
+_SAVE = os.path.join(_ROOT, "Results", monkey, "coh_rate_modulations")
 
 ##############################################################################
 # Utility functions
 ###############################################################################
 
 
-def load_session_power(s_id, z_score=False, avg=0, roi=None):
-    _FILE_NAME = f"power_tt_{tt}_br_{br}_at_{at}.nc"
-    path_pow = os.path.join(
+def load_session_coherence(s_id, z_score=False, avg=0, roi=None):
+    _FILE_NAME = "coh_at_cue.nc"
+    path_coh = os.path.join(
         _ROOT, f"Results/{monkey}/{s_id}/session01", _FILE_NAME)
-    power = xr.load_dataarray(path_pow)
+    coh = temporal_network(
+        coh_file=path_coh,
+        coh_sig_file=None,
+        wt=None,
+        date=s_id,
+        trial_type=[1],
+        behavioral_response=[1],
+    ).super_tensor
+
     if z_score:
-        power.values = (power - power.mean("times")) / power.std("times")
+        coh.values = (coh - coh.mean("times")) / coh.std("times")
     # Averages power for each period (baseline, cue, delay, match) if needed
-    out = average_stages(power, avg)
+    out = average_stages(coh, avg)
 
     if isinstance(roi, str):
         out = out.sel(roi=roi)
 
-    # out = out.sel(roi="V1")
-    trials, stim = power.trials.data, power.stim
+    trials, stim = coh.trials.data, coh.stim
 
     return out, trials, stim
 
@@ -138,11 +141,14 @@ def compute_median_rate(
 
 
 ##############################################################################
-# Power
+# Coherence
 ###############################################################################
-out, trials, stim = load_session_power(s_id, z_score=True, avg=0)
+out, trials, stim = load_session_coherence(s_id, z_score=True, avg=0)
+attrs = out.attrs
+out = out.sel(freqs=slice(25, 40))
+out.attrs = attrs
+out = edge_xr_remove_sca(xr_remove_same_roi(out))
 
-# Rate modulation
 P_b = []
 SP_b = []
 rois = np.unique(out.roi.values)
@@ -153,7 +159,6 @@ for roi in tqdm(rois):
     pb, spb = compute_median_rate(
         out.copy(),
         roi,
-        stim_label=None,
         time_slice=time_slice,
         freqs=27,
         n_boot=100,
@@ -163,17 +168,16 @@ for roi in tqdm(rois):
     P_b += [pb]
     SP_b += [spb]
 
-# Stimulus dependent rate modulation
 P_b_stim = []
 SP_b_stim = []
-for stim in tqdm(range(1, 6)):
+for stim in range(1, 6):
     P_b_s = []
     SP_b_s = []
     rois = np.unique(out.roi.values)
     time_slice = slice(-0.5, 2.0)
     times = out.sel(times=time_slice).times.data
 
-    for roi in rois:
+    for roi in tqdm(rois):
         pb, spb = compute_median_rate(
             out.copy(),
             roi,
@@ -190,7 +194,6 @@ for stim in tqdm(range(1, 6)):
     P_b_stim += [xr.concat(P_b_s, "roi").assign_coords({"roi": rois})]
     SP_b_stim += [xr.concat(SP_b_s, "roi").assign_coords({"roi": rois})]
 
-#
 P_b = xr.concat(P_b, "roi")
 P_b = P_b.assign_coords({"roi": rois})
 SP_b = xr.concat(SP_b, "roi")
@@ -203,18 +206,17 @@ p = P_b_stim.quantile(0.5, "boot")
 t_d = P_b.quantile(0.05, "boot")
 t_u = P_b.quantile(0.95, "boot")
 
-# Compute RMI
 RMI = ((p > t_u) + (p < t_d)).mean("times").mean("stim")
 
 # Save
 P_b.to_netcdf(os.path.join(
-    _SAVE, f"P_b_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"P_b_{s_id}_at_{at}_ds_{ds}.nc"))
 SP_b.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"SP_b_{s_id}_at_{at}_ds_{ds}.nc"))
 
 P_b_stim.to_netcdf(os.path.join(
-    _SAVE, f"P_b_stim_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"P_b_stim_{s_id}_at_{at}_ds_{ds}.nc"))
 SP_b_stim.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_stim_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"SP_b_stim_{s_id}_at_{at}_ds_{ds}.nc"))
 RMI.to_netcdf(os.path.join(
-    _SAVE, f"RMI_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"RMI_{s_id}_at_{at}_ds_{ds}.nc"))
