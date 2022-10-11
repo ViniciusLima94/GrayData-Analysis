@@ -123,6 +123,10 @@ def edge_xr_remove_sca(xar):
                          [t in sca for t in roi_t])
     return xar.isel(roi=~idx)
 
+def shuffle_along_axis(a, axis):
+    idx = np.random.rand(*a.shape).argsort(axis=axis)
+    return np.take_along_axis(a, idx, axis=axis)
+
     
 
     
