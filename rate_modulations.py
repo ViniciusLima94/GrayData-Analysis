@@ -5,7 +5,6 @@ import numpy as np
 import xarray as xr
 from tqdm import tqdm
 from config import get_dates, return_delay_split
-from GDa.temporal_network import temporal_network
 from GDa.util import average_stages, shuffle_along_axis
 
 ###############################################################################

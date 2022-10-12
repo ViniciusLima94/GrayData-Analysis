@@ -130,13 +130,22 @@ fc = np.linspace(4, 80, n_freqs)  # Frequency array
 n_cycles = fc / 4  # Number of cycles
 mt_bandwidth = 4
 
-bands = {
-    "theta": [0, 6],
-    "alpha": [6, 14],
-    "beta_1": [14, 26],
-    "beta_2": [26, 43],
-    "gamma": [43, 80],
-}
+if linear:
+    bands = {
+        "theta": [0, 6],
+        "alpha": [6, 14],
+        "beta_1": [14, 26],
+        "beta_2": [26, 43],
+        "gamma": [43, 80],
+    }
+else:
+    bands = {
+        "theta": [0, 6],
+        "alpha": [6, 14],
+        "beta_1": [14, 26],
+        "beta_2": [26, 43],
+        "gamma": [62, 80],
+    }
 
 ##############################################################################
 # Loading data
@@ -161,9 +170,10 @@ power_static = xr.DataArray(
 )
 
 power_static = power_static.mean("trials")
-power_static = power_static / power_static.max("freqs")
+
+power_static_norm = power_static / power_static.max("freqs")
 if not linear:
-    power_static = np.log10(power_static)
+    power_static_norm = np.log10(power_static)
 
 ##############################################################################
 # Peaks and peak promincences
@@ -173,11 +183,11 @@ if not linear:
     prominence_thr = 0.044
 
 peak_freqs, peak_prominences, rois = detect_peak_frequencies(
-    power_static, prominence=prominence_thr, verbose=True)
+    power_static_norm, prominence=prominence_thr, verbose=True)
 
-has_peak = np.zeros((power_static.sizes["roi"], len(bands)), dtype=bool)
+has_peak = np.zeros((power_static_norm.sizes["roi"], len(bands)), dtype=bool)
 
-for i in tqdm(range(power_static.sizes["roi"])):
+for i in tqdm(range(power_static_norm.sizes["roi"])):
     for peak in peak_freqs[i]:
         for n_band, band in enumerate(bands.keys()):
             if not has_peak[i, n_band]:
@@ -205,7 +215,6 @@ peak_prominences = xr.DataArray(
 
 # Get areas with both beta and gamma peak
 indexes = np.logical_and(has_peak[:, 3], has_peak[:, 4])
-print(np.sum(indexes))
 power_static = power_static.isel(roi=indexes)
 data_sel = data.isel(roi=indexes)
 
