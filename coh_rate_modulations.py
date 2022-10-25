@@ -58,6 +58,9 @@ def load_session_coherence(s_id, z_score=False, avg=0, roi=None):
     coh = temporal_network(
         coh_file=path_coh,
         coh_sig_file=None,
+        monkey=monkey,
+        early_cue=early_cue,
+        early_delay=early_delay,
         wt=None,
         date=s_id,
         trial_type=[1],
