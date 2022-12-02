@@ -27,6 +27,8 @@ parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
                     type=str)
 parser.add_argument("DELAY", help="which type of delay split to use",
                     type=int)
+parser.add_argument("FREQ", help="which frequency to use",
+                    type=int)
 
 args = parser.parse_args()
 
@@ -35,6 +37,7 @@ metric = args.METRIC
 at = args.ALIGNED
 ds = args.DELAY
 monkey = args.MONKEY
+freq = args.FREQ
 
 early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 sessions = get_dates(monkey)
@@ -148,7 +151,7 @@ def compute_median_rate(
 ###############################################################################
 out, trials, stim = load_session_coherence(s_id, z_score=True, avg=0)
 attrs = out.attrs
-out = out.sel(freqs=slice(25, 40))
+out = out.sel(freqs=slice(11, 40))
 out.attrs = attrs
 out = edge_xr_remove_sca(xr_remove_same_roi(out))
 
@@ -163,7 +166,7 @@ for roi in tqdm(rois):
         out.copy(),
         roi,
         time_slice=time_slice,
-        freqs=27,
+        freqs=freq,
         n_boot=100,
         verbose=False,
     )
@@ -186,7 +189,7 @@ for stim in range(1, 6):
             roi,
             stim_label=stim,
             time_slice=time_slice,
-            freqs=27,
+            freqs=freq,
             n_boot=100,
             verbose=False,
         )
@@ -213,13 +216,13 @@ RMI = ((p > t_u) + (p < t_d)).mean("times").mean("stim")
 
 # Save
 P_b.to_netcdf(os.path.join(
-    _SAVE, f"P_b_{s_id}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"P_b_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))
 SP_b.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_{s_id}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"SP_b_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))
 
 P_b_stim.to_netcdf(os.path.join(
-    _SAVE, f"P_b_stim_{s_id}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"P_b_stim_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))
 SP_b_stim.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_stim_{s_id}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"SP_b_stim_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))
 RMI.to_netcdf(os.path.join(
-    _SAVE, f"RMI_{s_id}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"RMI_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))

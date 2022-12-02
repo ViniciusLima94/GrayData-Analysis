@@ -10,6 +10,7 @@ from tqdm import tqdm
 import numba as nb
 from config import get_dates, return_delay_split
 from GDa.util import average_stages, _extract_roi
+from GDa.signal.surrogates import trial_swap_surrogates
 
 
 ###############################################################################
@@ -17,9 +18,13 @@ from GDa.util import average_stages, _extract_roi
 ###############################################################################
 
 parser = argparse.ArgumentParser()
+parser.add_argument("SIDX",   help="index of the session to use",
+                    type=int)
 parser.add_argument("TT",   help="type of the trial",
                     type=int)
 parser.add_argument("BR",   help="behavioral response",
+                    type=int)
+parser.add_argument("SURR",   help="wheter to compute surrogate or not",
                     type=int)
 parser.add_argument("ALIGN", help="wheter to align data to cue or match",
                     type=str)
@@ -29,15 +34,19 @@ parser.add_argument("MONKEY", help="which monkey to use",
 args = parser.parse_args()
 
 # Index of the session to be load
+sidx = args.SIDX
 tt = args.TT
 br = args.BR
 at = args.ALIGN
+surr = args.SURR
 monkey = args.MONKEY
 
 early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=0)
 
 sessions = get_dates(monkey)
 
+seed = 18320137
+session = sessions[sidx]
 ##############################################################################
 # Get root path
 ###############################################################################
@@ -138,16 +147,16 @@ def convert_to_mat(cc):
     # Index to area name
     idx2roi = dict(zip(np.hstack(
         (cc.attrs["sources"], cc.attrs["targets"])),
-                       np.hstack((roi_s, roi_t))))
+        np.hstack((roi_s, roi_t))))
 
     n_roi = len(idx2roi)
     areas = [idx2roi[key] for key in range(n_roi)]
 
     cc_mat = np.zeros((n_trials, n_roi, n_roi, n_freqs, n_times))
 
-    for p, (s, t) in enumerate(zip(sources, targets)): 
+    for p, (s, t) in enumerate(zip(sources, targets)):
         cc_mat[:, s, t, :, :] = cc_mat[:, t, s, :, :] = cc[:, p, :, :]
-        
+
     cc_mat = xr.DataArray(cc_mat,
                           dims=("trials", "sources",
                                 "targets", "freqs", "times"),
@@ -158,19 +167,25 @@ def convert_to_mat(cc):
 
 
 if __name__ == "__main__":
-    for session in tqdm(sessions):
-        power, trials, stim = load_session_power(session, z_score=True,
-                                                 avg=0, roi=None)
-        cc = power_correlations(power, verbose=False)
-        # cc_mat = convert_to_mat(cc.sel(freqs=[35]))
-        # cc_mat = cc_mat.sum("targets")
-        dd = convert_to_degree(cc)
-        cc.attrs = power.attrs
-        dd.attrs = power.attrs
+    power, trials, stim = load_session_power(session, z_score=True,
+                                             avg=0, roi=None)
+    if surr:
+        power = trial_swap_surrogates(power, seed=seed, verbose=False)
+    cc = power_correlations(power, verbose=False)
+    # cc_mat = convert_to_mat(cc.sel(freqs=[35]))
+    # cc_mat = cc_mat.sum("targets")
+    dd = convert_to_degree(cc)
+    cc.attrs = power.attrs
+    dd.attrs = power.attrs
+    if not surr:
         cc.to_netcdf(os.path.join(_ROOT, "Results",
                      monkey, session, "session01",
                      f"pec_tt_{tt}_br_{br}_at_cue.nc"))
-        # dd.to_netcdf(os.path.join(_ROOT, "Results",
-                     # monkey, "pec", f"pec_st_{session}_at_{at}.nc"))
-        # cc_mat.to_netcdf(os.path.join(_ROOT, "Results",
-                     # monkey, "pec", f"pec_st_mat_{session}.nc"))
+    else:
+        cc.to_netcdf(os.path.join(_ROOT, "Results",
+                     monkey, session, "session01",
+                     f"pec_tt_{tt}_br_{br}_at_cue_surr.nc"))
+    # dd.to_netcdf(os.path.join(_ROOT, "Results",
+    # monkey, "pec", f"pec_st_{session}_at_{at}.nc"))
+    # cc_mat.to_netcdf(os.path.join(_ROOT, "Results",
+    # monkey, "pec", f"pec_st_mat_{session}.nc"))

@@ -31,6 +31,9 @@ br = args.BR
 at = args.ALIGN
 monkey = args.MONKEY
 
+if tt == 2 or tt == 3:
+    br = None
+
 sessions = get_dates(monkey)
 
 # Root directory
