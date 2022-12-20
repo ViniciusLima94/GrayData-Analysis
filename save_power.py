@@ -31,9 +31,6 @@ br = args.BR
 at = args.ALIGN
 monkey = args.MONKEY
 
-if tt == 2 or tt == 3:
-    br = None
-
 sessions = get_dates(monkey)
 
 # Root directory
@@ -56,8 +53,12 @@ for s_id in tqdm(sessions):
     ses.read_from_mat()
 
     # Filtering by trials
-    data = ses.filter_trials(trial_type=[tt],
-                             behavioral_response=[br])
+    if tt == 2 or tt == 3:
+        data = ses.filter_trials(trial_type=[tt],
+                                 behavioral_response=None)
+    else:
+        data = ses.filter_trials(trial_type=[tt],
+                                 behavioral_response=[br])
 
     ###########################################################################
     # Compute power spectra

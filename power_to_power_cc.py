@@ -125,7 +125,10 @@ def convert_to_degree(cc):
     unique_rois = np.unique(np.hstack((roi_s, roi_t)))
     dd = []
     for roi in unique_rois:
-        idx = np.logical_or(roi_s == roi, roi_t == roi)
+        idx_s = (roi_s == roi).astype(int)
+        idx_t = (roi_t == roi).astype(int)
+        idx = (idx_s + idx_t) == 1
+        # idx = np.logical_or(roi_s == roi, roi_t == roi)
         dd += [cc.isel(roi=idx).sum("roi")]
     dd = xr.concat(dd, "roi").assign_coords({"roi": unique_rois})
     return dd

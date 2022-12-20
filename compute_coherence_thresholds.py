@@ -3,7 +3,6 @@ Edge-based encoding analysis done on the coherence dFC
 """
 import os
 import argparse
-import numpy as np
 import xarray as xr
 
 from tqdm import tqdm
