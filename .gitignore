@@ -1,3 +1,4 @@
+*.Rhistory
 *.gml
 *.mp4
 *.sh
