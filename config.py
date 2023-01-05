@@ -51,7 +51,7 @@ sm_freqs = 1
 sm_kernel = "square"
 
 # Defining parameters
-decim = 10  # Downsampling factor
+decim = 20  # Downsampling factor
 mode = 'multitaper'  # Wheter to use Morlet or Multitaper
 
 n_freqs = 10  # How many frequencies to use

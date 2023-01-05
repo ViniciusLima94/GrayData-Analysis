@@ -29,6 +29,8 @@ parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
                     type=str)
 parser.add_argument("DELAY", help="which type of delay split to use",
                     type=int)
+parser.add_argument("BINARY", help="wheater to use the binarized tensor or not",
+                    type=int)
 
 args = parser.parse_args()
 
@@ -37,6 +39,7 @@ avg = args.AVERAGED
 at = args.ALIGNED
 ds = args.DELAY
 monkey = args.MONKEY
+binary = args.BINARY
 
 if not avg:
     ds = 0
@@ -73,6 +76,10 @@ for s_id in tqdm(sessions):
                            coh_sig_file=coh_sig_file, wt=None,
                            date=s_id, trial_type=tt, monkey=monkey,
                            behavioral_response=br)
+    if binary:
+        bin_thr = net.super_tensor.quantile(0.70, ("trials", "times"))
+        net.super_tensor.values = (net.super_tensor > bin_thr).values
+        del bin_thr
     # Average if needed
     out = average_stages(net.super_tensor, avg, early_cue=early_cue,
                          early_delay=early_delay)
@@ -100,7 +107,6 @@ if avg:
 else:
     mcp = "cluster"
 
-kernel = None
 estimator = GCMIEstimator(mi_type='cd', copnorm=True,
                           biascorrect=True, demeaned=False, tensor=True,
                           gpu=False, verbose=None)
@@ -120,11 +126,11 @@ _RESULTS = os.path.join(_ROOT,
                         f"Results/{monkey}/mutual_information/coherence/")
 
 path_mi = os.path.join(_RESULTS,
-                       f"mi_{metric}_at_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
+                       f"mi_{metric}_at_{at}_ds_{ds}_avg_{avg}_bin_{binary}_{mcp}.nc")
 path_tv = os.path.join(_RESULTS,
-                       f"tval_{metric}_at_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
+                       f"tval_{metric}_at_{at}_ds_{ds}_avg_{avg}_bin_{binary}_{mcp}.nc")
 path_pv = os.path.join(_RESULTS,
-                       f"pval_{metric}_at_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
+                       f"pval_{metric}_at_{at}_ds_{ds}_avg_{avg}_bin_{binary}_{mcp}.nc")
 
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)

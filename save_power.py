@@ -73,7 +73,7 @@ for s_id in tqdm(sessions):
         decim=decim,
         kw_cwt={},
         kw_mt={},
-        n_jobs=20,
+        n_jobs=30,
     )
 
     sxx = xr.DataArray(

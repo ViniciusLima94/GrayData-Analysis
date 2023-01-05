@@ -26,6 +26,8 @@ parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
 parser.add_argument("DELAY", help="which type of delay split to use",
                     type=int)
+parser.add_argument("BINARY", help="wheater to use the binarized tensor or not",
+                    type=int)
 
 args = parser.parse_args()
 
@@ -36,6 +38,7 @@ at = args.ALIGN
 ds = args.DELAY
 avg = args.AVERAGED
 monkey = args.MONKEY
+binary = args.BINARY
 
 if not avg:
     ds = 0
@@ -63,10 +66,13 @@ for s_id in tqdm(sessions):
                      f"Results/{monkey}/{s_id}/session01",
                      _FILE_NAME)
     power = xr.load_dataarray(path_pow)
+    if binary:
+        bin_thr = power.quantile(0.70, ("trials", "times"))
+        power.values = (power > bin_thr).values
+        del bin_thr
     # Averages power for each period (baseline, cue, delay, match) if needed
     out = average_stages(power, avg, early_cue=early_cue,
                          early_delay=early_delay)
-
     sxx += [out.isel(roi=[r]) for r in range(len(out['roi']))]
     stim += [out.attrs["stim"].astype(int)]*len(out['roi'])
 
@@ -88,7 +94,12 @@ if avg:
 else:
     mcp = "cluster"
 
-estimator = GCMIEstimator(mi_type='cd', copnorm=True,
+if binary:
+    mi_type = "dd"
+else:
+    mi_type = "cd"
+
+estimator = GCMIEstimator(mi_type="cd", copnorm=True,
                           biascorrect=True, demeaned=False, tensor=True,
                           gpu=False, verbose=None)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
@@ -107,11 +118,11 @@ _RESULTS = os.path.join(_ROOT,
                         f"Results/{monkey}/mutual_information/power/")
 
 path_mi = os.path.join(_RESULTS,
-                       f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
+                       f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_bin_{binary}_{mcp}.nc")
 path_tv = os.path.join(_RESULTS,
-                       f"tval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
+                       f"tval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_bin_{binary}_{mcp}.nc")
 path_pv = os.path.join(_RESULTS,
-                       f"pval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
+                       f"pval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_bin_{binary}_{mcp}.nc")
 
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)
