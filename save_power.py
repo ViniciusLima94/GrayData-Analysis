@@ -14,6 +14,8 @@ from frites.conn.conn_tf import _tf_decomp
 ###############################################################################
 
 parser = argparse.ArgumentParser()
+parser.add_argument("SIDX", help="index of the session to be run",
+                    type=int)
 parser.add_argument("TT", help="type of the trial",
                     type=int)
 parser.add_argument("BR", help="behavioral response",
@@ -26,6 +28,7 @@ parser.add_argument("MONKEY", help="which monkey to use",
 args = parser.parse_args()
 
 # Index of the session to be load
+idx = args.SIDX
 tt = args.TT
 br = args.BR
 at = args.ALIGN
@@ -33,73 +36,74 @@ monkey = args.MONKEY
 
 sessions = get_dates(monkey)
 
+s_id = sessions[idx]
+
 # Root directory
 _ROOT = os.path.expanduser('~/funcog/gda')
 
-for s_id in tqdm(sessions):
-    ###########################################################################
-    # Loading session
-    ###########################################################################
+###########################################################################
+# Loading session
+###########################################################################
 
-    # Window in which the data will be read
-    evt_dt = return_evt_dt(at, monkey=monkey)
-    # Path to LFP data
-    raw_path = os.path.expanduser("~/funcog/gda/GrayLab/")
-    # Instantiate class
-    ses = session(raw_path=raw_path, monkey=monkey, date=s_id, session=1,
-                  slvr_msmod=True, align_to=at, evt_dt=evt_dt)
+# Window in which the data will be read
+evt_dt = return_evt_dt(at, monkey=monkey)
+# Path to LFP data
+raw_path = os.path.expanduser("~/funcog/gda/GrayLab/")
+# Instantiate class
+ses = session(raw_path=raw_path, monkey=monkey, date=s_id, session=1,
+              slvr_msmod=True, align_to=at, evt_dt=evt_dt)
 
-    # Read data from .mat files
-    ses.read_from_mat()
+# Read data from .mat files
+ses.read_from_mat()
 
-    # Filtering by trials
-    if tt == 2 or tt == 3:
-        data = ses.filter_trials(trial_type=[tt],
-                                 behavioral_response=None)
-    else:
-        data = ses.filter_trials(trial_type=[tt],
-                                 behavioral_response=[br])
+# Filtering by trials
+if tt == 2 or tt == 3:
+    data = ses.filter_trials(trial_type=[tt],
+                             behavioral_response=None)
+else:
+    data = ses.filter_trials(trial_type=[tt],
+                             behavioral_response=[br])
 
-    ###########################################################################
-    # Compute power spectra
-    ###########################################################################
-    sxx = _tf_decomp(
-        data,
-        data.attrs["fsample"],
-        freqs,
-        mode=mode,
-        n_cycles=n_cycles,
-        mt_bandwidth=None,
-        decim=decim,
-        kw_cwt={},
-        kw_mt={},
-        n_jobs=30,
-    )
+###########################################################################
+# Compute power spectra
+###########################################################################
+sxx = _tf_decomp(
+    data,
+    data.attrs["fsample"],
+    freqs,
+    mode=mode,
+    n_cycles=n_cycles,
+    mt_bandwidth=None,
+    decim=decim,
+    kw_cwt={},
+    kw_mt={},
+    n_jobs=10,
+)
 
-    sxx = xr.DataArray(
-        (sxx * np.conj(sxx)).real,
-        name="power",
-        dims=("trials", "roi", "freqs", "times"),
-        coords=(data.trials.values, data.roi.values,
-                freqs, data.time.values[::decim]),
-    )
+sxx = xr.DataArray(
+    (sxx * np.conj(sxx)).real,
+    name="power",
+    dims=("trials", "roi", "freqs", "times"),
+    coords=(data.trials.values, data.roi.values,
+            freqs, data.time.values[::decim]),
+)
 
-    ###########################################################################
-    # Saves file
-    ###########################################################################
+###########################################################################
+# Saves file
+###########################################################################
 
-    # Path in which to save coherence data
-    results_path = os.path.join(_ROOT, 'Results',
-                           monkey, s_id, 'session01')
-    # Create results path in case it does not exist
-    if not os.path.exists(results_path):
-        os.makedirs(results_path)
+# Path in which to save coherence data
+results_path = os.path.join(_ROOT, 'Results',
+                       monkey, s_id, 'session01')
+# Create results path in case it does not exist
+if not os.path.exists(results_path):
+    os.makedirs(results_path)
 
-    file_name = f"power_tt_{tt}_br_{br}_at_{at}.nc"
-    path_pow = os.path.join(results_path,
-                            file_name)
-    # print(path_pow)
+file_name = f"power_tt_{tt}_br_{br}_at_{at}.nc"
+path_pow = os.path.join(results_path,
+                        file_name)
+# print(path_pow)
 
-    sxx.attrs = data.attrs
-    sxx.attrs["evt_dt"] = evt_dt
-    sxx.to_netcdf(path_pow)
+sxx.attrs = data.attrs
+sxx.attrs["evt_dt"] = evt_dt
+sxx.to_netcdf(path_pow)
