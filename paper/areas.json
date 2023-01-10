@@ -1,0 +1,244 @@
+{
+    "areas": [
+        {
+            "name": "a14",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a11",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a32",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a24c",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a9",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a9/46D",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a9/46v",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a46D",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a46v",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a24d",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a8B",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a8M",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a8R",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a8L",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a44",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a45A",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a12",
+            "region": "prefrontal"
+        },
+        {
+            "name": "a13",
+            "region": "prefrontal"
+        },
+        {
+            "name": "OPRO",
+            "region": "prefrontal"
+        },
+        {
+            "name": "F1",
+            "region": "motor"
+        },
+        {
+            "name": "F2",
+            "region": "motor"
+        },
+        {
+            "name": "F3",
+            "region": "motor"
+        },
+        {
+            "name": "F5",
+            "region": "motor"
+        },
+        {
+            "name": "F6",
+            "region": "motor"
+        },
+        {
+            "name": "F7",
+            "region": "motor"
+        },
+        {
+            "name": "a1",
+            "region": "somatosensory"
+        },
+        {
+            "name": "a2",
+            "region": "somatosensory"
+        },
+        {
+            "name": "a3",
+            "region": "somatosensory"
+        },
+        {
+            "name": "a23",
+            "region": "parietal"
+        },
+        {
+            "name": "a7M",
+            "region": "parietal"
+        },
+        {
+            "name": "a5",
+            "region": "parietal"
+        },
+        {
+            "name": "MIP",
+            "region": "parietal"
+        },
+        {
+            "name": "AIP",
+            "region": "parietal"
+        },
+        {
+            "name": "VIP",
+            "region": "parietal"
+        },
+        {
+            "name": "PIP",
+            "region": "parietal"
+        },
+        {
+            "name": "LIP",
+            "region": "parietal"
+        },
+        {
+            "name": "a7A",
+            "region": "parietal"
+        },
+        {
+            "name": "a7B",
+            "region": "parietal"
+        },
+        {
+            "name": "a7op",
+            "region": "parietal"
+        },
+        {
+            "name": "Tpt",
+            "region": "parietal"
+        },
+        {
+            "name": "Ins",
+            "region": "temporal"
+        },
+        {
+            "name": "stpc",
+            "region": "temporal"
+        },
+        {
+            "name": "V6A",
+            "region": "visual"
+        },
+        {
+            "name": "V3A",
+            "region": "visual"
+        },
+        {
+            "name": "V4t",
+            "region": "visual"
+        },
+        {
+            "name": "DP",
+            "region": "visual"
+        },
+        {
+            "name": "MST",
+            "region": "visual"
+        },
+        {
+            "name": "MT",
+            "region": "visual"
+        },
+        {
+            "name": "FST",
+            "region": "visual"
+        },
+        {
+            "name": "TEOm",
+            "region": "visual"
+        },
+        {
+            "name": "V1",
+            "region": "visual"
+        },
+        {
+            "name": "V2",
+            "region": "visual"
+        },
+        {
+            "name": "V3",
+            "region": "visual"
+        },
+        {
+            "name": "V4",
+            "region": "visual"
+        },
+        {
+            "name": "TEO",
+            "region": "visual"
+        },
+        {
+            "name": "TEpd",
+            "region": "visual"
+        },
+        {
+            "name": "MB",
+            "region": "auditory"
+        },
+        {
+            "name": "PBr",
+            "region": "auditory"
+        },
+        {
+            "name": "LB",
+            "region": "auditory"
+        },
+        {
+            "name": "Core",
+            "region": "auditory"
+        }
+    ]
+}
