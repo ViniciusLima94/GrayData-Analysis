@@ -58,7 +58,29 @@ _SAVE = os.path.join(_ROOT, "Results", monkey, "rate_modulations")
 ###############################################################################
 
 
-def load_session_power(s_id, z_score=False, avg=0, roi=None):
+def load_session_power(s_id: str, z_score: bool = False, avg: int = 0,
+                       roi: Optional[str] = None):
+
+    """
+    This function loads and processes power data for a given session.
+    It returns a DataArray containing the processed power data,
+    as well as the trials and stim data.
+
+    Parameters:
+    ----------
+    s_id (str): session id
+    z_score (bool): whether or not to z-score the power data
+    avg (int): Averages power for each period (baseline, cue, delay, match)
+    if needed, if not set to 0 it should be set to int value of avg
+    roi (str): region of interest to select,
+     if not given all regions will be used
+
+    Returns:
+    --------
+    out (xr.DataArray): the processed power data
+    trials (np.ndarray):  the trials data
+    stim (np.ndarray): the stim data
+    """
     _FILE_NAME = f"power_tt_{tt}_br_{br}_at_{at}.nc"
     path_pow = os.path.join(
         _ROOT, f"Results/{monkey}/{s_id}/session01", _FILE_NAME)

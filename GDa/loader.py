@@ -1,8 +1,5 @@
-import sys
-
-sys.path.insert(1, "/home/vinicius/storage1/projects/GrayData-Analysis")
-
 import xarray as xr
+import os
 import numpy as np
 
 class loader:
