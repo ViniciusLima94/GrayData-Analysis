@@ -51,6 +51,22 @@ def draw_bs_pairs_reps_pearson(x, y, size=1):
     return out
 
 def convert_pvalue_to_asterisks(pvalue):
+    """
+    Convert a p-value to an asterisk string representation.
+    A p-value of <= 0.0001 returns "****", a p-value of <= 0.001 returns "***", 
+    a p-value of <= 0.01 returns "**", a p-value of <= 0.05 returns "*", and 
+    any other p-value returns "ns".
+
+    Parameters
+    ----------
+    pvalue : float
+        The p-value to be converted to an asterisk string.
+
+    Returns
+    -------
+    str
+        The asterisk string representation of the p-value.
+    """
     if pvalue <= 0.0001:
         return "****"
     elif pvalue <= 0.001:
@@ -62,6 +78,27 @@ def convert_pvalue_to_asterisks(pvalue):
     return "ns"
 
 def add_stats_annot(pval, x1, x2, y, h, col):
+    """
+    Add a statistic annotation to a plot. 
+    Plot a horizontal line between the x-coordinates x1 and x2 at the y-coordinate y + h, 
+    and add text at the center of this line with the output of convert_pvalue_to_asterisks(pval)
+    using color col
+    
+    Parameters
+    ----------
+    pval : float
+        The p-value to be converted to an asterisk string.
+    x1 : float
+        The first x-coordinate of the horizontal line
+    x2 : float
+        The second x-coordinate of the horizontal line
+    y : float
+        The y-coordinate of the horizontal line
+    h : float
+        The height of the horizontal line
+    col : str
+        The color of the horizontal line and text.
+    """
     plt.plot([x1, x1, x2, x2], [y, y + h, y + h, y], lw=1.5, c=col)
     plt.text(
         (x1 + x2) * 0.5,
@@ -115,7 +152,22 @@ def _create_roi_area_mapping(roi):
     
     
 def to_mat(df, key):
+    """
+    Convert dataframe to matrix representation.
 
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The dataframe to convert to matrix representation.
+    key : str
+        The column name in the dataframe to be used as the values in the matrix.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the matrix representation, and the unique rois
+    """
+    rois = df.
     rois = df.roi.values
     roi_s, roi_t, _, _, unique_rois, mapping = _create_roi_area_mapping(rois)
     mat = np.zeros((len(unique_rois), len(unique_rois)))
@@ -128,18 +180,55 @@ def to_mat(df, key):
     
     
 def remove_same_roi(df):
+    """
+    Remove the rows where the source and target roi are the same in the dataframe
 
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The dataframe to remove rows from.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The modified dataframe with the rows removed.
+    """
     rois = df.roi.values
     roi_s, roi_t = _extract_roi(rois, "-")
     return df.iloc[~(roi_s == roi_t), :]
 
 def xr_remove_same_roi(xar):
-    
+    """
+    Remove the rows where the source and target roi are the same in xarray object.
+
+    Parameters
+    ----------
+    xar : xarray.DataArray
+        The xarray object to remove rows from.
+
+    Returns
+    -------
+    xarray.DataArray
+        The modified xarray object with the rows removed.
+    """    
     roi_s, roi_t = _extract_roi(xar.roi.data, "-")
     return xar.isel(roi=~(roi_s == roi_t))
 
 def xr_remove_same_roi_mc(xar):
-    
+    """
+    Remove the rows where the source and target roi are the same in xarray object
+    from a metaconnectivity amtrix.
+
+    Parameters
+    ----------
+    xar : xarray.DataArray
+        The xarray object to remove rows from.
+
+    Returns
+    -------
+    xarray.DataArray
+        The modified xarray object with the rows removed.
+    """    
     roi_s, roi_t = _extract_roi(xar.roi.data, "~")
     
     roi_s_1, roi_s_2 = _extract_roi(roi_s, "-")
@@ -155,7 +244,20 @@ def xr_remove_same_roi_mc(xar):
     return xar.isel(roi=~idx)
 
 def remove_sca(df):
+    """
+    Remove rows in the dataframe where the source or target roi is in a specific list of rois.
+    This function removes rows where the source or target roi is in a list containing "Caudate", "Claustrum", "Thal", "Putamen"
     
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The dataframe to remove rows from.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The modified dataframe with the rows removed.
+    """    
     sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
     roi_s, roi_t = _extract_roi(df.roi.values, "-")
     idx = np.logical_or([s in sca for s in roi_s],
@@ -163,19 +265,58 @@ def remove_sca(df):
     return df.iloc[~idx, :]
 
 def node_remove_sca(df):
+    """
+    Remove rows in the dataframe where roi is in a specific list of rois.
+    This function removes rows where the roi is in a list containing "Caudate", "Claustrum", "Thal", "Putamen"
     
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        The dataframe to remove rows from.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The modified dataframe with the rows removed.
+    """
     sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
     idx = np.array([r in sca for r in df.roi.values])
     return df.iloc[~idx, :]
 
 def node_xr_remove_sca(xar):
+    """
+    Remove rows in the xarray object where roi is in a specific list of rois.
+    This function removes rows where the roi is in a list containing "Caudate", "Claustrum", "Thal", "Putamen"
     
+    Parameters
+    ----------
+    xar : xarray.DataArray
+        The xarray object to remove rows from.
+
+    Returns
+    -------
+    xarray.DataArray
+        The modified xarray object with the rows removed.
+    """    
     sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
     idx = np.array([r in sca for r in xar.roi.data])
     return xar.isel(roi=~idx)
 
 def edge_xr_remove_sca(xar):
+    """
+    Remove rows in the xarray object where the source or target roi is in a specific list of rois.
+    This function removes rows where the source or target roi is in a list containing "Caudate", "Claustrum", "Thal", "Putamen"
     
+    Parameters
+    ----------
+    xar : xarray.DataArray
+        The xarray object to remove rows from.
+
+    Returns
+    -------
+    xarray.DataArray
+        The modified xarray object with the rows removed.
+    """    
     sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
     roi_s, roi_t = _extract_roi(xar.roi.data, "-")
     idx = np.logical_or([s in sca for s in roi_s],
@@ -183,7 +324,20 @@ def edge_xr_remove_sca(xar):
     return xar.isel(roi=~idx)
 
 def mc_edge_xr_remove_sca(xar):
+    """
+    Remove rows in the xarray object with multiple coordinate dimensions where the source or target roi is in a specific list of rois.
+    This function removes rows where the source or target roi is in a list containing "Caudate", "Claustrum", "Thal", "Putamen"
+
+    Parameters
+    ----------
+    xar : xarray.DataArray
+        The xarray object with multiple coordinate dimensions to remove rows from.
     
+    Returns
+    -------
+    xarray.DataArray
+        The modified xarray object with the rows removed.
+    """    
     sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
     roi_s, roi_t = _extract_roi(xar.roi.data, "~")
     
