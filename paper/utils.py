@@ -167,7 +167,6 @@ def to_mat(df, key):
     tuple
         A tuple containing the matrix representation, and the unique rois
     """
-    rois = df.
     rois = df.roi.values
     roi_s, roi_t, _, _, unique_rois, mapping = _create_roi_area_mapping(rois)
     mat = np.zeros((len(unique_rois), len(unique_rois)))
@@ -325,8 +324,10 @@ def edge_xr_remove_sca(xar):
 
 def mc_edge_xr_remove_sca(xar):
     """
-    Remove rows in the xarray object with multiple coordinate dimensions where the source or target roi is in a specific list of rois.
-    This function removes rows where the source or target roi is in a list containing "Caudate", "Claustrum", "Thal", "Putamen"
+    Remove rows in the xarray object with multiple coordinate
+    dimensions where the source or target roi is in a specific list of rois.
+    This function removes rows where the source or target roi is in a list containing:
+    "Caudate", "Claustrum", "Thal", "Putamen"
 
     Parameters
     ----------
@@ -352,7 +353,29 @@ def mc_edge_xr_remove_sca(xar):
     
     
     return xar.isel(roi=~np.logical_or(idx_1, idx_2))
-    
-    
-    
-    
+
+
+def get_areas():
+    """
+    This function reads a JSON file 'areas.json' and returns a dictionary 
+    mapping the names of areas to their respective regions.
+    The file should be formatted like this:
+        { "areas": [            
+        {"name": "Area 1", "region": "Region A"},            
+        {"name": "Area 2", "region": "Region B"},            
+        ...          ]
+        }
+    """
+    import json
+
+    with open("areas.json") as f:
+        areas_dict = json.load(f)["areas"]
+
+    names = []
+    regions = []
+    for i in range(len(areas_dict)):
+
+        names += [areas_dict[i]["name"].lower()]
+        regions += [areas_dict[i]["region"]]
+
+    return dict(zip(names, regions))
