@@ -21,14 +21,11 @@ parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
 parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
                     type=str)
-parser.add_argument("DELAY", help="which type of delay split to use",
-                    type=int)
 
 args = parser.parse_args()
 
 sid = args.SIDX
 at = args.ALIGNED
-ds = args.DELAY
 monkey = args.MONKEY
 
 early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
@@ -69,14 +66,14 @@ def bootstrap(ts_stacked, n_trials, n_rois, n_boot):
     ndarray
         The bootstrapped confidence interval
     """
-
+    trials = np.arange(n_trials, dtype=int)
     ci = []
     for i in range(n_boot):
         ci += [
             np.take_along_axis(
                 ts_stacked,
                 np.asarray(
-                    [np.random.choice(range(n_trials), n_trials) for _ in range(n_rois)]
+                    [np.random.choice(trials, n_trials) for _ in range(n_rois)]
                 ),
                 axis=-1,
             ).mean(-1)
@@ -220,7 +217,7 @@ def compute_median_rate(
 
 
 
-def return_burst_prob(power, conditional=False, thr=0.95):
+def return_burst_prob(power, conditional=False, thr=0.95, verbose=False):
     """
     Computes the burst probability and surrogate burst probability
     for each region of interest (ROI) in the given power dataset.
@@ -261,7 +258,7 @@ def return_burst_prob(power, conditional=False, thr=0.95):
         P_b = []
         SP_b = []
 
-        for roi in tqdm(rois):
+        for roi in tqdm(rois) if verbose else rois:
             ci, surr = compute_median_rate(power, roi=roi,  **kw_args)
             P_b += [ci]
             SP_b += [surr]
@@ -276,10 +273,11 @@ def return_burst_prob(power, conditional=False, thr=0.95):
     if not conditional:
         return _for_roi()
     else:
+        __iter = range(1, 6)
         # Stimulus dependent rate modulation
         P_b_stim = []
         SP_b_stim = []
-        for stim in tqdm(range(1, 6)):
+        for stim in tqdm(__iter) if verbose else __iter:
             kw_args["stim_label"] = stim
             P_b, SP_b = _for_roi()
 
@@ -314,28 +312,22 @@ P_b_fix, SP_b_fix = return_burst_prob(power_fix, thr=0.95)
 # Computes burst probability for task and fixation
 P_b_task_stim, SP_b_task_stim = return_burst_prob(power_task,
                                                   conditional=True, thr=0.95)
-P_b_fix_stim, SP_b_fix_stim = return_burst_prob(power_fix, conditional=True,
-                                                thr=0.95)
 
 P_b_task.to_netcdf(os.path.join(
-    _SAVE, f"P_b_task_{s_id}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"P_b_task_{s_id}_at_{at}.nc"))
 SP_b_task.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_task_{s_id}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"SP_b_task_{s_id}_at_{at}.nc"))
 
 P_b_fix.to_netcdf(os.path.join(
-    _SAVE, f"P_b_fix_{s_id}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"P_b_fix_{s_id}_at_{at}.nc"))
 SP_b_fix.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_fix_{s_id}ds_{ds}_f_{freq}.nc"))
+    _SAVE, f"SP_b_fix_{s_id}_at_{at}.nc"))
 
 P_b_task_stim.to_netcdf(os.path.join(
     _SAVE, f"P_b_task_stim_{s_id}_at_{at}_ds_{ds}.nc"))
 SP_b_task_stim.to_netcdf(os.path.join(
     _SAVE, f"SP_b_task_stim_{s_id}_at_{at}_ds_{ds}.nc"))
 
-P_b_fix_stim.to_netcdf(os.path.join(
-    _SAVE, f"P_b_fix_stim_{s_id}_at_{at}_ds_{ds}.nc"))
-SP_b_fix_stim.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_fix_stim_{s_id}_at_{at}_ds_{ds}.nc"))
 
 # def compute_median_rate(
     # data: xr.DataArray,

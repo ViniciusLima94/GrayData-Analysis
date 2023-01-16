@@ -75,6 +75,49 @@ class loader:
 
         return power
 
+
+    def load_burst_prob(self,
+                        session: int = None,
+                        trial_type: int = 1,
+                        aligned_at: str = "cue",
+                        monkey: str = "lucy",
+                        conditional: bool = False):
+        """
+        Load burst probability data from file and return as a xarray.DataArray.
+
+        Inputs:
+        ------
+        session: int | None
+            session number
+        trial_type: int | None
+            trial type number
+        behavioral_response: int | None
+            behavioral response outcome
+        aligned_at: str | "cue"
+            whether the data is aligned to the cue or the burst
+        channel_numbers: bool | False
+            whether to use the channel number with the roi name
+        monkey: str | "lucy"
+            name of the monkey
+
+        Returns:
+        -------
+        power: xr.DataArray
+            containing burst probability data
+            with dimensions "roi", "freqs", "boot", and "times".
+        """
+        # Path to the power file
+        _RESULTS = os.path.join("Results", monkey, "rate_modulations")
+        # Name of the power file
+        pb_file = self.__return_pb_file_name(
+            trial_type, session, aligned_at, conditional
+        )
+        # Load power data
+        P_b = xr.load_dataarray(os.path.join(self._ROOT, _RESULTS, pb_file))
+        if not conditional:
+            return P_b.transpose("roi", "freqs", "boot", "times")
+        return P_b.transpose("roi", "freqs", "boot", "stim", "times")
+
     def average_stages(
         self,
         data,
@@ -177,3 +220,16 @@ class loader:
         """
         _name = f"power_tt_{trial_type}_br_{behavioral_response}_at_{aligned_at}.nc"
         return _name
+
+
+    def __return_pb_file_name(self, trial_type, session, aligned_at, conditional):
+        """
+        Return the name of the file containing the burst prob time series.
+        """
+        if trial_type == 1:
+            sufix = "task"
+        elif trial_type == 2:
+            sufix = "fix"
+        if not conditional: 
+            return f"P_b_{sufix}_{session}_at_{aligned_at}_ds_1.nc"
+        return f"P_b_{sufix}_stim_{session}_at_{aligned_at}_ds_1.nc"
