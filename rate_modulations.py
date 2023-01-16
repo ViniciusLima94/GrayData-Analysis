@@ -28,7 +28,7 @@ sid = args.SIDX
 at = args.ALIGNED
 monkey = args.MONKEY
 
-early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
+# early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 sessions = get_dates(monkey)
 s_id = sessions[sid]
 
@@ -324,9 +324,9 @@ SP_b_fix.to_netcdf(os.path.join(
     _SAVE, f"SP_b_fix_{s_id}_at_{at}.nc"))
 
 P_b_task_stim.to_netcdf(os.path.join(
-    _SAVE, f"P_b_task_stim_{s_id}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"P_b_task_stim_{s_id}_at_{at}.nc"))
 SP_b_task_stim.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_task_stim_{s_id}_at_{at}_ds_{ds}.nc"))
+    _SAVE, f"SP_b_task_stim_{s_id}_at_{at}.nc"))
 
 
 # def compute_median_rate(

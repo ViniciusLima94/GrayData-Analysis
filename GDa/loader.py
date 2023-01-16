@@ -231,5 +231,5 @@ class loader:
         elif trial_type == 2:
             sufix = "fix"
         if not conditional: 
-            return f"P_b_{sufix}_{session}_at_{aligned_at}_ds_1.nc"
-        return f"P_b_{sufix}_stim_{session}_at_{aligned_at}_ds_1.nc"
+            return f"P_b_{sufix}_{session}_at_{aligned_at}.nc"
+        return f"P_b_{sufix}_stim_{session}_at_{aligned_at}.nc"
