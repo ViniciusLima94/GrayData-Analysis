@@ -24,10 +24,6 @@ parser.add_argument("AVERAGED", help="wheter to analyse the avg. power or not",
                     type=int)
 parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
-parser.add_argument("DELAY", help="which type of delay split to use",
-                    type=int)
-parser.add_argument("BINARY", help="wheater to use the binarized tensor or not",
-                    type=int)
 
 args = parser.parse_args()
 
@@ -35,15 +31,13 @@ args = parser.parse_args()
 tt = args.TT
 br = args.BR
 at = args.ALIGN
-ds = args.DELAY
 avg = args.AVERAGED
 monkey = args.MONKEY
-binary = args.BINARY
 
-if not avg:
-    ds = 0
 
-early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
+stages = {}
+stages["lucy"] = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
+stage_labels = ["P", "S", "D1", "D2", "Dm"]
 
 sessions = get_dates(monkey)
 
@@ -66,13 +60,19 @@ for s_id in tqdm(sessions):
                      f"Results/{monkey}/{s_id}/session01",
                      _FILE_NAME)
     power = xr.load_dataarray(path_pow)
-    if binary:
-        bin_thr = power.quantile(0.70, ("trials", "times"))
-        power.values = (power > bin_thr).values
-        del bin_thr
+    attrs = power.attrs
     # Averages power for each period (baseline, cue, delay, match) if needed
-    out = average_stages(power, avg, early_cue=early_cue,
-                         early_delay=early_delay)
+    # out = average_stages(power, avg, early_cue=early_cue,
+                         # early_delay=early_delay)
+    # Average epochs
+    out = []
+    if avg:
+        for t0, t1 in stages:
+            out += [power.sel(times=slice(t0, t1)).mean("times")]
+        out = xr.concat(out, "times").assign_coords({"times": stage_labels})
+    else:
+        out = power
+    out.attrs = attrs
     sxx += [out.isel(roi=[r]) for r in range(len(out['roi']))]
     stim += [out.attrs["stim"].astype(int)]*len(out['roi'])
 
@@ -94,10 +94,7 @@ if avg:
 else:
     mcp = "cluster"
 
-if binary:
-    mi_type = "dd"
-else:
-    mi_type = "cd"
+mi_type = "cd"
 
 estimator = GCMIEstimator(mi_type="cd", copnorm=True,
                           biascorrect=True, demeaned=False, tensor=True,
@@ -117,12 +114,19 @@ mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
 _RESULTS = os.path.join(_ROOT,
                         f"Results/{monkey}/mutual_information/power/")
 
+# path_mi = os.path.join(_RESULTS,
+                       # f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
+# path_tv = os.path.join(_RESULTS,
+                       # f"tval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
+# path_pv = os.path.join(_RESULTS,
+                       # f"pval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
+
 path_mi = os.path.join(_RESULTS,
-                       f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_bin_{binary}_{mcp}.nc")
+                       f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
 path_tv = os.path.join(_RESULTS,
-                       f"tval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_bin_{binary}_{mcp}.nc")
+                       f"tval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
 path_pv = os.path.join(_RESULTS,
-                       f"pval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_bin_{binary}_{mcp}.nc")
+                       f"pval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
 
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)
