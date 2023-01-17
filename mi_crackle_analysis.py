@@ -19,7 +19,7 @@ parser.add_argument("TT",   help="type of the trial",
 parser.add_argument("BR",   help="behavioral response",
                     type=int)
 parser.add_argument("Q",   help="threshold used to binarize the data",
-                    type=int)
+                    type=float)
 parser.add_argument("ALIGN", help="wheter to align data to cue or match",
                     type=str)
 parser.add_argument("MONKEY", help="which monkey to use",
@@ -30,7 +30,7 @@ args = parser.parse_args()
 # Index of the session to be load
 tt = args.TT
 br = args.BR
-q = args.THR
+q = args.Q
 at = args.ALIGN
 monkey = args.MONKEY
 
@@ -90,10 +90,7 @@ mi_type = 'cd'
 inference = 'rfx'
 kernel = None
 
-if avg:
-    mcp = "fdr"
-else:
-    mcp = "cluster"
+mcp = "fdr"
 
 mi_type = "cd"
 
@@ -125,11 +122,11 @@ _RESULTS = os.path.join(_ROOT,
 qint = int(q * 100)
 
 path_mi = os.path.join(_RESULTS,
-                       f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_q_{qint}_{mcp}.nc")
+                       f"mi_crackle_{tt}_br_{br}_aligned_{at}_q_{qint}_{mcp}.nc")
 path_tv = os.path.join(_RESULTS,
-                       f"tval_pow_{tt}_br_{br}_aligned_{at}_q_{qint}_{mcp}.nc")
+                       f"tval_crackle_{tt}_br_{br}_aligned_{at}_q_{qint}_{mcp}.nc")
 path_pv = os.path.join(_RESULTS,
-                       f"pval_pow_{tt}_br_{br}_aligned_{at}_q_{qint}_{mcp}.nc")
+                       f"pval_crackle_{tt}_br_{br}_aligned_{at}_q_{qint}_{mcp}.nc")
 
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)
