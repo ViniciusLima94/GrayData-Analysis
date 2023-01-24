@@ -63,7 +63,7 @@ class flatmap():
 
     def plot(self, ax, ax_colorbar=None, colormap="viridis", alpha=0.2,
              vmin=None, vmax=None, extend=None, cbar_title=None, cbar_fontsize=12,
-             figsize=None, dpi=None):
+             figsize=None, colors=None, dpi=None):
         """
         ax: pyplot.axis | None
             Axis in which to plot the flatmap.
@@ -95,8 +95,11 @@ class flatmap():
         norm = matplotlib.colors.Normalize(vmin=vmin,
                                            vmax=vmax)
         # Get colormap
-        cmap = matplotlib.cm.get_cmap(colormap)
-        colors = [cmap(norm(val)) for val in self.values]
+        if isinstance(colormap, str):
+            cmap = matplotlib.cm.get_cmap(colormap)
+            colors = [cmap(norm(val)) for val in self.values]
+        else:
+            assert isinstance(colors, (list, np.ndarray, tuple)) 
 
         ####################################################################
         # Plot flatmap and colors

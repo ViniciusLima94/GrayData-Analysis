@@ -65,6 +65,10 @@
             "region": "prefrontal"
         },
         {
+            "name": "a45B",
+            "region": "prefrontal"
+        },
+        {
             "name": "a12",
             "region": "prefrontal"
         },
@@ -110,6 +114,10 @@
         },
         {
             "name": "a3",
+            "region": "somatosensory"
+        },
+        {
+            "name": "sii",
             "region": "somatosensory"
         },
         {
