@@ -4,12 +4,14 @@ Edge-based encoding analysis done on the coherence dFC
 import os
 import argparse
 
+import xarray as xr
+
 from tqdm import tqdm
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
-from config import get_dates, return_delay_split
-from GDa.util import average_stages
+from config import get_dates#, return_delay_split
+# from GDa.util import average_stages
 from GDa.temporal_network import temporal_network
 
 ###############################################################################
@@ -27,25 +29,23 @@ parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
 parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
                     type=str)
-parser.add_argument("DELAY", help="which type of delay split to use",
-                    type=int)
-parser.add_argument("BINARY", help="wheater to use the binarized tensor or not",
-                    type=int)
 
 args = parser.parse_args()
 
 metric = args.METRIC
 avg = args.AVERAGED
 at = args.ALIGNED
-ds = args.DELAY
 monkey = args.MONKEY
-binary = args.BINARY
 
-if not avg:
-    ds = 0
+stages = {}
+stages["lucy"] = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
+stage_labels = ["P", "S", "D1", "D2", "Dm"]
 
-early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
-print(early_cue, early_delay)
+# if not avg:
+    # ds = 0
+
+# early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
+# print(early_cue, early_delay)
 sessions = get_dates(monkey)
 
 ##############################################################################
@@ -76,13 +76,20 @@ for s_id in tqdm(sessions):
                            coh_sig_file=coh_sig_file, wt=None,
                            date=s_id, trial_type=tt, monkey=monkey,
                            behavioral_response=br)
-    if binary:
-        bin_thr = net.super_tensor.quantile(0.70, ("trials", "times"))
-        net.super_tensor.values = (net.super_tensor > bin_thr).values
-        del bin_thr
+    attrs = net.super_tensor.attrs
     # Average if needed
-    out = average_stages(net.super_tensor, avg, early_cue=early_cue,
-                         early_delay=early_delay)
+    # out = average_stages(net.super_tensor, avg, early_cue=early_cue,
+                         # early_delay=early_delay)
+    # Average epochs
+    out = []
+    if avg:
+        for t0, t1 in stages[monkey]:
+            out += [net.super_tensor.sel(times=slice(t0, t1)).mean("times")]
+        out = xr.concat(out, "times")
+        out = out.transpose("trials", "roi", "freqs", "times")
+    else:
+        out = net.super_tensor
+    out.attrs = attrs
     # To save memory
     del net
     # Convert to format required by the MI workflow
@@ -126,11 +133,11 @@ _RESULTS = os.path.join(_ROOT,
                         f"Results/{monkey}/mutual_information/coherence/")
 
 path_mi = os.path.join(_RESULTS,
-                       f"mi_{metric}_at_{at}_ds_{ds}_avg_{avg}_bin_{binary}_{mcp}.nc")
+                       f"mi_{metric}_at_{at}_avg_{avg}_{mcp}.nc")
 path_tv = os.path.join(_RESULTS,
-                       f"tval_{metric}_at_{at}_ds_{ds}_avg_{avg}_bin_{binary}_{mcp}.nc")
+                       f"tval_{metric}_at_{at}_avg_{avg}_{mcp}.nc")
 path_pv = os.path.join(_RESULTS,
-                       f"pval_{metric}_at_{at}_ds_{ds}_avg_{avg}_bin_{binary}_{mcp}.nc")
+                       f"pval_{metric}_at_{at}_avg_{avg}_{mcp}.nc")
 
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)
