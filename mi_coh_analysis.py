@@ -44,8 +44,15 @@ stage_labels = ["P", "S", "D1", "D2", "Dm"]
 # if not avg:
     # ds = 0
 
+<<<<<<< HEAD
 # early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 # print(early_cue, early_delay)
+=======
+stages = {}
+stages["lucy"] = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
+stage_labels = ["P", "S", "D1", "D2", "Dm"]
+# early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
+>>>>>>> ecebe6baa87e7734bfb3fa4d507149f352941b35
 sessions = get_dates(monkey)
 
 ##############################################################################
@@ -76,7 +83,10 @@ for s_id in tqdm(sessions):
                            coh_sig_file=coh_sig_file, wt=None,
                            date=s_id, trial_type=tt, monkey=monkey,
                            behavioral_response=br)
+<<<<<<< HEAD
     attrs = net.super_tensor.attrs
+=======
+>>>>>>> ecebe6baa87e7734bfb3fa4d507149f352941b35
     # Average if needed
     # out = average_stages(net.super_tensor, avg, early_cue=early_cue,
                          # early_delay=early_delay)
@@ -89,7 +99,10 @@ for s_id in tqdm(sessions):
         out = out.transpose("trials", "roi", "freqs", "times")
     else:
         out = net.super_tensor
+<<<<<<< HEAD
     out.attrs = attrs
+=======
+>>>>>>> ecebe6baa87e7734bfb3fa4d507149f352941b35
     # To save memory
     del net
     # Convert to format required by the MI workflow
