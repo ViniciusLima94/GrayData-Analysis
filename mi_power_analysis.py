@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import xarray as xr
 import argparse
 
@@ -7,6 +8,7 @@ from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
 from GDa.util import average_stages
+from GDa.session import session_info
 from tqdm import tqdm
 
 ###############################################################################
@@ -24,6 +26,8 @@ parser.add_argument("AVERAGED", help="wheter to analyse the avg. power or not",
                     type=int)
 parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
+parser.add_argument("SLVR", help="Whether to use SLVR channels or not",
+                    type=str)
 
 args = parser.parse_args()
 
@@ -33,6 +37,7 @@ br = args.BR
 at = args.ALIGN
 avg = args.AVERAGED
 monkey = args.MONKEY
+slvr = args.SLVR
 
 
 stages = {}
@@ -61,6 +66,19 @@ for s_id in tqdm(sessions):
                      _FILE_NAME)
     power = xr.load_dataarray(path_pow)
     attrs = power.attrs
+
+    # Remove SLVR channels
+    if not bool(slvr):
+        info = session_info(
+            raw_path=os.path.join(_ROOT, "GrayLab"),
+            monkey=monkey,
+            date=s_id,
+            session=1,
+        )
+        slvr_idx = info.recording_info["slvr"].astype(bool)
+        power = power.isel(roi=np.logical_not(slvr_idx))
+
+
     # Averages power for each period (baseline, cue, delay, match) if needed
     # out = average_stages(power, avg, early_cue=early_cue,
                          # early_delay=early_delay)
@@ -123,11 +141,11 @@ _RESULTS = os.path.join(_ROOT,
                        # f"pval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
 
 path_mi = os.path.join(_RESULTS,
-                       f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
+                       f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
 path_tv = os.path.join(_RESULTS,
-                       f"tval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
+                       f"tval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
 path_pv = os.path.join(_RESULTS,
-                       f"pval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}.nc")
+                       f"pval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
 
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)
