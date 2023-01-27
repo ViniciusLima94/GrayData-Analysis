@@ -3,6 +3,7 @@ Edge-based encoding analysis done on the coherence dFC
 """
 import os
 import argparse
+import xarray as xr
 
 from tqdm import tqdm
 from frites.dataset import DatasetEphy
@@ -37,11 +38,12 @@ monkey = args.MONKEY
 
 if not avg:
     ds = 0
+ds = 0
 
 stages = {}
 stages["lucy"] = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
 stage_labels = ["P", "S", "D1", "D2", "Dm"]
-# early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
+early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 sessions = get_dates(monkey)
 
 ##############################################################################
@@ -75,6 +77,7 @@ for s_id in tqdm(sessions):
     # Average if needed
     # out = average_stages(net.super_tensor, avg, early_cue=early_cue,
                          # early_delay=early_delay)
+    attrs = net.super_tensor.attrs
     # Average epochs
     out = []
     if avg:
@@ -84,6 +87,7 @@ for s_id in tqdm(sessions):
         out = out.transpose("trials", "roi", "freqs", "times")
     else:
         out = net.super_tensor
+    out.attrs = attrs
     # To save memory
     del net
     # Convert to format required by the MI workflow
