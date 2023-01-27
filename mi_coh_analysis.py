@@ -5,12 +5,14 @@ import os
 import argparse
 import xarray as xr
 
+import xarray as xr
+
 from tqdm import tqdm
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
-from config import get_dates, return_delay_split
-from GDa.util import average_stages
+from config import get_dates#, return_delay_split
+# from GDa.util import average_stages
 from GDa.temporal_network import temporal_network
 
 ###############################################################################
@@ -43,6 +45,7 @@ ds = 0
 stages = {}
 stages["lucy"] = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
 stage_labels = ["P", "S", "D1", "D2", "Dm"]
+
 early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 sessions = get_dates(monkey)
 
@@ -74,10 +77,10 @@ for s_id in tqdm(sessions):
                            coh_sig_file=coh_sig_file, wt=None,
                            date=s_id, trial_type=tt, monkey=monkey,
                            behavioral_response=br)
+    attrs = net.super_tensor.attrs
     # Average if needed
     # out = average_stages(net.super_tensor, avg, early_cue=early_cue,
                          # early_delay=early_delay)
-    attrs = net.super_tensor.attrs
     # Average epochs
     out = []
     if avg:
