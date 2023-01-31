@@ -11,7 +11,7 @@ from tqdm import tqdm
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
-from config import get_dates#, return_delay_split
+from config import get_dates, return_delay_split
 # from GDa.util import average_stages
 from GDa.temporal_network import temporal_network
 
@@ -118,7 +118,7 @@ else:
 estimator = GCMIEstimator(mi_type='cd', copnorm=True,
                           biascorrect=True, demeaned=False, tensor=True,
                           gpu=False, verbose=None)
-wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
+wf = WfMi(mi_type, inference, verbose=True, kernel=None, estimator=estimator)
 
 kw = dict(n_jobs=30, n_perm=200)
 cluster_th = None  # {float, None, 'tfce'}
