@@ -3,6 +3,31 @@ import xarray as xr
 import pandas as pd
 
 
+def get_areas():
+    """
+    This function reads a JSON file 'areas.json' and returns a dictionary 
+    mapping the names of areas to their respective regions.
+    The file should be formatted like this:
+        { "areas": [            
+        {"name": "Area 1", "region": "Region A"},            
+        {"name": "Area 2", "region": "Region B"},            
+        ...          ]
+        }
+    """
+    import json
+
+    with open("areas.json") as f:
+        areas_dict = json.load(f)["areas"]
+
+    names = []
+    regions = []
+    for i in range(len(areas_dict)):
+
+        names += [areas_dict[i]["name"].lower()]
+        regions += [areas_dict[i]["region"]]
+
+    return dict(zip(names, regions))
+
 def create_stages_time_grid(t_cue_on, t_cue_off, t_match_on, fsample, tarray,
                             ntrials, early_delay=None, align_to="cue",
                             flatten=False):
