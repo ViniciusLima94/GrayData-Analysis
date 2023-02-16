@@ -76,6 +76,50 @@ class loader:
         return power
 
 
+    def load_co_crakcle(
+        self,
+        session: int = None,
+        trial_type: int = 1,
+        monkey: str = "lucy",
+        strength: bool = False
+    ):
+        """
+        Load file containing the power time series
+
+        Inputs:
+        ------
+
+        session: int | None
+            The sessions number.
+
+        trial_type: int | None
+            The type of the trial to load.
+
+        monkey: str | "lucy"
+            The monkey for which to load the data.
+
+        strength: bool | False
+            Whether to return the strength rather than the Kij matrix.
+
+        Returns:
+        -------
+        power: xr.DataArray
+            The Data Array containing the power data
+        """
+        # Path to the power file
+        _RESULTS = os.path.join("Results", monkey, "crk_stats")
+        # Name of the power file
+        ttype = "task" if trial_type == 1 else "fix"
+        crk_file = f"kij_{ttype}_{session}.nc"
+        # Load power data
+        kij = xr.load_dataarray(os.path.join(self._ROOT, _RESULTS, crk_file))
+        kij = kij.transpose("sources", "targets", "freqs","times")
+        if strength:
+            kij = kij.sum("targets")
+            kij = kij.rename({"sources": "roi"})
+        return kij
+
+
     def load_burst_prob(self,
                         session: int = None,
                         trial_type: int = 1,

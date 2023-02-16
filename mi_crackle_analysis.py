@@ -37,6 +37,7 @@ monkey = args.MONKEY
 
 stages = {}
 stages["lucy"] = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
+stages["ethyl"] = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
 stage_labels = ["P", "S", "D1", "D2", "Dm"]
 
 sessions = get_dates(monkey)

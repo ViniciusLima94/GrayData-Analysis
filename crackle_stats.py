@@ -16,7 +16,6 @@ from frites.utils import parallel_func
 from scipy.stats import ks_2samp, mannwhitneyu, ttest_1samp
 from statannot import add_stat_annotation
 from tqdm import tqdm
-from utils import *
 
 from config import get_dates, return_evt_dt
 from GDa.graphics import plot
@@ -43,9 +42,8 @@ sid = args.SESSION
 monkey = args.MONKEY
 
 _ROOT = os.path.expanduser("~/funcog/gda/")
-_RESULTS = os.path.expanduser("~/funcog/gda/Results/lucy/crk_stats")
-if monkey == "lucy":
-    stages = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
+_RESULTS = os.path.expanduser(f"~/funcog/gda/Results/{monkey}/crk_stats")
+stages = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
 
 stage_labels = ["P", "S", "D1", "D2", "Dm"]
 
@@ -314,11 +312,11 @@ def return_co_crackle_mat(A, nruns=100, verbose=False):
 
     kij = co_k.mean("obs")
     ci = []
-    for i in range(kij.sizes["times"]):
-        ci_temp, _ = return_consensus_vector(kij.sel(times=i), nruns=nruns)
-        ci += [ci_temp]
-    ci = np.stack(ci, axis=1)
-    ci = xr.DataArray(ci, dims=("roi", "times"), coords=dict(roi=rois))
+    # for i in range(kij.sizes["times"]):
+        # ci_temp, _ = return_consensus_vector(kij.sel(times=i), nruns=nruns)
+        # ci += [ci_temp]
+    # ci = np.stack(ci, axis=1)
+    # ci = xr.DataArray(ci, dims=("roi", "times"), coords=dict(roi=rois))
 
     return kij, ci
 ##############################################################################
@@ -384,14 +382,14 @@ for f in A_task.freqs.data:
 
 kij_task = xr.concat(kij_task, "freqs").assign_coords(dict(freqs=A_task.freqs))
 kij_fix = xr.concat(kij_fix, "freqs").assign_coords(dict(freqs=A_task.freqs))
-ci_task = xr.concat(ci_task, "freqs").assign_coords(dict(freqs=A_task.freqs))
-ci_fix = xr.concat(ci_fix, "freqs").assign_coords(dict(freqs=A_task.freqs))
+# ci_task = xr.concat(ci_task, "freqs").assign_coords(dict(freqs=A_task.freqs))
+# ci_fix = xr.concat(ci_fix, "freqs").assign_coords(dict(freqs=A_task.freqs))
 
 kij_task.to_netcdf(os.path.join(_RESULTS,
                                 f"kij_task_{session}.nc"))
 kij_fix.to_netcdf(os.path.join(_RESULTS,
                                 f"kij_fix_{session}.nc"))
-ci_task.to_netcdf(os.path.join(_RESULTS,
-                                f"ci_task_{session}.nc"))
-ci_fix.to_netcdf(os.path.join(_RESULTS,
-                                f"ci_fix_{session}.nc"))
+# ci_task.to_netcdf(os.path.join(_RESULTS,
+                                # f"ci_task_{session}.nc"))
+# ci_fix.to_netcdf(os.path.join(_RESULTS,
+                                # f"ci_fix_{session}.nc"))

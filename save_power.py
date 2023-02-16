@@ -34,6 +34,8 @@ br = args.BR
 at = args.ALIGN
 monkey = args.MONKEY
 
+print(monkey)
+
 sessions = get_dates(monkey)
 
 s_id = sessions[idx]

@@ -25,14 +25,14 @@
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:zoom="1.8318311"
-     inkscape:cx="339.278"
-     inkscape:cy="245.65583"
-     inkscape:window-width="843"
-     inkscape:window-height="1403"
-     inkscape:window-x="1709"
-     inkscape:window-y="4"
+     inkscape:cx="339.00505"
+     inkscape:cy="332.72718"
+     inkscape:window-width="1580"
+     inkscape:window-height="462"
+     inkscape:window-x="4"
+     inkscape:window-y="945"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1" />
+     inkscape:current-layer="g122-3" />
   <defs
      id="defs2">
     <clipPath
@@ -490,5 +490,90 @@
        d="m 63.890663,186.47988 c 2.196848,3.64588 2.415008,7.39654 1.17657,11.22433 4.073804,1.00842 5.019726,-4.54739 9.924359,-2.51329 0,0 0.04096,-2.10894 -0.676195,-2.9353 -1.751365,-2.01807 -3.004711,-6.83098 -1.802294,-7.68088 0,0 -3.534631,-0.27293 -5.220534,0.16165 -1.233887,0.31805 -3.401906,1.74349 -3.401906,1.74349 z"
        id="path6677"
        sodipodi:nodetypes="cccscac" />
+    <g
+       id="g122-3"
+       inkscape:label="regions_colors"
+       transform="matrix(0.2395913,0,0,-0.2395913,15.869019,283.94526)">
+      <path
+         d="m 275.44062,236.84625 h 20 v 7 h -20 z"
+         style="fill:#ff0000;fill-opacity:1;fill-rule:nonzero;stroke:#ff0000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+         id="path126" />
+      <g
+         id="g128"
+         transform="translate(303.44062,236.84625)">
+        <text
+           transform="scale(1,-1)"
+           style="font-variant:normal;font-weight:normal;font-size:10px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text132-7"><tspan
+             x="0 9.7399998 15.86 19.780001 25.9"
+             y="0"
+             sodipodi:role="line"
+             id="tspan130-5">motor</tspan></text>
+      </g>
+      <path
+         d="m 275.44062,222.17437 h 20 v 7 h -20 z"
+         style="fill:#00ffff;fill-opacity:1;fill-rule:nonzero;stroke:#00ffff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+         id="path134" />
+      <g
+         id="g136"
+         transform="translate(303.44062,222.17437)">
+        <text
+           transform="scale(1,-1)"
+           style="font-variant:normal;font-weight:normal;font-size:10px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text140"><tspan
+             x="0 6.3499999 12.48 16.59 19.370001 25.52 29.440001 35.57"
+             y="0"
+             sodipodi:role="line"
+             id="tspan138">parietal</tspan></text>
+      </g>
+      <path
+         d="m 275.44062,207.5025 h 20 v 7 h -20 z"
+         style="fill:#0000ff;fill-opacity:1;fill-rule:nonzero;stroke:#0000ff;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+         id="path142" />
+      <g
+         id="g144"
+         transform="translate(303.44062,207.5025)">
+        <text
+           transform="scale(1,-1)"
+           style="font-variant:normal;font-weight:normal;font-size:10px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text148"><tspan
+             x="0 6.3499999 10.24125 16.391251 19.911249 23.8025 29.922501 36.262501 40.182499 46.3125"
+             y="0"
+             sodipodi:role="line"
+             id="tspan146">prefrontal</tspan></text>
+      </g>
+      <path
+         d="m 275.44062,192.83062 h 20 v 7 h -20 z"
+         style="fill:#bf00bf;fill-opacity:1;fill-rule:nonzero;stroke:#bf00bf;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+         id="path150" />
+      <g
+         id="g152"
+         transform="translate(303.44062,192.83062)">
+        <text
+           transform="scale(1,-1)"
+           style="font-variant:normal;font-weight:normal;font-size:10px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text156"><tspan
+             x="0 5.21 11.33 21.07 27.200001 31.120001 37.240002 42.450001 48.599998 54.939999 60.150002 66.269997 70.379997"
+             y="0"
+             sodipodi:role="line"
+             id="tspan154">somatosensory</tspan></text>
+      </g>
+      <path
+         d="m 275.44062,176.73859 h 20 v 7 h -20 z"
+         style="fill:#008000;fill-opacity:1;fill-rule:nonzero;stroke:#008000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+         id="path166" />
+      <g
+         id="g168"
+         transform="translate(303.44062,176.73859)">
+        <text
+           transform="scale(1,-1)"
+           style="font-variant:normal;font-weight:normal;font-size:10px;font-family:'DejaVu Sans';-inkscape-font-specification:DejaVuSans;writing-mode:lr-tb;fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke:none"
+           id="text172"><tspan
+             x="0 5.9200001 8.6999998 13.91 20.25 26.379999"
+             y="0"
+             sodipodi:role="line"
+             id="tspan170">visual</tspan></text>
+      </g>
+    </g>
   </g>
 </svg>

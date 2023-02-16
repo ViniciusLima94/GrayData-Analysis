@@ -44,6 +44,7 @@ ds = 0
 
 stages = {}
 stages["lucy"] = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
+stages["ethyl"] = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
 stage_labels = ["P", "S", "D1", "D2", "Dm"]
 
 early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
