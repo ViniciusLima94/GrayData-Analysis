@@ -21,12 +21,15 @@ parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
 parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
                     type=str)
+parser.add_argument("THR", help="which threshold value to use",
+                    type=float)
 
 args = parser.parse_args()
 
 sid = args.SIDX
 at = args.ALIGNED
 monkey = args.MONKEY
+thr = args.THR
 
 # early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 sessions = get_dates(monkey)
@@ -305,166 +308,27 @@ power_fix = data_loader.load_power(**kw_loader, trial_type=2,
 
 
 # Computes burst probability for task and fixation
-P_b_task, SP_b_task = return_burst_prob(power_task, thr=0.95)
-P_b_fix, SP_b_fix = return_burst_prob(power_fix, thr=0.95)
+P_b_task, SP_b_task = return_burst_prob(power_task, thr=thr)
+P_b_fix, SP_b_fix = return_burst_prob(power_fix, thr=thr)
 
 
 # Computes burst probability for task and fixation
 P_b_task_stim, SP_b_task_stim = return_burst_prob(power_task,
-                                                  conditional=True, thr=0.95)
+                                                  conditional=True, thr=thr)
+
+percentile = int(thr * 100)
 
 P_b_task.to_netcdf(os.path.join(
-    _SAVE, f"P_b_task_{s_id}_at_{at}.nc"))
+    _SAVE, f"P_b_task_{s_id}_at_{at}_q_{percentile}.nc"))
 SP_b_task.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_task_{s_id}_at_{at}.nc"))
+    _SAVE, f"SP_b_task_{s_id}_at_{at}_q_{percentile}.nc"))
 
 P_b_fix.to_netcdf(os.path.join(
-    _SAVE, f"P_b_fix_{s_id}_at_{at}.nc"))
+    _SAVE, f"P_b_fix_{s_id}_at_{at}_q_{percentile}.nc"))
 SP_b_fix.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_fix_{s_id}_at_{at}.nc"))
+    _SAVE, f"SP_b_fix_{s_id}_at_{at}_q_{percentile}.nc"))
 
 P_b_task_stim.to_netcdf(os.path.join(
-    _SAVE, f"P_b_task_stim_{s_id}_at_{at}.nc"))
+    _SAVE, f"P_b_task_stim_{s_id}_at_{at}_q_{percentile}.nc"))
 SP_b_task_stim.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_task_stim_{s_id}_at_{at}.nc"))
-
-
-# def compute_median_rate(
-    # data: xr.DataArray,
-    # roi: str = None,
-    # thr: float = 3.0,
-    # stim_label: int = None,
-    # time_slice: slice = None,
-    # freqs: float = None,
-    # n_boot: int = 100,
-    # verbose: bool = False,
-# ):
-
-    # if isinstance(stim_label, int):
-        # stim_labels = data.stim
-        # idx_trials = stim_labels == stim_label
-    # else:
-        # idx_trials = [True] * data.sizes["trials"]
-
-    # # Apply threshold
-    # data = data >= thr
-
-    # # Get time-series
-    # ts = data.sel(freqs=freqs, times=time_slice,
-                  # roi=roi).isel(trials=idx_trials)
-    # times = ts.times.data
-    # # Stack rois
-    # if "roi" in ts.dims:
-        # ts_stacked = ts.stack(z=("trials", "roi")).data
-    # else:
-        # ts_stacked = ts.data.T
-    # n_rois = ts_stacked.shape[0]
-    # n_trials = ts_stacked.shape[1]
-    # # Compute bootstraps
-    # ci = []
-    # for i in tqdm(range(n_boot)) if verbose else range(n_boot):
-        # ci += [
-            # np.take_along_axis(
-                # ts_stacked,
-                # np.asarray(
-                    # [np.random.choice(range(n_trials), n_trials)
-                     # for _ in range(n_rois)]
-                # ),
-                # axis=-1,
-            # ).mean(-1)
-        # ]
-    # ci = np.stack(ci)
-
-    # surr = []
-    # for i in tqdm(range(n_boot)) if verbose else range(n_boot):
-        # surr += [shuffle_along_axis(ts_stacked, 0)]
-
-    # surr = np.stack(surr).mean(-1)
-
-    # ci = xr.DataArray(ci, dims=("boot", "times"), coords={"times": times})
-    # surr = xr.DataArray(surr, dims=("boot", "times"), coords={"times": times})
-
-    # return ci, surr
-
-
-# ##############################################################################
-# # Power
-# ###############################################################################
-# out, trials, stim = load_session_power(s_id, z_score=True, avg=0)
-
-# # Rate modulation
-# P_b = []
-# SP_b = []
-# rois = np.unique(out.roi.values)
-# time_slice = slice(-0.5, 2.0)
-# times = out.sel(times=time_slice).times.data
-
-# for roi in tqdm(rois):
-    # pb, spb = compute_median_rate(
-        # out.copy(),
-        # roi,
-        # stim_label=None,
-        # time_slice=time_slice,
-        # freqs=freq,
-        # n_boot=100,
-        # verbose=False,
-    # )
-
-    # P_b += [pb]
-    # SP_b += [spb]
-
-# # Stimulus dependent rate modulation
-# P_b_stim = []
-# SP_b_stim = []
-# for stim in tqdm(range(1, 6)):
-    # P_b_s = []
-    # SP_b_s = []
-    # rois = np.unique(out.roi.values)
-    # time_slice = slice(-0.5, 2.0)
-    # times = out.sel(times=time_slice).times.data
-
-    # for roi in rois:
-        # pb, spb = compute_median_rate(
-            # out.copy(),
-            # roi,
-            # stim_label=stim,
-            # time_slice=time_slice,
-            # freqs=freq,
-            # n_boot=100,
-            # verbose=False,
-        # )
-
-        # P_b_s += [pb]
-        # SP_b_s += [spb]
-
-    # P_b_stim += [xr.concat(P_b_s, "roi").assign_coords({"roi": rois})]
-    # SP_b_stim += [xr.concat(SP_b_s, "roi").assign_coords({"roi": rois})]
-
-# #
-# P_b = xr.concat(P_b, "roi")
-# P_b = P_b.assign_coords({"roi": rois})
-# SP_b = xr.concat(SP_b, "roi")
-# SP_b = SP_b.assign_coords({"roi": rois})
-
-# P_b_stim = xr.concat(P_b_stim, "stim")
-# SP_b_stim = xr.concat(SP_b_stim, "stim")
-
-# p = P_b_stim.quantile(0.5, "boot")
-# t_d = P_b.quantile(0.05, "boot")
-# t_u = P_b.quantile(0.95, "boot")
-
-# # Compute RMI
-# RMI = ((p > t_u) + (p < t_d)).mean("times").mean("stim")
-
-# # Save
-# P_b.to_netcdf(os.path.join(
-    # _SAVE, f"P_b_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}_f_{freq}.nc"))
-# SP_b.to_netcdf(os.path.join(
-    # _SAVE, f"SP_b_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}_f_{freq}.nc"))
-
-# P_b_stim.to_netcdf(os.path.join(
-    # _SAVE, f"P_b_stim_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}_f_{freq}.nc"))
-# SP_b_stim.to_netcdf(os.path.join(
-    # _SAVE, f"SP_b_stim_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}_f_{freq}.nc"))
-# RMI.to_netcdf(os.path.join(
-    # _SAVE, f"RMI_{s_id}_tt_{tt}_br_{br}_at_{at}_ds_{ds}_f_{freq}.nc"))
+    _SAVE, f"SP_b_task_stim_{s_id}_at_{at}_q_{percentile}.nc"))

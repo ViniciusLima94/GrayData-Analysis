@@ -125,6 +125,7 @@ class loader:
                         trial_type: int = 1,
                         aligned_at: str = "cue",
                         monkey: str = "lucy",
+                        thr: int = 90,
                         conditional: bool = False):
         """
         Load burst probability data from file and return as a xarray.DataArray.
@@ -154,7 +155,7 @@ class loader:
         _RESULTS = os.path.join("Results", monkey, "rate_modulations")
         # Name of the power file
         pb_file = self.__return_pb_file_name(
-            trial_type, session, aligned_at, conditional
+            trial_type, session, aligned_at, thr, conditional
         )
         # Load power data
         P_b = xr.load_dataarray(os.path.join(self._ROOT, _RESULTS, pb_file))
@@ -266,7 +267,7 @@ class loader:
         return _name
 
 
-    def __return_pb_file_name(self, trial_type, session, aligned_at, conditional):
+    def __return_pb_file_name(self, trial_type, session, aligned_at, thr, conditional):
         """
         Return the name of the file containing the burst prob time series.
         """
@@ -275,5 +276,5 @@ class loader:
         elif trial_type == 2:
             sufix = "fix"
         if not conditional: 
-            return f"P_b_{sufix}_{session}_at_{aligned_at}.nc"
-        return f"P_b_{sufix}_stim_{session}_at_{aligned_at}.nc"
+            return f"P_b_{sufix}_{session}_at_{aligned_at}_q_{thr}.nc"
+        return f"P_b_{sufix}_stim_{session}_at_{aligned_at}_q_{thr}.nc"

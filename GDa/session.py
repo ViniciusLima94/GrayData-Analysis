@@ -134,7 +134,7 @@ class session(session_info):
         self.trial_info = self.trial_info.rename_axis(
             'trial_index').reset_index()
 
-    def read_from_mat(self, verbose=False):
+    def read_from_mat(self,load_spike_times=False, verbose=False):
         # Get file names
         files = sorted(glob.glob(os.path.join(
             self.__paths.dir, self.date+'*')))
@@ -188,11 +188,32 @@ class session(session_info):
                 t0[i] + self.recording_info['lfp_sampling_rate']*self.evt_dt[0])
             inde = int(
                 t0[i] + self.recording_info['lfp_sampling_rate']*self.evt_dt[1])
-            # print(f"{t0[i]} - {indb}:{inde}")
-            # Time index array
-            # ind = np.arange(indb, inde+1, dtype=int)
             # LFP data, dimension NtrialsxNchannelsxTime
             self.data[i] = lfp_data[indch, indb:inde]
+
+        if load_spike_times:
+            time_axis = np.arange(self.evt_dt[0],
+                                  self.evt_dt[1],
+                                  1 / self.recording_info['lfp_sampling_rate'])
+            self.spike_times = np.zeros(
+                (n_trials, n_channels, len(time_axis)),
+            dtype=int) 
+            print(self.spike_times.shape)
+            for i in (tqdm(itr) if verbose else itr):
+                f = self.__load_mat.read_HDF5(
+                    files[self.trial_info.trial_index.values[i]])
+                # Get reference to spike times for the selected channels
+                ref = f['spike_times'][0][indch]
+                for ch, ref_ in enumerate(ref):
+                    # Remove cue onset
+                    times = np.asarray(f[ref_]) - t0[i]
+                    # Remove timing outsite evt_dt
+                    sel = np.logical_and(times >= self.evt_dt[0] * self.recording_info['lfp_sampling_rate'],
+                                         times <= self.evt_dt[1] * self.recording_info['lfp_sampling_rate'])
+                    times = times[sel].astype(int)
+                    if len(times) > 0:
+                        self.spike_times[i, ch, times] = 1
+
 
         # Stimulus presented for the selected trials
         stimulus = self.trial_info['sample_image'].values
@@ -213,6 +234,9 @@ class session(session_info):
             labels = labels[ch_unique_rec]
             area = area[ch_unique_rec]
             self.data = self.data[:, ch_unique_rec, :]
+            if load_spike_times:
+                self.spike_times = self.spike_times[:, ch_unique_rec, :]
+
 
         # Convert the data to an xarray
         self.data = xr.DataArray(
@@ -229,7 +253,23 @@ class session(session_info):
             'indch': indch, 't_cue_on': t_con,
             't_cue_off': t_coff, 't_match_on': t_mon}
 
-    def filter_trials(self, trial_type=None, behavioral_response=None):
+        if load_spike_times:
+            self.spike_times = xr.DataArray(
+                self.spike_times, dims=("trials", "roi", "time"),
+                coords={"trials": self.trial_info.trial_index.values,
+                        "roi":    area,
+                        "time":   time_axis})
+            # Saving metaspike_times
+            self.spike_times.attrs = {
+                'nC': n_channels,  # 'nP':nP,
+                'fsample': float(self.recording_info['lfp_sampling_rate']),
+                'channels_labels': labels.astype(np.int64),
+                'stim': stimulus,
+                'indch': indch, 't_cue_on': t_con,
+                't_cue_off': t_coff, 't_match_on': t_mon}
+
+    def filter_trials(self, spike_times=False, trial_type=None,
+                      behavioral_response=None):
         """
         Get only selected trials of the session data
         (return instead of rewriting the class attribute)
@@ -244,7 +284,10 @@ class session(session_info):
             self.trial_info, trial_type=trial_type,
             behavioral_response=behavioral_response)
 
-        data = self.data.sel(trials=filtered_trials)
+        if not spike_times:
+            data = self.data.sel(trials=filtered_trials)
+        else:
+            data = self.spike_times.sel(trials=filtered_trials)
         # Filtering attributes
         for key in ['stim', 't_cue_off', 't_cue_on', 't_match_on']:
             data.attrs[key] = self.data.attrs[key][filtered_trials_idx]

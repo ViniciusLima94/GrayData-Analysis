@@ -197,13 +197,10 @@ for s_id in tqdm(sessions):
 
     # Average epochs
     out = []
-    if avg:
-        for t0, t1 in stages[monkey]:
-            out += [co_k.sel(times=slice(t0, t1)).mean("times")]
-        out = xr.concat(out, "times")
-        out = out.transpose("trials", "roi", "freqs", "times")
-    else:
-        out = co_k.transpose("trials", "roi", "freqs", "times")
+    for t0, t1 in stages[monkey]:
+        out += [co_k.sel(times=slice(t0, t1)).mean("times")]
+    out = xr.concat(out, "times")
+    out = out.transpose("trials", "roi", "freqs", "times")
     out.attrs = attrs
     sxx += [out.isel(roi=[r]) for r in range(len(out['roi']))]
     stim += [out.attrs["stim"].astype(int)]*len(out['roi'])

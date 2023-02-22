@@ -34,12 +34,15 @@ parser.add_argument("SESSION", help="which session to load",
                     type=int)
 parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
+parser.add_argument("THR", help="which threshold to use",
+                    type=float)
 
 args = parser.parse_args()
 
 # Index of the session to be load
 sid = args.SESSION
 monkey = args.MONKEY
+thr = args.THR
 
 _ROOT = os.path.expanduser("~/funcog/gda/")
 _RESULTS = os.path.expanduser(f"~/funcog/gda/Results/{monkey}/crk_stats")
@@ -329,8 +332,8 @@ kw_loader = dict(
 power_task = data_loader.load_power(**kw_loader, trial_type=1, behavioral_response=1)
 power_fix = data_loader.load_power(**kw_loader, trial_type=2, behavioral_response=0)
 
-thr_task = power_task.quantile(0.90, ("trials", "times"))
-thr_fix = power_fix.quantile(0.90, ("trials", "times"))
+thr_task = power_task.quantile(thr, ("trials", "times"))
+thr_fix = power_fix.quantile(thr, ("trials", "times"))
 
 A_task = power_task >= thr_task
 A_fix = power_fix >= thr_fix
@@ -382,14 +385,10 @@ for f in A_task.freqs.data:
 
 kij_task = xr.concat(kij_task, "freqs").assign_coords(dict(freqs=A_task.freqs))
 kij_fix = xr.concat(kij_fix, "freqs").assign_coords(dict(freqs=A_task.freqs))
-# ci_task = xr.concat(ci_task, "freqs").assign_coords(dict(freqs=A_task.freqs))
-# ci_fix = xr.concat(ci_fix, "freqs").assign_coords(dict(freqs=A_task.freqs))
+
+quantile = int(thr * 100)
 
 kij_task.to_netcdf(os.path.join(_RESULTS,
-                                f"kij_task_{session}.nc"))
+                                f"kij_task_{session}_q_{quantile}.nc"))
 kij_fix.to_netcdf(os.path.join(_RESULTS,
-                                f"kij_fix_{session}.nc"))
-# ci_task.to_netcdf(os.path.join(_RESULTS,
-                                # f"ci_task_{session}.nc"))
-# ci_fix.to_netcdf(os.path.join(_RESULTS,
-                                # f"ci_fix_{session}.nc"))
+                                f"kij_fix_{session}_q_{quantile}.nc"))
