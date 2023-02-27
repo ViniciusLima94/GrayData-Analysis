@@ -276,7 +276,12 @@ def compute_crackle_duration(
     return delta_ci
 
 
-def return_co_crackle_mat(A, nruns=100, verbose=False):
+def shuffle_along_axis(a, axis):
+    idx = np.random.rand(*a.shape).argsort(axis=axis)
+    return np.take_along_axis(a, idx, axis=axis)
+
+
+def return_co_crackle_mat(A, nruns=100, verbose=False, surrogate=False):
     """
     Compute co-crackle matrix and consensus vectors for given input data.
 
@@ -298,6 +303,13 @@ def return_co_crackle_mat(A, nruns=100, verbose=False):
 
     nroi, ntrials, ntimes = A.shape
 
+    dims, coords = A.dims, A.coords
+
+    if surrogate:
+        A_surr = shuffle_along_axis(A.data, 2)
+        A = xr.DataArray(A_surr, dims=dims, coords=coords)
+        del A_surr
+
     co_k = []
     for ti, tf in tqdm(stages) if verbose else stages:
         co_k += [
@@ -314,14 +326,27 @@ def return_co_crackle_mat(A, nruns=100, verbose=False):
     )
 
     kij = co_k.mean("obs")
-    ci = []
-    # for i in range(kij.sizes["times"]):
-        # ci_temp, _ = return_consensus_vector(kij.sel(times=i), nruns=nruns)
-        # ci += [ci_temp]
-    # ci = np.stack(ci, axis=1)
-    # ci = xr.DataArray(ci, dims=("roi", "times"), coords=dict(roi=rois))
 
-    return kij, ci
+    return kij
+
+
+def _for_freq(A, nruns=100, verbose=False, surrogate=False, n_jobs=1):
+    
+    nfreqs, freqs = A.sizes["freqs"], A.freqs.data
+    attrs = A.attrs
+    
+    # define the function to compute in parallel
+    parallel, p_fun = parallel_func(
+        return_co_crackle_mat, n_jobs=n_jobs, verbose=verbose, total=nfreqs
+    )
+    # Compute surrogate for each frequency
+    kij = parallel(p_fun(A.isel(freqs=f), verbose=verbose, surrogate=surrogate) for f in range(nfreqs))
+    kij = xr.concat(kij, "freqs")
+    kij = kij.assign_coords(dict(freqs=freqs))
+
+    kij.attrs = attrs
+
+    return kij
 ##############################################################################
 # CRACKLE DURATION
 ##############################################################################
@@ -373,18 +398,18 @@ delta_ci_task.to_netcdf(os.path.join(_RESULTS,
 ##############################################################################
 # CRACKLE DURATION
 ##############################################################################
-kij_task, ci_task = [], []
-kij_fix, ci_fix = [], []
-for f in A_task.freqs.data:
-    out_1, out_2 = return_co_crackle_mat(A_task.sel(freqs=f))
-    kij_task += [out_1]
-    ci_task += [out_2]
-    out_1, out_2 = return_co_crackle_mat(A_fix.sel(freqs=f))
-    kij_fix += [out_1]
-    ci_fix += [out_2]
 
-kij_task = xr.concat(kij_task, "freqs").assign_coords(dict(freqs=A_task.freqs))
-kij_fix = xr.concat(kij_fix, "freqs").assign_coords(dict(freqs=A_task.freqs))
+kij_task = _for_freq(A_task, nruns=100, verbose=False,
+                     surrogate=False, n_jobs=10)
+kij_fix = _for_freq(A_fix, nruns=100, verbose=False,
+                    surrogate=False, n_jobs=10)
+
+kij_surr = []
+for i in range(50):
+    kij_surr += [_for_freq(A_task, nruns=100, verbose=False,
+                           surrogate=True, n_jobs=10)]
+kij_surr = xr.concat(kij_surr, "boot")
+
 
 quantile = int(thr * 100)
 
@@ -392,3 +417,5 @@ kij_task.to_netcdf(os.path.join(_RESULTS,
                                 f"kij_task_{session}_q_{quantile}.nc"))
 kij_fix.to_netcdf(os.path.join(_RESULTS,
                                 f"kij_fix_{session}_q_{quantile}.nc"))
+kij_surr.to_netcdf(os.path.join(_RESULTS,
+                                f"kij_surr_{session}_q_{quantile}.nc"))

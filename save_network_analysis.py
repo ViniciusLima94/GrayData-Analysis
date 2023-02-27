@@ -67,7 +67,7 @@ if not os.path.isdir(_RESULTS):
 # Get root path
 ##############################################################################
 
-coh_sig_file = f'thr_{metric}_at_{at}_surr.nc'
+coh_sig_file = None #f'thr_{metric}_at_{at}_surr.nc'
 wt = None
 
 ##############################################################################
@@ -83,8 +83,8 @@ net = temporal_network(coh_file=f'{metric}_at_{at}.nc',
 net.convert_to_adjacency()
 
 # If the metric is pec take the absolute value of weigths only
-if metric == "pec":
-    net.super_tensor.values = np.abs(net.super_tensor.values)
+# if metric == "pec":
+    # net.super_tensor.values = np.abs(net.super_tensor.values)
 
 ##############################################################################
 # 1. Strength

@@ -76,12 +76,59 @@ class loader:
         return power
 
 
+    def load_pecst(
+        self,
+        session: int = None,
+        metric: float = "pec",
+        aligned_at: str = "cue",
+        monkey: str = "lucy",
+    ):
+        """
+        Load file containing the power time series
+
+        Inputs:
+        ------
+
+        session: int | None
+            The sessions number.
+
+        aligned_at: str | "cue"
+            The trial alignmend used when the LFP data was loaded.
+
+        channel_numbers: bool | False
+            Wheter to use the channel number with the roi name.
+
+        monkey: str | "lucy"
+            The monkey for which to load the data.
+
+        Returns:
+        -------
+        PEC ST: xr.DataArray
+            The Data Array containing the power data
+        """
+        # Path to the power file
+        _RESULTS = os.path.join("Results", monkey, session,
+                                "session01", "network")
+        # Name of the power file
+        pec_file = self.__return_pecst_file_name(
+            metric, aligned_at
+        )
+        # Load power data
+        pecst = xr.load_dataarray(os.path.join(self._ROOT, _RESULTS, pec_file))
+        pecst = pecst.transpose("roi", "freqs", "trials", "times")
+
+        return pecst
+
+
+
     def load_co_crakcle(
         self,
         session: int = None,
         trial_type: int = 1,
         monkey: str = "lucy",
-        strength: bool = False
+        strength: bool = False,
+        thr: int = 90,
+        surrogate: bool = False
     ):
         """
         Load file containing the power time series
@@ -110,10 +157,16 @@ class loader:
         _RESULTS = os.path.join("Results", monkey, "crk_stats")
         # Name of the power file
         ttype = "task" if trial_type == 1 else "fix"
-        crk_file = f"kij_{ttype}_{session}.nc"
+        if not surrogate:
+            crk_file = f"kij_{ttype}_{session}_q_{thr}.nc"
+        else:
+            crk_file = f"kij_surr_{session}_q_{thr}.nc"
         # Load power data
         kij = xr.load_dataarray(os.path.join(self._ROOT, _RESULTS, crk_file))
-        kij = kij.transpose("sources", "targets", "freqs","times")
+        if not surrogate:
+            kij = kij.transpose("sources", "targets", "freqs","times")
+        else:
+            kij = kij.transpose("sources", "targets", "freqs","times", "boot")
         if strength:
             kij = kij.sum("targets")
             kij = kij.rename({"sources": "roi"})
@@ -258,6 +311,15 @@ class loader:
         data = data.groupby("roi").mean("roi", skipna=True)
         data = data.sel(roi=urois)
         return data
+
+
+    def __return_pecst_file_name(self, metric, aligned_at):
+        """
+        Return the name of the file containing the power time series.
+        """
+        _name = f"{metric}_degree_at_{aligned_at}.nc"
+        return _name
+
 
     def __return_power_file_name(self, trial_type, behavioral_response, aligned_at):
         """
