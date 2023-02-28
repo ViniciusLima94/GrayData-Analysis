@@ -16,6 +16,8 @@ from tqdm import tqdm
 ###############################################################################
 
 parser = argparse.ArgumentParser()
+parser.add_argument("METRIC",   help="whether to use power or zpower",
+                    type=str)
 parser.add_argument("TT",   help="type of the trial",
                     type=int)
 parser.add_argument("BR",   help="behavioral response",
@@ -32,6 +34,7 @@ parser.add_argument("SLVR", help="Whether to use SLVR channels or not",
 args = parser.parse_args()
 
 # Index of the session to be load
+metric = args.METRIC
 tt = args.TT
 br = args.BR
 at = args.ALIGN
@@ -44,6 +47,8 @@ stages = {}
 stages["lucy"] = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
 stages["ethyl"] = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
 stage_labels = ["P", "S", "D1", "D2", "Dm"]
+
+assert metric in ["pow", "zpow"]
 
 sessions = get_dates(monkey)
 
@@ -68,6 +73,7 @@ for s_id in tqdm(sessions):
     power = xr.load_dataarray(path_pow)
     attrs = power.attrs
 
+
     # Remove SLVR channels
     if not bool(slvr):
         info = session_info(
@@ -79,10 +85,9 @@ for s_id in tqdm(sessions):
         slvr_idx = info.recording_info["slvr"].astype(bool)
         power = power.isel(roi=np.logical_not(slvr_idx))
 
+    if metric == "zpow":
+        power = (power - power.mean("times")) / power.std("times")
 
-    # Averages power for each period (baseline, cue, delay, match) if needed
-    # out = average_stages(power, avg, early_cue=early_cue,
-                         # early_delay=early_delay)
     # Average epochs
     out = []
     if avg:
@@ -142,11 +147,11 @@ _RESULTS = os.path.join(_ROOT,
                        # f"pval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
 
 path_mi = os.path.join(_RESULTS,
-                       f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
+                       f"mi_{metric}_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
 path_tv = os.path.join(_RESULTS,
-                       f"tval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
+                       f"tval_{metric}_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
 path_pv = os.path.join(_RESULTS,
-                       f"pval_pow_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
+                       f"pval_{metric}_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
 
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)
