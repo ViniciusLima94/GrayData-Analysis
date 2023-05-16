@@ -113,27 +113,27 @@ degree.to_netcdf(path_degree)
 # 2. Coreness
 ##############################################################################
 
-# coreness = []
-# for f in tqdm(range(net.A.sizes["freqs"])):
-    # coreness += [compute_nodes_coreness(net.A.isel(freqs=f),
-                                        # backend="brainconn",
-                                        # kw_bc=dict(delta=0.5),
-                                        # verbose=False, n_jobs=30)]
-# coreness = xr.concat(coreness, "freqs")
-# # Assign coords
-# coreness = coreness.assign_coords({"trials": net.A.trials.data,
-                                   # "roi": net.A.sources.data,
-                                   # "freqs": net.A.freqs.data,
-                                   # "times": net.A.times.data})
+coreness = []
+for f in tqdm(range(net.A.sizes["freqs"])):
+    coreness += [compute_nodes_coreness(net.A.isel(freqs=f),
+                                        backend="brainconn",
+                                        kw_bc=dict(delta=0.5),
+                                        verbose=False, n_jobs=30)]
+coreness = xr.concat(coreness, "freqs")
+# Assign coords
+coreness = coreness.assign_coords({"trials": net.A.trials.data,
+                                   "roi": net.A.sources.data,
+                                   "freqs": net.A.freqs.data,
+                                   "times": net.A.times.data})
 
-# coreness = coreness.transpose("trials", "roi", "freqs", "times")
-# coreness.attrs = net.super_tensor.attrs
+coreness = coreness.transpose("trials", "roi", "freqs", "times")
+coreness.attrs = net.super_tensor.attrs
 
-# path_coreness = os.path.join(_ROOT,
-                             # _RESULTS,
-                             # f"{metric}_coreness_at_{at}.nc")
+path_coreness = os.path.join(_ROOT,
+                             _RESULTS,
+                             f"{metric}_coreness_at_{at}.nc")
 
-# coreness.to_netcdf(path_coreness)
+coreness.to_netcdf(path_coreness)
 
 ##############################################################################
 # 3. Efficiency

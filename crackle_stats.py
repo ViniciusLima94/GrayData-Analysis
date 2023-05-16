@@ -230,8 +230,11 @@ def compute_crackle_duration(
     dt = times[1] - times[0]
 
     attrs = power.attrs
-    thr = power.quantile(q, ("trials", "times"))
-    A = (power >= thr).copy()
+    if q > 0:
+        thr = power.quantile(q, ("trials", "times"))
+        A = (power >= thr).copy()
+    else:
+        A = (A - A.mean("times")) / A.std("times")
 
     if surrogate:
         A = create_typeI_surr(A, seed=0, verbose=verbose, n_jobs=n_jobs)
@@ -357,47 +360,54 @@ kw_loader = dict(
 power_task = data_loader.load_power(**kw_loader, trial_type=1, behavioral_response=1)
 power_fix = data_loader.load_power(**kw_loader, trial_type=2, behavioral_response=0)
 
-thr_task = power_task.quantile(thr, ("trials", "times"))
-thr_fix = power_fix.quantile(thr, ("trials", "times"))
 
-A_task = power_task >= thr_task
-A_fix = power_fix >= thr_fix
+# qs = np.arange(0.5, 1, 0.1)
 
-A_surrI_T = create_typeI_surr(A_task, seed=0, verbose=True, n_jobs=1)
-A_surrII_T = create_typeII_surr(A_task, seed=0, verbose=True, n_jobs=10)
+# delta_ci_task = [
+    # compute_crackle_duration(
+        # power_task, q=q, twin=stages, n_boots=200, n_jobs=10, verbose=True
+    # )
+    # for q in qs
+# ]
 
-qs = np.arange(0.5, 1, 0.1)
+# delta_ci_surr = [
+    # compute_crackle_duration(
+        # power_task,
+        # q=q,
+        # twin=stages,
+        # surrogate=True,
+        # n_boots=200,
+        # n_jobs=10,
+        # verbose=True,
+    # )
+    # for q in qs
+# ]
 
-delta_ci_task = [
-    compute_crackle_duration(
-        power_task, q=q, twin=stages, n_boots=200, n_jobs=10, verbose=True
-    )
-    for q in qs
-]
+# delta_ci_task = xr.concat(delta_ci_task, "q")
+# delta_ci_surr = xr.concat(delta_ci_surr, "q")
 
-delta_ci_surr = [
-    compute_crackle_duration(
-        power_task,
-        q=q,
-        twin=stages,
-        surrogate=True,
-        n_boots=200,
-        n_jobs=10,
-        verbose=True,
-    )
-    for q in qs
-]
-
-delta_ci_task = xr.concat(delta_ci_task, "q")
-delta_ci_surr = xr.concat(delta_ci_surr, "q")
-
-delta_ci_task.to_netcdf(os.path.join(_RESULTS,
-                                     f"delta_ci_task_{session}.nc"))
+# delta_ci_task.to_netcdf(os.path.join(_RESULTS,
+                                     # f"delta_ci_task_{session}.nc"))
 
 
 ##############################################################################
 # CRACKLE DURATION
 ##############################################################################
+
+if thr > 0:
+    thr_task = power_task.quantile(thr, ("trials", "times"))
+    thr_fix = power_fix.quantile(thr, ("trials", "times"))
+
+    A_task = power_task >= thr_task
+    A_fix = power_fix >= thr_fix
+else:
+    A_task = (power_task - power_task.mean("times")) / power_task.std("times")
+    A_fix = (power_fix - power_fix.mean("times")) / power_fix.std("times")
+    # A_task = A_task * (A_task >= 0)
+    # A_fix = A_fix * (A_fix >= 0)
+
+A_surrI_T = create_typeI_surr(A_task, seed=0, verbose=True, n_jobs=1)
+A_surrII_T = create_typeII_surr(A_task, seed=0, verbose=True, n_jobs=10)
 
 kij_task = _for_freq(A_task, nruns=100, verbose=False,
                      surrogate=False, n_jobs=10)

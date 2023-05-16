@@ -146,10 +146,14 @@ def compute_median_rate(
         # Otherwise get all trials
         idx_trials = [True] * data.sizes["trials"]
 
-    # Compute quantile based threshold
-    thr = data.quantile(thr, ("trials", "times"))
-    # Apply threshold
-    data = data >= thr
+    if thr > 0:
+        # Compute quantile based threshold
+        thr = data.quantile(thr, ("trials", "times"))
+        # Apply threshold
+        data = data >= thr
+    else:
+        data = (data - data.mean("times")) / data.std("times")
+        data = data * (data >= 0)
 
     # Get time-series for specific trials, roi and time slice
     ts = data.sel(times=time_slice, roi=roi).isel(trials=idx_trials)
@@ -199,7 +203,8 @@ def compute_median_rate(
             surr += [shuffle_along_axis(ts_stacked, 0)]
         surr = np.stack(surr).mean(-1)
         ci = xr.DataArray(ci, dims=("boot", "times"), coords={"times": times})
-        surr = xr.DataArray(surr, dims=("boot", "times"), coords={"times": times})
+        surr = xr.DataArray(surr, dims=("boot", "times"),
+                            coords={"times": times})
 
         return ci, surr
 

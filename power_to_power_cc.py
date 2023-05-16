@@ -175,10 +175,10 @@ if __name__ == "__main__":
     if surr:
         power = trial_swap_surrogates(power, seed=seed, verbose=False)
     cc = power_correlations(power, verbose=False)
-    # cc_mat = convert_to_mat(cc.sel(freqs=[35]))
+    cc_mat = convert_to_mat(cc.sel(freqs=[27]))
     # cc_mat = cc_mat.sum("targets")
     dd = convert_to_degree(cc)
-    # cc.attrs = power.attrs
+    cc.attrs = power.attrs
     dd.attrs = power.attrs
     # if not surr:
         # cc.to_netcdf(os.path.join(_ROOT, "Results",
@@ -188,7 +188,5 @@ if __name__ == "__main__":
         # cc.to_netcdf(os.path.join(_ROOT, "Results",
                      # monkey, session, "session01",
                      # f"pec_tt_{tt}_br_{br}_at_cue_surr.nc"))
-    dd.to_netcdf(os.path.join(_ROOT, "Results",
-    # monkey, "pec", f"pec_st_{session}_at_{at}.nc"))
-    # cc_mat.to_netcdf(os.path.join(_ROOT, "Results",
-    # monkey, "pec", f"pec_st_mat_{session}.nc"))
+    # dd.to_netcdf(os.path.join(_ROOT, "Results", monkey, "pec", f"pec_st_{session}_at_{at}.nc"))
+    cc_mat.to_netcdf(os.path.join(_ROOT, "Results", monkey, "pec", f"pec_mat_{session}.nc"))

@@ -175,10 +175,15 @@ for s_id in tqdm(sessions):
     power = xr.load_dataarray(path_pow)
     attrs = power.attrs
 
-    # Compute activation time-series
-    thr = power.quantile(q, ("trials", "times"))
-    # Binarized power
-    power = (power >= thr).transpose("roi", "freqs", "trials", "times")
+    if q > 0:
+        # Compute activation time-series
+        thr = power.quantile(q, ("trials", "times"))
+        # Binarized power
+        power = (power >= thr).transpose("roi", "freqs", "trials", "times")
+    elif q == 0:
+        power = (power - power.mean("times")) / power.std("times")
+        power = power * (power >= 0)
+        power = power.transpose("roi", "freqs", "trials", "times")
 
     # Computes co-crackling matrices
     co_k = co_crackle_mat(power, verbose=False, n_jobs=10)
