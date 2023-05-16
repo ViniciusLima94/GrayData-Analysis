@@ -136,23 +136,22 @@ def co_crackle_mat(A, verbose=False, n_jobs=1):
     )
     # Compute surrogate for each frequency
     co_k = parallel(p_fun(f) for f in range(nfreqs))
-    
+
     co_k = np.stack(co_k, axis=2).reshape((nroi, nroi, nfreqs,
                                            ntrials, ntimes))
-    
+
     x_s, x_t = np.triu_indices(nroi, k=1)
     npairs = len(x_s)
     x_s, x_t = order_rois(rois, x_s, x_t)
 
     roi_s, roi_t = rois[x_s], rois[x_t]
     roi_st = np.asarray([f"{s}-{t}" for s, t in zip(roi_s, roi_t)])
-    print(roi_st)
-    
+
     co_k_stream = np.zeros((npairs, nfreqs, ntrials, ntimes), dtype=np.int8)
 
     for p, (i, j) in enumerate(zip(x_s, x_t)):
         co_k_stream[p, ...] = co_k[i, j, ...]
-        
+
     co_k = xr.DataArray(
         co_k_stream,
         dims=("roi", "freqs", "trials", "times"),
@@ -175,17 +174,6 @@ for s_id in tqdm(sessions):
                      _FILE_NAME)
     power = xr.load_dataarray(path_pow)
     attrs = power.attrs
-
-    # Remove SLVR channels
-    # if not bool(slvr):
-        # info = session_info(
-            # raw_path=os.path.join(_ROOT, "GrayLab"),
-            # monkey=monkey,
-            # date=s_id,
-            # session=1,
-        # )
-        # slvr_idx = info.recording_info["slvr"].astype(bool)
-        # power = power.isel(roi=np.logical_not(slvr_idx))
 
     # Compute activation time-series
     thr = power.quantile(q, ("trials", "times"))
@@ -230,7 +218,7 @@ estimator = GCMIEstimator(mi_type="cd", copnorm=True,
                           gpu=False, verbose=None)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
 
-kw = dict(n_jobs=30, n_perm=200)
+kw = dict(n_jobs=20, n_perm=200)
 cluster_th = None
 
 mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
@@ -242,13 +230,6 @@ mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
 # Path to results folder
 _RESULTS = os.path.join(_ROOT,
                         f"Results/{monkey}/mutual_information/power/")
-
-# path_mi = os.path.join(_RESULTS,
-                       # f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
-# path_tv = os.path.join(_RESULTS,
-                       # f"tval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
-# path_pv = os.path.join(_RESULTS,
-                       # f"pval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
 
 path_mi = os.path.join(_RESULTS,
                        f"mi_cok_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
