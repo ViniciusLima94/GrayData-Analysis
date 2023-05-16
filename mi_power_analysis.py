@@ -44,8 +44,8 @@ slvr = args.SLVR
 
 
 stages = {}
-stages["lucy"] = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
-stages["ethyl"] = [[-0.4, 0], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
+stages["lucy"] = [[-0.5, -.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
+stages["ethyl"] = [[-0.5, -.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
 stage_labels = ["P", "S", "D1", "D2", "Dm"]
 
 assert metric in ["pow", "zpow"]
@@ -72,7 +72,6 @@ for s_id in tqdm(sessions):
                      _FILE_NAME)
     power = xr.load_dataarray(path_pow)
     attrs = power.attrs
-
 
     # Remove SLVR channels
     if not bool(slvr):

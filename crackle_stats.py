@@ -403,8 +403,8 @@ if thr > 0:
 else:
     A_task = (power_task - power_task.mean("times")) / power_task.std("times")
     A_fix = (power_fix - power_fix.mean("times")) / power_fix.std("times")
-    A_task = A_task * (A_task >= 0)
-    A_fix = A_fix * (A_fix >= 0)
+    # A_task = A_task * (A_task >= 0)
+    # A_fix = A_fix * (A_fix >= 0)
 
 A_surrI_T = create_typeI_surr(A_task, seed=0, verbose=True, n_jobs=1)
 A_surrII_T = create_typeII_surr(A_task, seed=0, verbose=True, n_jobs=10)
