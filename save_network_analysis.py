@@ -30,6 +30,8 @@ parser.add_argument("ALIGNED", help="wheter to align data to cue or match",
                     type=str)
 parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
+parser.add_argument("SURR", help="which monkey to use",
+                    type=int)
 
 args = parser.parse_args()
 
@@ -41,6 +43,8 @@ s_id = args.SIDX
 at = args.ALIGNED
 # Wheter to use Lucy or Ethyl's data 
 monkey = args.MONKEY
+# whether to use surrogate data or not
+surr = args.SURR
 
 early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=0)
 
@@ -66,6 +70,10 @@ if not os.path.isdir(_RESULTS):
 ##############################################################################
 # Get root path
 ##############################################################################
+if not bool(surr):
+    coh_file = f'{metric}_at_{at}.nc'
+else:
+    coh_file = f'{metric}_at_{at}_surr.nc'
 
 coh_sig_file = None #f'thr_{metric}_at_{at}_surr.nc'
 wt = None
@@ -74,7 +82,7 @@ wt = None
 # Load the supertensor and convert to adjacency matrix
 ##############################################################################
 
-net = temporal_network(coh_file=f'{metric}_at_{at}.nc',
+net = temporal_network(coh_file=coh_file,
                        coh_sig_file=coh_sig_file, wt=wt, align_to=at,
                        early_cue=early_cue, early_delay=early_delay,
                        date=sessions[s_id], trial_type=[1],
@@ -103,9 +111,14 @@ degree = degree.assign_coords({"trials": net.A.trials.data,
 degree = degree.transpose("trials", "roi", "freqs", "times")
 degree.attrs = net.super_tensor.attrs
 
+if not bool(surr):
+    fname = f"{metric}_degree_at_{at}.nc"
+else:
+    fname = f"{metric}_degree_at_{at}_surr.nc"
+
 path_degree = os.path.join(_ROOT,
                            _RESULTS,
-                           f"{metric}_degree_at_{at}.nc")
+                           fname)
 
 degree.to_netcdf(path_degree)
 
@@ -129,9 +142,14 @@ coreness = coreness.assign_coords({"trials": net.A.trials.data,
 coreness = coreness.transpose("trials", "roi", "freqs", "times")
 coreness.attrs = net.super_tensor.attrs
 
+if not bool(surr):
+    fname = f"{metric}_coreness_at_{at}.nc"
+else:
+    fname = f"{metric}_coreness_at_{at}_surr.nc"
+
 path_coreness = os.path.join(_ROOT,
                              _RESULTS,
-                             f"{metric}_coreness_at_{at}.nc")
+                             fname)
 
 coreness.to_netcdf(path_coreness)
 
