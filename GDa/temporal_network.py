@@ -20,7 +20,7 @@ class temporal_network():
                  session=1, coh_thr=None, date='150128', trial_type=None,
                  behavioral_response=None, wt=None, relative=False,
                  q=None, early_cue = 0.2, early_delay=0.3, align_to="cue",
-                 verbose=False, n_jobs=1):
+                 freqs_slice=None, times_slice=None, verbose=False, n_jobs=1):
         """
         Temporal network class, this object will have information about the
         session analysed and store the coherence networks (a.k.a. supertensor).
@@ -60,6 +60,12 @@ class temporal_network():
         early_delay: float | 0.3
             The period at the beggining of the delay that should
             be used as early delay.
+        freqs_slice: float, slice | None
+            The slice of frequence values to be load, or a specific value.
+            If None, the entire axis is loaded.
+        times_slice: float, slice | None
+            The slice of times values to be load, or a specific value.
+            If None, the entire axis is loaded.
         n_jobs: int | 1
             Number of jobs to use when computing the threshold
             for the coherence tensor. Parallelized over bands.
@@ -102,7 +108,7 @@ class temporal_network():
             self.stages = ["baseline", "cue", "delay", "match"]
 
         # Load super-tensor
-        self.__load_h5(wt)
+        self.__load_h5(wt, freqs_slice, times_slice)
 
         # Threshold the super tensor if needed
         if isinstance(q,  float) or isinstance(self.coh_thr, xr.DataArray):
@@ -136,7 +142,13 @@ class temporal_network():
 
         # Try to read the file in the path specified
         try:
-            self.super_tensor = xr.load_dataarray(h5_super_tensor_path)
+            data_array = xr.open_dataarray(h5_super_tensor_path)
+            if freqs_slice:
+                data_array = data_array.sel(freqs=freqs_slice)
+            if times_slice:
+                data_array = data_array.sel(times=times_slice)
+            self.super_tensor = data_array.load()
+            # self.super_tensor = xr.load_dataarray(h5_super_tensor_path)
         except FileNotFoundError:
             raise OSError(f'File {self.coh_file} not found for monkey')
 
