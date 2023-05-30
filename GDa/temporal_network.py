@@ -132,7 +132,7 @@ class temporal_network():
                             self.date,
                             self.session,)
 
-    def __load_h5(self, wt):
+    def __load_h5(self, wt, freqs_slice, times_slice):
         """
         Load h5 file containing the coherence tensor
         for the sessions and monkey specified.
