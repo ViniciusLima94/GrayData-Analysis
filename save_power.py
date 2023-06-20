@@ -90,6 +90,10 @@ sxx = xr.DataArray(
             freqs, data.time.values[::decim]),
 )
 
+# sm_times = int(np.round(0.1 * data.attrs["fsample"]  / decim))
+# kernel = _create_kernel(sm_times, 1)
+# sxx.values = _smooth_spectra(sxx.values, kernel, scale=False, decim=1)
+
 ###########################################################################
 # Saves file
 ###########################################################################

@@ -36,6 +36,8 @@ parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
 parser.add_argument("THR", help="which threshold to use",
                     type=float)
+parser.add_argument("RECTF", help="Wheather to rectfy or not",
+                    type=int)
 
 args = parser.parse_args()
 
@@ -43,6 +45,7 @@ args = parser.parse_args()
 sid = args.SESSION
 monkey = args.MONKEY
 thr = args.THR
+rectf = args.RECTF
 
 _ROOT = os.path.expanduser("~/funcog/gda/")
 _RESULTS = os.path.expanduser(f"~/funcog/gda/Results/{monkey}/crk_stats")
@@ -358,6 +361,7 @@ kw_loader = dict(
 )
 
 power_task = data_loader.load_power(**kw_loader, trial_type=1, behavioral_response=1)
+power_task_incorrect = data_loader.load_power(**kw_loader, trial_type=1, behavioral_response=0)
 power_fix = data_loader.load_power(**kw_loader, trial_type=2, behavioral_response=0)
 
 
@@ -396,36 +400,59 @@ power_fix = data_loader.load_power(**kw_loader, trial_type=2, behavioral_respons
 
 if thr > 0:
     thr_task = power_task.quantile(thr, ("trials", "times"))
+    thr_task_incorrect = power_task_incorrect.quantile(thr, ("trials", "times"))
     thr_fix = power_fix.quantile(thr, ("trials", "times"))
 
     A_task = power_task >= thr_task
+    A_task_incorrect = power_task_incorrect >= thr_task_incorrect
     A_fix = power_fix >= thr_fix
 else:
     A_task = (power_task - power_task.mean("times")) / power_task.std("times")
+    A_task_incorrect = (power_task_incorrect - power_task_incorrect.mean("times")) / power_task_incorrect.std("times")
     A_fix = (power_fix - power_fix.mean("times")) / power_fix.std("times")
-    # A_task = A_task * (A_task >= 0)
-    # A_fix = A_fix * (A_fix >= 0)
+    if rectf == 1:
+        A_task = A_task * (A_task >= 0)
+        A_task_incorrect = A_task_incorrect * (A_task_incorrect >= 0)
+        A_fix = A_fix * (A_fix >= 0)
+    elif rectf == 2:
+        A_task = A_task * (A_task < 0)
+        A_task_incorrect = A_task_incorrect * (A_task_incorrect < 0)
+        A_fix = A_fix * (A_fix < 0)
 
-A_surrI_T = create_typeI_surr(A_task, seed=0, verbose=True, n_jobs=1)
-A_surrII_T = create_typeII_surr(A_task, seed=0, verbose=True, n_jobs=10)
+# A_surrI_T = create_typeI_surr(A_task, seed=0, verbose=True, n_jobs=1)
+# A_surrII_T = create_typeII_surr(A_task, seed=0, verbose=True, n_jobs=10)
 
 kij_task = _for_freq(A_task, nruns=100, verbose=False,
+                     surrogate=False, n_jobs=10)
+kij_task_in = _for_freq(A_task_incorrect, nruns=100, verbose=False,
                      surrogate=False, n_jobs=10)
 kij_fix = _for_freq(A_fix, nruns=100, verbose=False,
                     surrogate=False, n_jobs=10)
 
-kij_surr = []
-for i in range(50):
-    kij_surr += [_for_freq(A_task, nruns=100, verbose=False,
-                           surrogate=True, n_jobs=10)]
-kij_surr = xr.concat(kij_surr, "boot")
+# kij_surr = []
+# for i in range(50):
+    # kij_surr += [_for_freq(A_task, nruns=100, verbose=False,
+                           # surrogate=True, n_jobs=10)]
+# kij_surr = xr.concat(kij_surr, "boot")
 
 
 quantile = int(thr * 100)
 
-kij_task.to_netcdf(os.path.join(_RESULTS,
-                                f"kij_task_{session}_q_{quantile}.nc"))
-kij_fix.to_netcdf(os.path.join(_RESULTS,
-                                f"kij_fix_{session}_q_{quantile}.nc"))
-kij_surr.to_netcdf(os.path.join(_RESULTS,
-                                f"kij_surr_{session}_q_{quantile}.nc"))
+if rectf in [1, 2]:
+    kij_task.to_netcdf(os.path.join(_RESULTS,
+                                    f"kij_task_{session}_q_{quantile}_rectf_{rectf}.nc"))
+    kij_task_in.to_netcdf(os.path.join(_RESULTS,
+                                    f"kij_task_incorrect_{session}_q_{quantile}_rectf_{rectf}.nc"))
+    kij_fix.to_netcdf(os.path.join(_RESULTS,
+                                    f"kij_fix_{session}_q_{quantile}_rectf_{rectf}.nc"))
+    # kij_surr.to_netcdf(os.path.join(_RESULTS,
+                                    # f"kij_surr_{session}_q_{quantile}_rectf.nc"))
+else:
+    kij_task.to_netcdf(os.path.join(_RESULTS,
+                                    f"kij_task_{session}_q_{quantile}.nc"))
+    kij_task_in.to_netcdf(os.path.join(_RESULTS,
+                                    f"kij_task_incorrect_{session}_q_{quantile}.nc"))
+    kij_fix.to_netcdf(os.path.join(_RESULTS,
+                                    f"kij_fix_{session}_q_{quantile}.nc"))
+    # kij_surr.to_netcdf(os.path.join(_RESULTS,
+                                    # f"kij_surr_{session}_q_{quantile}.nc"))
