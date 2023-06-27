@@ -75,7 +75,8 @@ if not bool(surr):
 else:
     coh_file = f'{metric}_at_{at}_surr.nc'
 
-coh_sig_file = None #f'thr_{metric}_at_{at}_surr.nc'
+if metric == "coh":
+    coh_sig_file = f'thr_{metric}_at_{at}_surr.nc'
 wt = None
 
 ##############################################################################

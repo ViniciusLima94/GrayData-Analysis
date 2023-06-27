@@ -131,7 +131,7 @@ class loader:
         incorrect: bool = False,
         rectf: int=None,
         surrogate: bool = False,
-        drop_same_roi: bool = False
+        drop_roi: str = None
     ):
         """
         Load file containing the power time series
@@ -160,26 +160,33 @@ class loader:
         _RESULTS = os.path.join("Results", monkey, "crk_stats")
         # Name of the power file
         ttype = "task" if trial_type == 1 else "fix"
+
+        if incorrect:
+            prefix = f"kij_{ttype}_incorrect"
+        else:
+            prefix = f"kij_{ttype}"
+
         if not surrogate:
-            if incorrect:
-                prefix = f"kij_{ttype}_incorrect"
-            else:
-                prefix = f"kij_{ttype}"
             if not isinstance(rectf, int):
                 crk_file = f"{prefix}_{session}_q_{thr}.nc"
             else:
                 crk_file = f"{prefix}_{session}_q_{thr}_rectf_{rectf}.nc"
         else:
             crk_file = f"{prefix}_surr_{session}_q_{thr}.nc"
+
         # Load power data
         kij = xr.load_dataarray(os.path.join(self._ROOT, _RESULTS, crk_file))
 
         A = kij.copy()
-        if drop_same_roi:
+        if isinstance(drop_roi, str):
+            assert drop_roi in ["same", "diff"]
             unique_rois = np.unique(kij.sources)
             for ur in unique_rois:
                 idx = kij.sources.data == ur
-                A[:, idx, idx, :] = 0
+                if drop_roi == "diff":
+                    A[:, idx, np.logical_not(idx), :] = 0
+                else:
+                    A[:, idx, idx, :] = 0
         kij = A.copy()
         del A
 
@@ -188,7 +195,7 @@ class loader:
         else:
             kij = kij.transpose("sources", "targets", "freqs","times", "boot")
         if strength:
-            kij = kij.sum("targets")
+            kij = kij.mean("targets")
             kij = kij.rename({"sources": "roi"})
         return kij
 

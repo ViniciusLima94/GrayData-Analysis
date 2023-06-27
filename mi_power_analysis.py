@@ -9,6 +9,7 @@ from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
 from GDa.util import average_stages
 from GDa.session import session_info
+from GDa.loader import loader
 from tqdm import tqdm
 
 ###############################################################################
@@ -57,20 +58,28 @@ sessions = get_dates(monkey)
 ###############################################################################
 
 _ROOT = os.path.expanduser('~/funcog/gda')
+data_loader = loader(_ROOT=_ROOT)
 
 ###############################################################################
 # Iterate over all sessions and concatenate power
 ###############################################################################
 
+kw_loader = dict(
+    aligned_at="cue", channel_numbers=False, monkey=monkey
+)
+
 sxx = []
 stim = []
 for s_id in tqdm(sessions):
-    _FILE_NAME = f"power_tt_{tt}_br_{br}_at_{at}.nc"
-    path_pow = \
-        os.path.join(_ROOT,
-                     f"Results/{monkey}/{s_id}/session01",
-                     _FILE_NAME)
-    power = xr.load_dataarray(path_pow)
+    # _FILE_NAME = f"power_tt_{tt}_br_{br}_at_{at}.nc"
+    # path_pow = \
+        # os.path.join(_ROOT,
+                     # f"Results/{monkey}/{s_id}/session01",
+                     # _FILE_NAME)
+    # power = xr.load_dataarray(path_pow)
+    # attrs = power.attrs
+    power = data_loader.load_power(**kw_loader, trial_type=tt,
+                                   behavioral_response=br, session=s_id)
     attrs = power.attrs
 
     # Remove SLVR channels
@@ -110,7 +119,8 @@ dt = DatasetEphy(sxx, y=stim, nb_min_suj=10,
                  times="times", roi="roi")
 
 mi_type = 'cd'
-inference = 'rfx'
+# inference = 'rfx'
+inference = 'ffx'
 kernel = None
 
 if avg:
@@ -146,12 +156,13 @@ _RESULTS = os.path.join(_ROOT,
                        # f"pval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
 
 path_mi = os.path.join(_RESULTS,
-                       f"mi_{metric}_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
+                       f"mi_{metric}_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc")
 path_tv = os.path.join(_RESULTS,
-                       f"tval_{metric}_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
+                       f"tval_{metric}_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc")
 path_pv = os.path.join(_RESULTS,
-                       f"pval_{metric}_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
+                       f"pval_{metric}_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc")
 
 mi.to_netcdf(path_mi)
-wf.tvalues.to_netcdf(path_tv)
 pvalues.to_netcdf(path_pv)
+if inference == "rfx":
+    wf.tvalues.to_netcdf(path_tv)
