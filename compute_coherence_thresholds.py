@@ -48,7 +48,7 @@ thr_file = f'thr_{metric}_at_cue_surr.nc'
     # else:
         # return np.quantile(data, q, axis=axis)
 
-for s_id in tqdm(sessions):
+for s_id in ["141024"]:#tqdm(sessions):
 
     _FILE_PATH = os.path.join(_ROOT, s_id, "session01")
 

@@ -90,9 +90,9 @@ if __name__ == '__main__':
         sm_times=sm_times, sm_freqs=sm_freqs, sm_kernel=sm_kernel, block_size=2
     )
 
-    if metric == "pec":
-        kw["sm_times"] = .1
-        kw["sm_freqs"] = 1
+    # if metric == "pec":
+        # kw["sm_times"] = .1
+        # kw["sm_freqs"] = 1
 
     # compute the coherence
     coh = conn_spec(ses.data, **kw).astype(np.float32, keep_attrs=True)
