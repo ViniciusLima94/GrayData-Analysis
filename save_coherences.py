@@ -91,7 +91,7 @@ if __name__ == '__main__':
     )
 
     # if metric == "pec":
-        # kw["sm_times"] = .1
+        # kw["sm_times"] = 1 / ses.data.attrs['fsample']
         # kw["sm_freqs"] = 1
 
     # compute the coherence

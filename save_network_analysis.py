@@ -75,6 +75,7 @@ if not bool(surr):
 else:
     coh_file = f'{metric}_at_{at}_surr.nc'
 
+coh_sig_file = None
 if metric == "coh":
     coh_sig_file = f'thr_{metric}_at_{at}_surr.nc'
 wt = None
@@ -127,32 +128,32 @@ degree.to_netcdf(path_degree)
 # 2. Coreness
 ##############################################################################
 
-coreness = []
-for f in tqdm(range(net.A.sizes["freqs"])):
-    coreness += [compute_nodes_coreness(net.A.isel(freqs=f),
-                                        backend="brainconn",
-                                        kw_bc=dict(delta=0.5),
-                                        verbose=False, n_jobs=30)]
-coreness = xr.concat(coreness, "freqs")
-# Assign coords
-coreness = coreness.assign_coords({"trials": net.A.trials.data,
-                                   "roi": net.A.sources.data,
-                                   "freqs": net.A.freqs.data,
-                                   "times": net.A.times.data})
+# coreness = []
+# for f in tqdm(range(net.A.sizes["freqs"])):
+    # coreness += [compute_nodes_coreness(net.A.isel(freqs=f),
+                                        # backend="brainconn",
+                                        # kw_bc=dict(delta=0.5),
+                                        # verbose=False, n_jobs=30)]
+# coreness = xr.concat(coreness, "freqs")
+# # Assign coords
+# coreness = coreness.assign_coords({"trials": net.A.trials.data,
+                                   # "roi": net.A.sources.data,
+                                   # "freqs": net.A.freqs.data,
+                                   # "times": net.A.times.data})
 
-coreness = coreness.transpose("trials", "roi", "freqs", "times")
-coreness.attrs = net.super_tensor.attrs
+# coreness = coreness.transpose("trials", "roi", "freqs", "times")
+# coreness.attrs = net.super_tensor.attrs
 
-if not bool(surr):
-    fname = f"{metric}_coreness_at_{at}.nc"
-else:
-    fname = f"{metric}_coreness_at_{at}_surr.nc"
+# if not bool(surr):
+    # fname = f"{metric}_coreness_at_{at}.nc"
+# else:
+    # fname = f"{metric}_coreness_at_{at}_surr.nc"
 
-path_coreness = os.path.join(_ROOT,
-                             _RESULTS,
-                             fname)
+# path_coreness = os.path.join(_ROOT,
+                             # _RESULTS,
+                             # fname)
 
-coreness.to_netcdf(path_coreness)
+# coreness.to_netcdf(path_coreness)
 
 ##############################################################################
 # 3. Efficiency

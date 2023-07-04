@@ -91,6 +91,7 @@ class temporal_network():
         # Setting up mokey and recording info to load and save files
         self.coh_file = coh_file
         self.coh_sig_file = coh_sig_file
+        self.metric = coh_file.split("_")[0]
         self.monkey = monkey
         self.date = date
         self.coh_thr = coh_thr
@@ -188,12 +189,16 @@ class temporal_network():
             # Removing values bellow siginificance level
             # self.super_tensor.values = self.super_tensor\
             # * (self.super_tensor >= sig_values).astype(_DEFAULT_TYPE)
-            self.super_tensor.values = (
-                self.super_tensor - sig_values).astype(_DEFAULT_TYPE)
-            # Remove negative values
-            self.super_tensor.values = np.clip(self.super_tensor.values,
-                                               0,
-                                               np.inf)
+            if self.metric in ["coh", "plv"]:
+                self.super_tensor.values = (
+                    self.super_tensor - sig_values).astype(_DEFAULT_TYPE)
+                # Remove negative values
+                self.super_tensor.values = np.clip(self.super_tensor.values,
+                                                   0,
+                                                   np.inf)
+            else:
+                self.super_tensor.values = self.super_tensor\
+                * (np.abs(self.super_tensor) >= np.abs(sig_values)).astype(_DEFAULT_TYPE)
             # Restoring attributes
             self.super_tensor.attrs = cfg
 
