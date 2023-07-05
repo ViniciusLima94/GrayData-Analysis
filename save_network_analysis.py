@@ -93,8 +93,8 @@ net = temporal_network(coh_file=coh_file,
 net.convert_to_adjacency()
 
 # If the metric is pec take the absolute value of weigths only
-# if metric == "pec":
-    # net.super_tensor.values = np.abs(net.super_tensor.values)
+if metric == "pec":
+    net.super_tensor.values = np.abs(net.super_tensor.values)
 
 ##############################################################################
 # 1. Strength
