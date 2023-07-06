@@ -21,7 +21,7 @@ parser.add_argument("METRIC",
                     help="which FC metric to use",
                     type=str)
 parser.add_argument("SURR",
-                    help="wheter to use original or surrogate MC",
+                    help="wheter to compute original or surrogate MC",
                     type=int)
 parser.add_argument("THR",
                     help="wheter to threshold or not the coherence",
@@ -30,8 +30,6 @@ parser.add_argument("MONKEY", help="which monkey to use",
                     type=str)
 parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
                     type=str)
-parser.add_argument("DELAY", help="which type of delay split to use",
-                    type=int)
 
 args = parser.parse_args()
 
@@ -43,10 +41,14 @@ at = args.ALIGNED
 ds = args.DELAY
 monkey = args.MONKEY
 
-early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
-
 sessions = get_dates(monkey)
 session = sessions[idx]
+
+# Task stages
+stages = {}
+stages["lucy"] = [[-0.5, -.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
+stages["ethyl"] = [[-0.5, -.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
+stage_labels = ["P", "S", "D1", "D2", "Dm"]
 
 ##############################################################################
 # Loading temporal network
@@ -70,15 +72,12 @@ wt = None
 net = temporal_network(
     coh_file=coh_file,
     coh_sig_file=coh_sig_file,
-    early_cue=early_cue, early_delay=early_delay,
+    early_cue=None, early_delay=None,
     wt=wt, monkey=monkey,
     date=session, align_to=at,
     trial_type=[1],
     behavioral_response=[1],
 )
-
-# Masks for each stage
-net.create_stage_masks(flatten=True)
 
 if surr == 2:
     FC = net.super_tensor.transpose("trials", "roi", "times", "freqs")
@@ -119,10 +118,21 @@ _PATH = os.path.expanduser(os.path.join(_ROOT,
                                         f"Results/{monkey}/meta_conn"))
 # Save MC
 if bool(surr):
+    # Saving MC
     MC.to_netcdf(
         os.path.join(
-            _PATH, f"MC_{metric}_{session}_at_{at}_ds_{ds}_surr_{surr}.nc"))
+            _PATH, f"MC_{metric}_{session}_at_{at}_surr_{surr}.nc"))
+    # Compute entanglement
+    save_path_ent = os.path.join(
+        _ROOT, _RESULTS, f"ent_{metric}_{session}_at_{at}_thr_{thr}_surr.nc")
 else:
+    # Saving MC
     MC.to_netcdf(
         os.path.join(
-            _PATH, f"MC_{metric}_{session}_at_{at}_ds_{ds}_thr_{thr}.nc"))
+            _PATH, f"MC_{metric}_{session}_at_{at}_thr_{thr}.nc"))
+    # Compute entanglement
+    save_path_ent = os.path.join(
+        _ROOT, _RESULTS, f"ent_{metric}_{session}_at_{at}_thr_{thr}.nc")
+
+ent = MC.sum("targets").rename({"sources": "roi"})
+ent.to_netcdf(save_path_ent)
