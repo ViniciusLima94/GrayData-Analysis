@@ -21,7 +21,7 @@ parser.add_argument("METRIC",
                     help="which FC metric to use",
                     type=str)
 parser.add_argument("SURR",
-                    help="wheter to use original or surrogate MC",
+                    help="wheter to compute original or surrogate MC",
                     type=int)
 parser.add_argument("THR",
                     help="wheter to threshold or not the coherence",
@@ -39,8 +39,6 @@ idx = args.SIDX
 thr = args.THR
 at = args.ALIGNED
 monkey = args.MONKEY
-
-# early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 
 sessions = get_dates(monkey)
 session = sessions[idx]
@@ -79,9 +77,6 @@ net = temporal_network(
     trial_type=[1],
     behavioral_response=[1],
 )
-
-# Masks for each stage
-net.create_stage_masks(flatten=True)
 
 if surr == 2:
     FC = net.super_tensor.transpose("trials", "roi", "times", "freqs")
