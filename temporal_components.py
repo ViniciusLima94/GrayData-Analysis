@@ -164,8 +164,9 @@ def get_areas_times(avalanches):
     for avalanche in avalanches:
         for av in avalanche:
             t, a = _extract_roi(av, "_")
-            times += [t]
-            areas += [a]
+            if len(np.unique(a)) > 1:
+                times += [t]
+                areas += [a]
             
     return areas, times
 
@@ -262,7 +263,6 @@ rois = power_task.roi.data
 roi_time = []
 for t in range(power_task.sizes["times"]):
     roi_time += [f"{r}_{t}" for r in rois]
-    
 roi_time = np.hstack(roi_time)
 
 ###############################################################################
