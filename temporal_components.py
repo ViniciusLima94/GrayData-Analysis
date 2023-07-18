@@ -248,6 +248,8 @@ power_task = data_loader.load_power(
     **kw_loader, trial_type=1, behavioral_response=1
 ).sel(freqs=27, times=slice(-.5, 2))
 
+stim = power_task.attrs["stim"]
+
 power_fix = data_loader.load_power(
     **kw_loader, trial_type=2, behavioral_response=0
 ).sel(freqs=27, times=slice(-.5, 2))
@@ -277,6 +279,18 @@ avalanches_fix = parallel_wrapper(power_fix >= thr,
                                   roi_time,
                                   min_size=1,
                                   n_jobs=20, verbose=False)
+
+# Get trials and stim label
+trials_task, trials_fix, stim_task = [], [], []
+for T in range(power_task.sizes["trials"]):
+    trials_task += [[T] * len(avalanches[T])]
+    stim_task += [[stim[T]] * len(avalanches[T])]
+for T in range(power_fix.sizes["trials"]):
+    trials_fix += [[T] * len(avalanches[T])]
+
+trials_task = np.hstack(trials_task)
+stim_task = np.hstack(stim_task)
+
 # Areas and times lists
 areas, times = get_areas_times(avalanches)
 areas_fix, times_fix = get_areas_times(avalanches_fix)
@@ -301,6 +315,16 @@ _SAVE = os.path.expanduser(f"~/funcog/gda/Results/{monkey}/avalanches")
 fname = f"areas_task_{s_id}_thr_{thr}.pkl"
 with open(os.path.join(_SAVE, fname), "wb") as fp:
     pickle.dump(areas, fp)
+                             
+# Areas task
+fname = f"trials_task_{s_id}_thr_{thr}.pkl"
+with open(os.path.join(_SAVE, fname), "wb") as fp:
+    pickle.dump(trials_task, fp)
+                             
+# Areas task
+fname = f"stim_task_{s_id}_thr_{thr}.pkl"
+with open(os.path.join(_SAVE, fname), "wb") as fp:
+    pickle.dump(stim_task, fp)
 
 # Areas fixation
 fname = f"areas_fix_{s_id}_thr_{thr}.pkl"
