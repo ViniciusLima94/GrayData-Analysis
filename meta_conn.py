@@ -38,7 +38,6 @@ surr = args.SURR
 idx = args.SIDX
 thr = args.THR
 at = args.ALIGNED
-ds = args.DELAY
 monkey = args.MONKEY
 
 sessions = get_dates(monkey)
@@ -86,7 +85,9 @@ if surr == 2:
     FC = FC.transpose("roi", "freqs", "trials", "times").stack(obs=("trials", "times")).data
 else:
     # Stack trials
-    FC = net.super_tensor.stack(obs=("trials", "times")).data
+    FC = []
+    for ti, tf in tqdm(stages):
+        FC += [net.super_tensor.sel(times=slice(ti, tf)).stack(obs=("trials", "times")).data]
 
 ##############################################################################
 # Compute meta-connectivity
@@ -101,10 +102,10 @@ print(FC.shape)
 
 MC = np.zeros((n_edges, n_edges, n_freqs, n_stages))
 for f in tqdm(range(n_freqs)):
-    for s, stage in enumerate(net.s_mask.keys()):
+    for s in range(len(stages)):
         # get index for the stages of interest
-        idx = net.s_mask[stage].values
-        MC[..., f, s] = np.corrcoef(FC[:, f, idx])
+        # idx = net.s_mask[stage].values
+        MC[..., f, s] = np.corrcoef(FC[s][:, f, :])
 
 MC = xr.DataArray(MC,
                   dims=("sources", "targets", "freqs", "times"),
@@ -116,6 +117,7 @@ MC.attrs = net.super_tensor.attrs
 # Saving data
 _PATH = os.path.expanduser(os.path.join(_ROOT,
                                         f"Results/{monkey}/meta_conn"))
+
 # Save MC
 if bool(surr):
     # Saving MC
