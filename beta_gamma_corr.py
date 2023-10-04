@@ -17,15 +17,11 @@ from GDa.session import session
 from GDa.signal.surrogates import trial_swap_surrogates
 
 parser = argparse.ArgumentParser()
-parser.add_argument("BW",
-                    help="which bandwidth to use in MT",
-                    type=int)
-parser.add_argument("IDX",
-                    help="index of the session to use",
-                    type=int)
-parser.add_argument("LINEAR",
-                    help="whether to use the linear or semi-log power",
-                    type=int)
+parser.add_argument("BW", help="which bandwidth to use in MT", type=int)
+parser.add_argument("IDX", help="index of the session to use", type=int)
+parser.add_argument(
+    "LINEAR", help="whether to use the linear or semi-log power", type=int
+)
 args = parser.parse_args()
 
 
@@ -42,11 +38,13 @@ print(f"bw = {bw}, session = {sid}")
 # Utils
 ##############################################################################
 
+
 def node_xr_remove_sca(xar):
     sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
     _, rois = _extract_roi(xar.roi.data, " ")
     idx = np.array([r in sca for r in rois])
     return xar.isel(roi=~idx)
+
 
 def flatten(xss):
     return [x for xs in xss for x in xs]
@@ -70,8 +68,7 @@ def load_session_data(sid):
     ses.read_from_mat()
 
     # Filtering by trials
-    data = ses.filter_trials(
-        trial_type=[1], behavioral_response=[1])
+    data = ses.filter_trials(trial_type=[1], behavioral_response=[1])
     # ROIs with channels
     rois = [
         f"{roi} ({channel})"
@@ -112,8 +109,7 @@ figs_path = f"figures/betagamma/{sid}"
 if not os.path.exists(figs_path):
     os.makedirs(figs_path)
 
-save_path = os.path.expanduser(
-    f"~/funcog/gda/Results/lucy/harmonics/{sid}/bw{bw}")
+save_path = os.path.expanduser(f"~/funcog/gda/Results/lucy/harmonics/{sid}/bw{bw}")
 
 if not os.path.exists(save_path):
     os.makedirs(save_path)
@@ -183,7 +179,8 @@ if not linear:
     prominence_thr = 0.044
 
 peak_freqs, peak_prominences, rois = detect_peak_frequencies(
-    power_static_norm, prominence=prominence_thr, verbose=True)
+    power_static_norm, prominence=prominence_thr, verbose=True
+)
 
 has_peak = np.zeros((power_static_norm.sizes["roi"], len(bands)), dtype=bool)
 
@@ -198,8 +195,7 @@ has_peak = xr.DataArray(
 )
 
 peak_freqs = xr.DataArray(
-    np.hstack(peak_freqs), dims="roi", coords={"roi": np.hstack(rois)},
-    name="peak_freq"
+    np.hstack(peak_freqs), dims="roi", coords={"roi": np.hstack(rois)}, name="peak_freq"
 )
 
 peak_prominences = xr.DataArray(
@@ -235,8 +231,12 @@ w = xr.DataArray(
     w,
     name="power",
     dims=("trials", "roi", "freqs", "times"),
-    coords=(data_sel.trials.values, data_sel.roi.values,
-            fc, data_sel.time.values[::decim]),
+    coords=(
+        data_sel.trials.values,
+        data_sel.roi.values,
+        fc,
+        data_sel.time.values[::decim],
+    ),
 )
 
 # Power time series for beta and gamma bands
@@ -287,8 +287,9 @@ p_values = []
 
 for i in tqdm(range(cc.sizes["roi"])):
 
-    p_values += [ks_2samp(cc.isel(roi=i), CC.isel(roi=i),
-                          alternative="less", method="exact")[1]]
+    p_values += [
+        ks_2samp(cc.isel(roi=i), CC.isel(roi=i), alternative="less", method="exact")[1]
+    ]
 
 p_values = xr.DataArray(p_values, dims=("roi"), coords={"roi": cc.roi})
 
@@ -331,7 +332,7 @@ def triggered_avg(
             peaks, _ = find_peaks(data_hp[i], height)
         snipets = np.zeros((len(peaks), 2 * win_size))
         for pidx, idx in enumerate(peaks):
-            temp = data_hp[i, (idx - win_size): (idx + win_size)]
+            temp = data_hp[i, (idx - win_size) : (idx + win_size)]
             if len(temp) == 2 * win_size:
                 snipets[pidx, :] = temp
 
@@ -340,8 +341,7 @@ def triggered_avg(
     snipets = np.stack([_for_roi(i) for i in range(n_roi)])
 
     times = np.linspace(-win_size, win_size, snipets.shape[1])
-    snipets = xr.DataArray(snipets, dims=("roi", "times"),
-                           coords=(roi, times))
+    snipets = xr.DataArray(snipets, dims=("roi", "times"), coords=(roi, times))
 
     return snipets
 
@@ -360,11 +360,9 @@ def cycle_triggered_avg(
     roi = data.roi.data
 
     # Beta component
-    data_beta = filter_data(
-        data, data.fsample, band_b[0], band_b[1], verbose=verbose)
+    data_beta = filter_data(data, data.fsample, band_b[0], band_b[1], verbose=verbose)
     # Gamma co,ponent
-    data_gamma = filter_data(
-        data, data.fsample, band_g[0], band_g[1], verbose=verbose)
+    data_gamma = filter_data(data, data.fsample, band_g[0], band_g[1], verbose=verbose)
 
     # Converts back to DataArray
     data_beta = xr.DataArray(data_beta, dims=data.dims, coords=data.coords)
@@ -375,10 +373,8 @@ def cycle_triggered_avg(
 
     win_size = int(win_size * data.fsample)
 
-    data_beta = data_beta.data.swapaxes(
-        0, 1).reshape(n_roi, n_trials * n_times)
-    data_gamma = data_gamma.data.swapaxes(
-        0, 1).reshape(n_roi, n_trials * n_times)
+    data_beta = data_beta.data.swapaxes(0, 1).reshape(n_roi, n_trials * n_times)
+    data_gamma = data_gamma.data.swapaxes(0, 1).reshape(n_roi, n_trials * n_times)
 
     def _for_roi(i):
         if find_troughs:
@@ -387,7 +383,7 @@ def cycle_triggered_avg(
             peaks, _ = find_peaks(data_beta[i], height)
         snipets = np.zeros((len(peaks), 2 * win_size))
         for pidx, idx in enumerate(peaks):
-            temp = data_gamma[i, (idx - win_size): (idx + win_size)]
+            temp = data_gamma[i, (idx - win_size) : (idx + win_size)]
             if len(temp) == 2 * win_size:
                 snipets[pidx, :] = temp
 
@@ -395,8 +391,7 @@ def cycle_triggered_avg(
 
     snipets = np.stack([_for_roi(i) for i in range(n_roi)])
     times = np.linspace(-win_size, win_size, snipets.shape[1])
-    snipets = xr.DataArray(snipets, dims=("roi", "times"),
-                           coords=(roi, times))
+    snipets = xr.DataArray(snipets, dims=("roi", "times"), coords=(roi, times))
 
     return snipets
 
@@ -429,20 +424,19 @@ snipets_gamma = cycle_triggered_avg(
 # Save frequency of detected peaks
 peak_freqs.to_netcdf(os.path.join(save_path, f"peak_freqs_linear_{linear}.nc"))
 # Save prominence of detected peaks
-peak_prominences.to_netcdf(os.path.join(
-    save_path, f"peak_prominences_linear_{linear}.nc"))
+peak_prominences.to_netcdf(
+    os.path.join(save_path, f"peak_prominences_linear_{linear}.nc")
+)
 # Save which channes has peaks in each band
 has_peak.to_netcdf(os.path.join(save_path, f"has_peak_linear_{linear}.nc"))
 # Save LFP data for channels with beta and gamma peaks
 data_sel.to_netcdf(os.path.join(save_path, f"data_sel_linear_{linear}.nc"))
 # Power time series for beta band
-power_static.to_netcdf(os.path.join(
-    save_path, f"power_static_linear_{linear}.nc"))
+power_static.to_netcdf(os.path.join(save_path, f"power_static_linear_{linear}.nc"))
 # Power time series for beta band
 power_beta.to_netcdf(os.path.join(save_path, f"power_beta_linear_{linear}.nc"))
 # Power time series for gamma band
-power_gamma.to_netcdf(os.path.join(
-    save_path, f"power_gamma_linear_{linear}.nc"))
+power_gamma.to_netcdf(os.path.join(save_path, f"power_gamma_linear_{linear}.nc"))
 # Correlation between beta and gamma power time-series
 cc.to_netcdf(os.path.join(save_path, f"cc_linear_{linear}.nc"))
 # Surrogate correlation between beta and gamma power time-series
@@ -454,5 +448,4 @@ phi.to_netcdf(os.path.join(save_path, f"phi_linear_{linear}.nc"))
 # Beta band LFP triggered average
 snipets.to_netcdf(os.path.join(save_path, f"snipets_linear_{linear}.nc"))
 # Gamma band LFP triggered average
-snipets_gamma.to_netcdf(os.path.join(
-    save_path, f"snipets_gamma_linear_{linear}.nc"))
+snipets_gamma.to_netcdf(os.path.join(save_path, f"snipets_gamma_linear_{linear}.nc"))

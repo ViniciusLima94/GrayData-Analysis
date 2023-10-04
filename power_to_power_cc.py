@@ -18,18 +18,12 @@ from GDa.signal.surrogates import trial_swap_surrogates
 ###############################################################################
 
 parser = argparse.ArgumentParser()
-parser.add_argument("SIDX",   help="index of the session to use",
-                    type=int)
-parser.add_argument("TT",   help="type of the trial",
-                    type=int)
-parser.add_argument("BR",   help="behavioral response",
-                    type=int)
-parser.add_argument("SURR",   help="wheter to compute surrogate or not",
-                    type=int)
-parser.add_argument("ALIGN", help="wheter to align data to cue or match",
-                    type=str)
-parser.add_argument("MONKEY", help="which monkey to use",
-                    type=str)
+parser.add_argument("SIDX", help="index of the session to use", type=int)
+parser.add_argument("TT", help="type of the trial", type=int)
+parser.add_argument("BR", help="behavioral response", type=int)
+parser.add_argument("SURR", help="wheter to compute surrogate or not", type=int)
+parser.add_argument("ALIGN", help="wheter to align data to cue or match", type=str)
+parser.add_argument("MONKEY", help="which monkey to use", type=str)
 
 args = parser.parse_args()
 
@@ -51,7 +45,7 @@ session = sessions[sidx]
 # Get root path
 ###############################################################################
 
-_ROOT = os.path.expanduser('~/funcog/gda')
+_ROOT = os.path.expanduser("~/funcog/gda")
 
 ##############################################################################
 # Utility function
@@ -60,14 +54,12 @@ _ROOT = os.path.expanduser('~/funcog/gda')
 
 def load_session_power(s_id, z_score=False, avg=0, roi=None):
     _FILE_NAME = f"power_tt_{tt}_br_{br}_at_{at}.nc"
-    path_pow = os.path.join(
-        _ROOT, f"Results/{monkey}/{s_id}/session01", _FILE_NAME)
+    path_pow = os.path.join(_ROOT, f"Results/{monkey}/{s_id}/session01", _FILE_NAME)
     power = xr.load_dataarray(path_pow)
     if z_score:
         power.values = (power - power.mean("times")) / power.std("times")
     # Averages power for each period (baseline, cue, delay, match) if needed
-    out = average_stages(power, avg, early_cue=early_cue,
-                         early_delay=early_delay)
+    out = average_stages(power, avg, early_cue=early_cue, early_delay=early_delay)
 
     if isinstance(roi, str):
         out = out.sel(roi=roi)
@@ -136,7 +128,7 @@ def convert_to_degree(cc):
 
 def convert_to_mat(cc):
     """
-        Convert CC in stream form to matrix.
+    Convert CC in stream form to matrix.
     """
     n_trials, _, n_freqs, n_times = cc.shape
 
@@ -148,9 +140,12 @@ def convert_to_mat(cc):
     rois_sep = np.asarray([roi.split("-") for roi in rois])
     roi_s, roi_t = rois_sep[:, 0], rois_sep[:, 1]
     # Index to area name
-    idx2roi = dict(zip(np.hstack(
-        (cc.attrs["sources"], cc.attrs["targets"])),
-        np.hstack((roi_s, roi_t))))
+    idx2roi = dict(
+        zip(
+            np.hstack((cc.attrs["sources"], cc.attrs["targets"])),
+            np.hstack((roi_s, roi_t)),
+        )
+    )
 
     n_roi = len(idx2roi)
     areas = [idx2roi[key] for key in range(n_roi)]
@@ -160,18 +155,17 @@ def convert_to_mat(cc):
     for p, (s, t) in enumerate(zip(sources, targets)):
         cc_mat[:, s, t, :, :] = cc_mat[:, t, s, :, :] = cc[:, p, :, :]
 
-    cc_mat = xr.DataArray(cc_mat,
-                          dims=("trials", "sources",
-                                "targets", "freqs", "times"),
-                          coords=(cc.trials, areas, areas,
-                                  cc.freqs, cc.times))
+    cc_mat = xr.DataArray(
+        cc_mat,
+        dims=("trials", "sources", "targets", "freqs", "times"),
+        coords=(cc.trials, areas, areas, cc.freqs, cc.times),
+    )
     cc_mat.attrs = cc.attrs
     return cc_mat
 
 
 if __name__ == "__main__":
-    power, trials, stim = load_session_power(session, z_score=True,
-                                             avg=0, roi=None)
+    power, trials, stim = load_session_power(session, z_score=True, avg=0, roi=None)
     if surr:
         power = trial_swap_surrogates(power, seed=seed, verbose=False)
     cc = power_correlations(power, verbose=False)
@@ -181,12 +175,14 @@ if __name__ == "__main__":
     cc.attrs = power.attrs
     dd.attrs = power.attrs
     # if not surr:
-        # cc.to_netcdf(os.path.join(_ROOT, "Results",
-                     # monkey, session, "session01",
-                     # f"pec_tt_{tt}_br_{br}_at_cue.nc"))
+    # cc.to_netcdf(os.path.join(_ROOT, "Results",
+    # monkey, session, "session01",
+    # f"pec_tt_{tt}_br_{br}_at_cue.nc"))
     # else:
-        # cc.to_netcdf(os.path.join(_ROOT, "Results",
-                     # monkey, session, "session01",
-                     # f"pec_tt_{tt}_br_{br}_at_cue_surr.nc"))
+    # cc.to_netcdf(os.path.join(_ROOT, "Results",
+    # monkey, session, "session01",
+    # f"pec_tt_{tt}_br_{br}_at_cue_surr.nc"))
     # dd.to_netcdf(os.path.join(_ROOT, "Results", monkey, "pec", f"pec_st_{session}_at_{at}.nc"))
-    cc_mat.to_netcdf(os.path.join(_ROOT, "Results", monkey, "pec", f"pec_mat_{session}.nc"))
+    cc_mat.to_netcdf(
+        os.path.join(_ROOT, "Results", monkey, "pec", f"pec_mat_{session}.nc")
+    )

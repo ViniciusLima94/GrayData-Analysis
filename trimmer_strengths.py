@@ -14,15 +14,12 @@ from tqdm import tqdm
 # Parsing arguments
 ###############################################################################
 parser = argparse.ArgumentParser()
-parser.add_argument("THR",
-                    help="wheter to use the thresholded coherence or not ",
-                    type=int)
-parser.add_argument("MONKEY", help="which monkey to use",
-                    type=str)
-parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
-                    type=str)
-parser.add_argument("DELAY", help="which type of delay split to use",
-                    type=int)
+parser.add_argument(
+    "THR", help="wheter to use the thresholded coherence or not ", type=int
+)
+parser.add_argument("MONKEY", help="which monkey to use", type=str)
+parser.add_argument("ALIGNED", help="wheter power was align to cue or match", type=str)
+parser.add_argument("DELAY", help="which type of delay split to use", type=int)
 args = parser.parse_args()
 thr = args.THR
 monkey = args.MONKEY
@@ -176,6 +173,7 @@ def tensor_trimmer_entanglement(meta_conn, n_jobs=1, verbose=False):
     )
     return ets
 
+
 ###############################################################################
 # Compute and store trimmer-strengths
 ###############################################################################
@@ -185,12 +183,15 @@ metric = "coh"
 
 for session in tqdm(sessions):
 
-    _MCPATH = os.path.join(_ROOT, _RESULTS,
-                           f"MC_{metric}_{session}_at_{at}_ds_{ds}_thr_{thr}.nc")
+    _MCPATH = os.path.join(
+        _ROOT, _RESULTS, f"MC_{metric}_{session}_at_{at}_ds_{ds}_thr_{thr}.nc"
+    )
     save_path_ts = os.path.join(
-        _ROOT, _RESULTS, f"ts_{metric}_{session}_at_{at}_ds_{ds}_thr_{thr}.nc")
+        _ROOT, _RESULTS, f"ts_{metric}_{session}_at_{at}_ds_{ds}_thr_{thr}.nc"
+    )
     save_path_ent = os.path.join(
-        _ROOT, _RESULTS, f"ent_{metric}_{session}_at_{at}_ds_{ds}_thr_{thr}.nc")
+        _ROOT, _RESULTS, f"ent_{metric}_{session}_at_{at}_ds_{ds}_thr_{thr}.nc"
+    )
 
     # Loading MC
     MC = xr.load_dataarray(_MCPATH)

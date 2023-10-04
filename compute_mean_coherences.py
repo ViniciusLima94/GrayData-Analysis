@@ -4,21 +4,17 @@ from tqdm import tqdm
 import numpy as np
 import xarray as xr
 from config import get_dates, return_delay_split
+
 # from GDa.util import average_stages
 from GDa.util import create_stages_time_grid
 from GDa.temporal_network import temporal_network
 
 parser = argparse.ArgumentParser()
-parser.add_argument("METRIC", help="which metric to use",
-                    type=str)
-parser.add_argument("STAT", help="which statistics to use",
-                    type=str)
-parser.add_argument("MONKEY", help="which monkey to use",
-                    type=str)
-parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
-                    type=str)
-parser.add_argument("DELAY", help="which type of delay split to use",
-                    type=int)
+parser.add_argument("METRIC", help="which metric to use", type=str)
+parser.add_argument("STAT", help="which statistics to use", type=str)
+parser.add_argument("MONKEY", help="which monkey to use", type=str)
+parser.add_argument("ALIGNED", help="wheter power was align to cue or match", type=str)
+parser.add_argument("DELAY", help="which type of delay split to use", type=int)
 
 args = parser.parse_args()
 
@@ -30,6 +26,7 @@ ds = args.DELAY
 
 sessions = get_dates(monkey)
 early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
+
 
 def average_stages(data, stats, early_cue, early_delay):
     """
@@ -71,8 +68,9 @@ def average_stages(data, stats, early_cue, early_delay):
     out.attrs = attrs
     return out
 
-coh_file = 'coh_at_cue.nc'
-coh_sig_file = 'thr_coh_at_cue_surr.nc'
+
+coh_file = "coh_at_cue.nc"
+coh_sig_file = "thr_coh_at_cue_surr.nc"
 tt = br = [1]
 if metric == "pec":
     coh_file = "pec_tt_1_br_1_at_cue.nc"
@@ -81,18 +79,24 @@ if metric == "pec":
 
 data = []
 for s_id in tqdm(sessions):
-    net = temporal_network(coh_file=coh_file, early_delay=early_delay,
-                           early_cue=early_cue, align_to=at,
-                           coh_sig_file=coh_sig_file, wt=None,
-                           date=s_id, trial_type=tt, monkey=monkey,
-                           behavioral_response=br)
+    net = temporal_network(
+        coh_file=coh_file,
+        early_delay=early_delay,
+        early_cue=early_cue,
+        align_to=at,
+        coh_sig_file=coh_sig_file,
+        wt=None,
+        date=s_id,
+        trial_type=tt,
+        monkey=monkey,
+        behavioral_response=br,
+    )
     # Average if needed
     out = average_stages(net.super_tensor, stat, early_cue, early_delay)
     # To save memory
     del net
     # Convert to format required by the MI workflow
-    data += [out.isel(roi=[r])#.mean("trials")
-             for r in range(len(out['roi']))]
+    data += [out.isel(roi=[r]) for r in range(len(out["roi"]))]  # .mean("trials")
 
 # Concatenate channels
 data = xr.concat(data, dim="roi")
@@ -105,6 +109,7 @@ data = data.groupby("roi").mean("roi", skipna=True)
 data = data.sel(roi=urois)
 
 save_path = os.path.expanduser(
-    f"~/funcog/gda/Results/{monkey}/mean_coherences/{stat}_{metric}_at_{at}_ds_{ds}.nc")
+    f"~/funcog/gda/Results/{monkey}/mean_coherences/{stat}_{metric}_at_{at}_ds_{ds}.nc"
+)
 
 data.to_netcdf(save_path)

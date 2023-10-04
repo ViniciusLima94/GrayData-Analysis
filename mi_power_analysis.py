@@ -17,20 +17,15 @@ from tqdm import tqdm
 ###############################################################################
 
 parser = argparse.ArgumentParser()
-parser.add_argument("METRIC",   help="whether to use power or zpower",
-                    type=str)
-parser.add_argument("TT",   help="type of the trial",
-                    type=int)
-parser.add_argument("BR",   help="behavioral response",
-                    type=int)
-parser.add_argument("ALIGN", help="wheter to align data to cue or match",
-                    type=str)
-parser.add_argument("AVERAGED", help="wheter to analyse the avg. power or not",
-                    type=int)
-parser.add_argument("MONKEY", help="which monkey to use",
-                    type=str)
-parser.add_argument("SLVR", help="Whether to use SLVR channels or not",
-                    type=str)
+parser.add_argument("METRIC", help="whether to use power or zpower", type=str)
+parser.add_argument("TT", help="type of the trial", type=int)
+parser.add_argument("BR", help="behavioral response", type=int)
+parser.add_argument("ALIGN", help="wheter to align data to cue or match", type=str)
+parser.add_argument(
+    "AVERAGED", help="wheter to analyse the avg. power or not", type=int
+)
+parser.add_argument("MONKEY", help="which monkey to use", type=str)
+parser.add_argument("SLVR", help="Whether to use SLVR channels or not", type=str)
 
 args = parser.parse_args()
 
@@ -45,8 +40,8 @@ slvr = args.SLVR
 
 
 stages = {}
-stages["lucy"] = [[-0.5, -.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
-stages["ethyl"] = [[-0.5, -.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
+stages["lucy"] = [[-0.5, -0.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
+stages["ethyl"] = [[-0.5, -0.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
 stage_labels = ["P", "S", "D1", "D2", "Dm"]
 
 assert metric in ["pow", "zpow"]
@@ -57,29 +52,21 @@ sessions = get_dates(monkey)
 # Get root path
 ###############################################################################
 
-_ROOT = os.path.expanduser('~/funcog/gda')
+_ROOT = os.path.expanduser("~/funcog/gda")
 data_loader = loader(_ROOT=_ROOT)
 
 ###############################################################################
 # Iterate over all sessions and concatenate power
 ###############################################################################
 
-kw_loader = dict(
-    aligned_at="cue", channel_numbers=False, monkey=monkey
-)
+kw_loader = dict(aligned_at="cue", channel_numbers=False, monkey=monkey)
 
 sxx = []
 stim = []
 for s_id in tqdm(sessions):
-    # _FILE_NAME = f"power_tt_{tt}_br_{br}_at_{at}.nc"
-    # path_pow = \
-        # os.path.join(_ROOT,
-                     # f"Results/{monkey}/{s_id}/session01",
-                     # _FILE_NAME)
-    # power = xr.load_dataarray(path_pow)
-    # attrs = power.attrs
-    power = data_loader.load_power(**kw_loader, trial_type=tt,
-                                   behavioral_response=br, session=s_id)
+    power = data_loader.load_power(
+        **kw_loader, trial_type=tt, behavioral_response=br, session=s_id
+    )
     attrs = power.attrs
 
     # Remove SLVR channels
@@ -106,8 +93,8 @@ for s_id in tqdm(sessions):
     else:
         out = power
     out.attrs = attrs
-    sxx += [out.isel(roi=[r]) for r in range(len(out['roi']))]
-    stim += [out.attrs["stim"].astype(int)]*len(out['roi'])
+    sxx += [out.isel(roi=[r]) for r in range(len(out["roi"]))]
+    stim += [out.attrs["stim"].astype(int)] * len(out["roi"])
 
 
 ###############################################################################
@@ -115,12 +102,11 @@ for s_id in tqdm(sessions):
 ###############################################################################
 
 # Convert to DatasetEphy
-dt = DatasetEphy(sxx, y=stim, nb_min_suj=10,
-                 times="times", roi="roi")
+dt = DatasetEphy(sxx, y=stim, nb_min_suj=10, times="times", roi="roi")
 
-mi_type = 'cd'
+mi_type = "cd"
 # inference = 'rfx'
-inference = 'ffx'
+inference = "ffx"
 kernel = None
 
 if avg:
@@ -130,9 +116,15 @@ else:
 
 mi_type = "cd"
 
-estimator = GCMIEstimator(mi_type="cd", copnorm=True,
-                          biascorrect=True, demeaned=False, tensor=True,
-                          gpu=False, verbose=None)
+estimator = GCMIEstimator(
+    mi_type="cd",
+    copnorm=True,
+    biascorrect=True,
+    demeaned=False,
+    tensor=True,
+    gpu=False,
+    verbose=None,
+)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
 
 kw = dict(n_jobs=30, n_perm=200)
@@ -145,22 +137,27 @@ mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
 ###############################################################################
 
 # Path to results folder
-_RESULTS = os.path.join(_ROOT,
-                        f"Results/{monkey}/mutual_information/power/")
+_RESULTS = os.path.join(_ROOT, f"Results/{monkey}/mutual_information/power/")
 
 # path_mi = os.path.join(_RESULTS,
-                       # f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
+# f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
 # path_tv = os.path.join(_RESULTS,
-                       # f"tval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
+# f"tval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
 # path_pv = os.path.join(_RESULTS,
-                       # f"pval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
+# f"pval_pow_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
 
-path_mi = os.path.join(_RESULTS,
-                       f"mi_{metric}_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc")
-path_tv = os.path.join(_RESULTS,
-                       f"tval_{metric}_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc")
-path_pv = os.path.join(_RESULTS,
-                       f"pval_{metric}_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc")
+path_mi = os.path.join(
+    _RESULTS,
+    f"mi_{metric}_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc",
+)
+path_tv = os.path.join(
+    _RESULTS,
+    f"tval_{metric}_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc",
+)
+path_pv = os.path.join(
+    _RESULTS,
+    f"pval_{metric}_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc",
+)
 
 mi.to_netcdf(path_mi)
 pvalues.to_netcdf(path_pv)

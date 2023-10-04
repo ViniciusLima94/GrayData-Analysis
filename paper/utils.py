@@ -28,7 +28,7 @@ def pearson_r(x, y):
 #@numba.njit
 def draw_bs_sample(data):
     """Draw a bootstrap sample from a 1D data set."""
-    return np.random.choice(data, size=len(data))
+    return np.random.randint(0, len(data), size=len(data))
 
 
 #@numba.njit
@@ -262,6 +262,17 @@ def remove_sca(df):
     idx = np.logical_or([s in sca for s in roi_s],
                          [t in sca for t in roi_t])
     return df.iloc[~idx, :]
+
+
+def has_sca(roi):
+    sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
+    idx = [r in sca for r in roi]
+    return np.sum(idx) > 0
+
+def np_remove_sca(roi):
+    sca = ["Caudate", "Claustrum", "Thal", "Putamen"]
+    idx = np.logical_not([r in sca for r in roi])
+    return roi[idx]
 
 def node_remove_sca(df):
     """

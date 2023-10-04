@@ -16,6 +16,7 @@ import os
 import numba as nb
 import numpy as np
 import xarray as xr
+
 # import pandas as pd
 import argparse
 
@@ -28,16 +29,11 @@ from tqdm import tqdm
 # Argument parsing
 ###############################################################################
 parser = argparse.ArgumentParser()
-parser.add_argument("SIDX", help="index of the session to run",
-                    type=int)
-parser.add_argument("METRIC", help="which dFC metric to use",
-                    type=str)
-parser.add_argument("MONKEY", help="which monkey to use",
-                    type=str)
-parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
-                    type=str)
-parser.add_argument("DELAY", help="which type of delay split to use",
-                    type=int)
+parser.add_argument("SIDX", help="index of the session to run", type=int)
+parser.add_argument("METRIC", help="which dFC metric to use", type=str)
+parser.add_argument("MONKEY", help="which monkey to use", type=str)
+parser.add_argument("ALIGNED", help="wheter power was align to cue or match", type=str)
+parser.add_argument("DELAY", help="which type of delay split to use", type=int)
 args = parser.parse_args()
 # The index of the session to use
 idx = args.SIDX
@@ -73,10 +69,13 @@ power = power.transpose("roi", "freqs", "trials", "times")
 net = temporal_network(
     coh_file=coh_file,
     coh_sig_file=coh_sig_file,
-    early_cue=early_cue, early_delay=early_delay,
-    wt=wt, monkey=monkey,
+    early_cue=early_cue,
+    early_delay=early_delay,
+    wt=wt,
+    monkey=monkey,
     date=sessions[idx],
-    trial_type=[1], align_to=at,
+    trial_type=[1],
+    align_to=at,
     behavioral_response=[1],
 )
 
@@ -183,15 +182,32 @@ nli_thr = xr.DataArray(
 mean_power = power.mean(("trials", "times"))
 mean_coh = coh.mean(("trials", "times"))
 
-nli.to_netcdf(os.path.join(_ROOT, "Results", monkey,
-              f"nli/nli_{metric}_{sessions[idx]}_at_{at}_ds_{ds}.nc")
-              )
-nli_thr.to_netcdf(os.path.join(_ROOT, "Results", monkey,
-                  f"nli/nli_thr_{metric}_{sessions[idx]}_at_{at}_ds_{ds}.nc")
-                  )
-mean_power.to_netcdf(os.path.join(_ROOT, "Results", monkey,
-                     f"nli/mean_power_{metric}_{sessions[idx]}_at_{at}_ds_{ds}.nc")
-                     )
-mean_coh.to_netcdf(os.path.join(_ROOT, "Results", monkey,
-                   f"nli/mean_coh_{metric}_{sessions[idx]}_at_{at}_ds_{ds}.nc")
-                   )
+nli.to_netcdf(
+    os.path.join(
+        _ROOT, "Results", monkey, f"nli/nli_{metric}_{sessions[idx]}_at_{at}_ds_{ds}.nc"
+    )
+)
+nli_thr.to_netcdf(
+    os.path.join(
+        _ROOT,
+        "Results",
+        monkey,
+        f"nli/nli_thr_{metric}_{sessions[idx]}_at_{at}_ds_{ds}.nc",
+    )
+)
+mean_power.to_netcdf(
+    os.path.join(
+        _ROOT,
+        "Results",
+        monkey,
+        f"nli/mean_power_{metric}_{sessions[idx]}_at_{at}_ds_{ds}.nc",
+    )
+)
+mean_coh.to_netcdf(
+    os.path.join(
+        _ROOT,
+        "Results",
+        monkey,
+        f"nli/mean_coh_{metric}_{sessions[idx]}_at_{at}_ds_{ds}.nc",
+    )
+)

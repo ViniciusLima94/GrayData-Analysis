@@ -1,4 +1,3 @@
-
 import os
 import numpy as np
 import xarray as xr
@@ -16,14 +15,10 @@ from tqdm import tqdm
 ###############################################################################
 
 parser = argparse.ArgumentParser()
-parser.add_argument("S_ID",   help="which session to do the analysis",
-                    type=int)
-parser.add_argument("BAND",   help="which band to use",
-                    type=float)
-parser.add_argument("ROI",   help="which roi to decode from",
-                    type=str)
-parser.add_argument("MONKEY", help="which monkey to use",
-                    type=str)
+parser.add_argument("S_ID", help="which session to do the analysis", type=int)
+parser.add_argument("BAND", help="which band to use", type=float)
+parser.add_argument("ROI", help="which roi to decode from", type=str)
+parser.add_argument("MONKEY", help="which monkey to use", type=str)
 
 args = parser.parse_args()
 
@@ -31,7 +26,7 @@ args = parser.parse_args()
 s_id = args.S_ID
 band = args.BAND
 roi = args.ROI
-at = "cue" 
+at = "cue"
 monkey = args.MONKEY
 
 
@@ -39,7 +34,7 @@ monkey = args.MONKEY
 # Get root path
 ###############################################################################
 
-_ROOT = os.path.expanduser('~/funcog/gda')
+_ROOT = os.path.expanduser("~/funcog/gda")
 
 ###############################################################################
 # Iterate over all sessions and concatenate power
@@ -66,9 +61,9 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
+
 def compute_cv_scores(data, stim, time_stamp, shuffle=False):
 
-    
     X = data.isel(times=time_stamp).copy()
     y = stim.copy()
 
@@ -115,7 +110,7 @@ def compute_cv_scores(data, stim, time_stamp, shuffle=False):
 # Prepare data
 ###############################################################################
 
-data = power.sel(freqs=band, roi=roi, times=slice(0.5, .7))
+data = power.sel(freqs=band, roi=roi, times=slice(0.5, 0.7))
 stim = attrs["stim"]
 print(data.shape)
 print(stim.shape)
@@ -142,11 +137,11 @@ print(cvs.shape)
 print(cvs_surr.shape)
 
 
-cvs = xr.DataArray(cvs, dims=("k", "times"),
-                   coords={"times": data.times})
+cvs = xr.DataArray(cvs, dims=("k", "times"), coords={"times": data.times})
 
-cvs_surr = xr.DataArray(cvs_surr, dims=("boot", "k", "times"),
-                   coords={"times": data.times})
+cvs_surr = xr.DataArray(
+    cvs_surr, dims=("boot", "k", "times"), coords={"times": data.times}
+)
 
 
 fname = f"cv_{s_id}_{int(band)}_{roi}.nc"

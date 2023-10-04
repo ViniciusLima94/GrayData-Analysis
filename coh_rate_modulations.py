@@ -6,29 +6,24 @@ import xarray as xr
 from tqdm import tqdm
 from config import get_dates, return_delay_split
 from GDa.temporal_network import temporal_network
-from GDa.util import (average_stages, shuffle_along_axis,
-                      xr_remove_same_roi,
-                      edge_xr_remove_sca)
+from GDa.util import (
+    average_stages,
+    shuffle_along_axis,
+    xr_remove_same_roi,
+    edge_xr_remove_sca,
+)
 
 ###############################################################################
 # Argument parsing
 ###############################################################################
 
 parser = argparse.ArgumentParser()
-parser.add_argument("SIDX",
-                    help="index of the session to load",
-                    type=int)
-parser.add_argument("METRIC",
-                    help="which network metric to use",
-                    type=str)
-parser.add_argument("MONKEY", help="which monkey to use",
-                    type=str)
-parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
-                    type=str)
-parser.add_argument("DELAY", help="which type of delay split to use",
-                    type=int)
-parser.add_argument("FREQ", help="which frequency to use",
-                    type=int)
+parser.add_argument("SIDX", help="index of the session to load", type=int)
+parser.add_argument("METRIC", help="which network metric to use", type=str)
+parser.add_argument("MONKEY", help="which monkey to use", type=str)
+parser.add_argument("ALIGNED", help="wheter power was align to cue or match", type=str)
+parser.add_argument("DELAY", help="which type of delay split to use", type=int)
+parser.add_argument("FREQ", help="which frequency to use", type=int)
 
 args = parser.parse_args()
 
@@ -46,7 +41,7 @@ s_id = sessions[sid]
 # Get root path
 ###############################################################################
 
-_ROOT = os.path.expanduser('~/funcog/gda')
+_ROOT = os.path.expanduser("~/funcog/gda")
 _SAVE = os.path.join(_ROOT, "Results", monkey, "coh_rate_modulations")
 
 ##############################################################################
@@ -56,8 +51,7 @@ _SAVE = os.path.join(_ROOT, "Results", monkey, "coh_rate_modulations")
 
 def load_session_coherence(s_id, z_score=False, avg=0, roi=None):
     _FILE_NAME = "coh_at_cue.nc"
-    path_coh = os.path.join(
-        _ROOT, f"Results/{monkey}/{s_id}/session01", _FILE_NAME)
+    path_coh = os.path.join(_ROOT, f"Results/{monkey}/{s_id}/session01", _FILE_NAME)
     coh = temporal_network(
         coh_file=path_coh,
         coh_sig_file=None,
@@ -109,8 +103,7 @@ def compute_median_rate(
     data = data >= thr
 
     # Get time-series
-    ts = data.sel(freqs=freqs, times=time_slice,
-                  roi=roi).isel(trials=idx_trials)
+    ts = data.sel(freqs=freqs, times=time_slice, roi=roi).isel(trials=idx_trials)
     times = ts.times.data
     # Stack rois
     if "roi" in ts.dims:
@@ -126,8 +119,7 @@ def compute_median_rate(
             np.take_along_axis(
                 ts_stacked,
                 np.asarray(
-                    [np.random.choice(range(n_trials), n_trials)
-                     for _ in range(n_rois)]
+                    [np.random.choice(range(n_trials), n_trials) for _ in range(n_rois)]
                 ),
                 axis=-1,
             ).mean(-1)
@@ -215,14 +207,11 @@ t_u = P_b.quantile(0.95, "boot")
 RMI = ((p > t_u) + (p < t_d)).mean("times").mean("stim")
 
 # Save
-P_b.to_netcdf(os.path.join(
-    _SAVE, f"P_b_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))
-SP_b.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))
+P_b.to_netcdf(os.path.join(_SAVE, f"P_b_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))
+SP_b.to_netcdf(os.path.join(_SAVE, f"SP_b_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))
 
-P_b_stim.to_netcdf(os.path.join(
-    _SAVE, f"P_b_stim_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))
-SP_b_stim.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_stim_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))
-RMI.to_netcdf(os.path.join(
-    _SAVE, f"RMI_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))
+P_b_stim.to_netcdf(os.path.join(_SAVE, f"P_b_stim_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))
+SP_b_stim.to_netcdf(
+    os.path.join(_SAVE, f"SP_b_stim_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc")
+)
+RMI.to_netcdf(os.path.join(_SAVE, f"RMI_{s_id}_at_{at}_ds_{ds}_f_{freq}.nc"))

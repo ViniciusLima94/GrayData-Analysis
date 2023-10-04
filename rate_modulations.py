@@ -14,15 +14,10 @@ from GDa.loader import loader
 ###############################################################################
 
 parser = argparse.ArgumentParser()
-parser.add_argument("SIDX",
-                    help="index of the session to load",
-                    type=int)
-parser.add_argument("MONKEY", help="which monkey to use",
-                    type=str)
-parser.add_argument("ALIGNED", help="wheter power was align to cue or match",
-                    type=str)
-parser.add_argument("THR", help="which threshold value to use",
-                    type=float)
+parser.add_argument("SIDX", help="index of the session to load", type=int)
+parser.add_argument("MONKEY", help="which monkey to use", type=str)
+parser.add_argument("ALIGNED", help="wheter power was align to cue or match", type=str)
+parser.add_argument("THR", help="which threshold value to use", type=float)
 
 args = parser.parse_args()
 
@@ -75,9 +70,7 @@ def bootstrap(ts_stacked, n_trials, n_rois, n_boot):
         ci += [
             np.take_along_axis(
                 ts_stacked,
-                np.asarray(
-                    [np.random.choice(trials, n_trials) for _ in range(n_rois)]
-                ),
+                np.asarray([np.random.choice(trials, n_trials) for _ in range(n_rois)]),
                 axis=-1,
             ).mean(-1)
         ]
@@ -203,8 +196,7 @@ def compute_median_rate(
             surr += [shuffle_along_axis(ts_stacked, 0)]
         surr = np.stack(surr).mean(-1)
         ci = xr.DataArray(ci, dims=("boot", "times"), coords={"times": times})
-        surr = xr.DataArray(surr, dims=("boot", "times"),
-                            coords={"times": times})
+        surr = xr.DataArray(surr, dims=("boot", "times"), coords={"times": times})
 
         return ci, surr
 
@@ -222,7 +214,6 @@ def compute_median_rate(
     surr = xr.concat(surr, "freqs").assign_coords({"freqs": freqs})
 
     return ci, surr
-
 
 
 def return_burst_prob(power, conditional=False, thr=0.95, verbose=False):
@@ -267,7 +258,7 @@ def return_burst_prob(power, conditional=False, thr=0.95, verbose=False):
         SP_b = []
 
         for roi in tqdm(rois) if verbose else rois:
-            ci, surr = compute_median_rate(power, roi=roi,  **kw_args)
+            ci, surr = compute_median_rate(power, roi=roi, **kw_args)
             P_b += [ci]
             SP_b += [surr]
 
@@ -296,20 +287,17 @@ def return_burst_prob(power, conditional=False, thr=0.95, verbose=False):
 
         return P_b_stim, SP_b_stim
 
+
 ##############################################################################
 # Time-resolved rate
 ###############################################################################
 
 data_loader = loader(_ROOT=_ROOT)
 
-kw_loader = dict(
-    session=s_id, aligned_at=at, channel_numbers=False, monkey=monkey
-)
+kw_loader = dict(session=s_id, aligned_at=at, channel_numbers=False, monkey=monkey)
 
-power_task = data_loader.load_power(**kw_loader, trial_type=1,
-                                    behavioral_response=1)
-power_fix = data_loader.load_power(**kw_loader, trial_type=2,
-                                   behavioral_response=0)
+power_task = data_loader.load_power(**kw_loader, trial_type=1, behavioral_response=1)
+power_fix = data_loader.load_power(**kw_loader, trial_type=2, behavioral_response=0)
 
 
 # Computes burst probability for task and fixation
@@ -318,22 +306,19 @@ P_b_fix, SP_b_fix = return_burst_prob(power_fix, thr=thr)
 
 
 # Computes burst probability for task and fixation
-P_b_task_stim, SP_b_task_stim = return_burst_prob(power_task,
-                                                  conditional=True, thr=thr)
+P_b_task_stim, SP_b_task_stim = return_burst_prob(power_task, conditional=True, thr=thr)
 
 percentile = int(thr * 100)
 
-P_b_task.to_netcdf(os.path.join(
-    _SAVE, f"P_b_task_{s_id}_at_{at}_q_{percentile}.nc"))
-SP_b_task.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_task_{s_id}_at_{at}_q_{percentile}.nc"))
+P_b_task.to_netcdf(os.path.join(_SAVE, f"P_b_task_{s_id}_at_{at}_q_{percentile}.nc"))
+SP_b_task.to_netcdf(os.path.join(_SAVE, f"SP_b_task_{s_id}_at_{at}_q_{percentile}.nc"))
 
-P_b_fix.to_netcdf(os.path.join(
-    _SAVE, f"P_b_fix_{s_id}_at_{at}_q_{percentile}.nc"))
-SP_b_fix.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_fix_{s_id}_at_{at}_q_{percentile}.nc"))
+P_b_fix.to_netcdf(os.path.join(_SAVE, f"P_b_fix_{s_id}_at_{at}_q_{percentile}.nc"))
+SP_b_fix.to_netcdf(os.path.join(_SAVE, f"SP_b_fix_{s_id}_at_{at}_q_{percentile}.nc"))
 
-P_b_task_stim.to_netcdf(os.path.join(
-    _SAVE, f"P_b_task_stim_{s_id}_at_{at}_q_{percentile}.nc"))
-SP_b_task_stim.to_netcdf(os.path.join(
-    _SAVE, f"SP_b_task_stim_{s_id}_at_{at}_q_{percentile}.nc"))
+P_b_task_stim.to_netcdf(
+    os.path.join(_SAVE, f"P_b_task_stim_{s_id}_at_{at}_q_{percentile}.nc")
+)
+SP_b_task_stim.to_netcdf(
+    os.path.join(_SAVE, f"SP_b_task_stim_{s_id}_at_{at}_q_{percentile}.nc")
+)

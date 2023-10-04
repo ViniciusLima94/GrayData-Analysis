@@ -5,8 +5,7 @@ import xarray as xr
 
 from tqdm import tqdm
 from GDa.session import session
-from config import (decim, mode, freqs, n_cycles,
-                    get_dates, return_evt_dt)
+from config import decim, mode, freqs, n_cycles, get_dates, return_evt_dt
 from frites.conn.conn_tf import _tf_decomp
 
 ###############################################################################
@@ -14,16 +13,11 @@ from frites.conn.conn_tf import _tf_decomp
 ###############################################################################
 
 parser = argparse.ArgumentParser()
-parser.add_argument("SIDX", help="index of the session to be run",
-                    type=int)
-parser.add_argument("TT", help="type of the trial",
-                    type=int)
-parser.add_argument("BR", help="behavioral response",
-                    type=int)
-parser.add_argument("ALIGN", help="wheter to align data to cue or match",
-                    type=str)
-parser.add_argument("MONKEY", help="which monkey to use",
-                    type=str)
+parser.add_argument("SIDX", help="index of the session to be run", type=int)
+parser.add_argument("TT", help="type of the trial", type=int)
+parser.add_argument("BR", help="behavioral response", type=int)
+parser.add_argument("ALIGN", help="wheter to align data to cue or match", type=str)
+parser.add_argument("MONKEY", help="which monkey to use", type=str)
 
 args = parser.parse_args()
 
@@ -41,7 +35,7 @@ sessions = get_dates(monkey)
 s_id = sessions[idx]
 
 # Root directory
-_ROOT = os.path.expanduser('~/funcog/gda')
+_ROOT = os.path.expanduser("~/funcog/gda")
 
 ###########################################################################
 # Loading session
@@ -52,19 +46,24 @@ evt_dt = return_evt_dt(at, monkey=monkey)
 # Path to LFP data
 raw_path = os.path.expanduser("~/funcog/gda/GrayLab/")
 # Instantiate class
-ses = session(raw_path=raw_path, monkey=monkey, date=s_id, session=1,
-              slvr_msmod=True, align_to=at, evt_dt=evt_dt)
+ses = session(
+    raw_path=raw_path,
+    monkey=monkey,
+    date=s_id,
+    session=1,
+    slvr_msmod=True,
+    align_to=at,
+    evt_dt=evt_dt,
+)
 
 # Read data from .mat files
 ses.read_from_mat()
 
 # Filtering by trials
 if tt == 2 or tt == 3:
-    data = ses.filter_trials(trial_type=[tt],
-                             behavioral_response=None)
+    data = ses.filter_trials(trial_type=[tt], behavioral_response=None)
 else:
-    data = ses.filter_trials(trial_type=[tt],
-                             behavioral_response=[br])
+    data = ses.filter_trials(trial_type=[tt], behavioral_response=[br])
 
 ###########################################################################
 # Compute power spectra
@@ -86,8 +85,7 @@ sxx = xr.DataArray(
     (sxx * np.conj(sxx)).real,
     name="power",
     dims=("trials", "roi", "freqs", "times"),
-    coords=(data.trials.values, data.roi.values,
-            freqs, data.time.values[::decim]),
+    coords=(data.trials.values, data.roi.values, freqs, data.time.values[::decim]),
 )
 
 # sm_times = int(np.round(0.1 * data.attrs["fsample"]  / decim))
@@ -99,15 +97,13 @@ sxx = xr.DataArray(
 ###########################################################################
 
 # Path in which to save coherence data
-results_path = os.path.join(_ROOT, 'Results',
-                       monkey, s_id, 'session01')
+results_path = os.path.join(_ROOT, "Results", monkey, s_id, "session01")
 # Create results path in case it does not exist
 if not os.path.exists(results_path):
     os.makedirs(results_path)
 
 file_name = f"power_tt_{tt}_br_{br}_at_{at}.nc"
-path_pow = os.path.join(results_path,
-                        file_name)
+path_pow = os.path.join(results_path, file_name)
 # print(path_pow)
 
 sxx.attrs = data.attrs

@@ -15,24 +15,20 @@ from tqdm import tqdm
 ###############################################################################
 
 parser = argparse.ArgumentParser()
-parser.add_argument("S_ID",   help="which session to do the analysis",
-                    type=int)
-parser.add_argument("BAND",   help="which band to use",
-                    type=str)
-parser.add_argument("Q",   help="threshold used to binarize the data",
-                    type=float)
-parser.add_argument("MONKEY", help="which monkey to use",
-                    type=str)
+parser.add_argument("S_ID", help="which session to do the analysis", type=int)
+parser.add_argument("BAND", help="which band to use", type=str)
+parser.add_argument("Q", help="threshold used to binarize the data", type=float)
+parser.add_argument("MONKEY", help="which monkey to use", type=str)
 
 args = parser.parse_args()
 
 # Index of the session to be load
 s_id = args.S_ID
 band = args.BAND
-tt = 1 
+tt = 1
 br = 1
 q = args.Q
-at = "cue" 
+at = "cue"
 monkey = args.MONKEY
 
 
@@ -50,7 +46,7 @@ n_rois = 10
 # Get root path
 ###############################################################################
 
-_ROOT = os.path.expanduser('~/funcog/gda')
+_ROOT = os.path.expanduser("~/funcog/gda")
 
 ###############################################################################
 # Iterate over all sessions and concatenate power
@@ -76,9 +72,8 @@ out = out.assign_coords({"trials": attrs["stim"]})
 out.attrs = attrs
 
 
-
 ###############################################################################
-# Decoding 
+# Decoding
 ###############################################################################
 
 from sklearn.ensemble import RandomForestClassifier
@@ -147,6 +142,7 @@ def compute_cv_scores(times, band, shuffle=False):
 
     return cross_val_score(est, x_train, y_train, n_jobs=20, cv=5, verbose=0)
 
+
 times = [[-0.6, -0.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
 
 cv_scores = []
@@ -167,13 +163,10 @@ cv_scores_surr = xr.DataArray(np.stack(cv_scores_surr, 0), dims=("times", "k"))
 ###############################################################################
 
 # Path to results folder
-_RESULTS = os.path.join(_ROOT,
-                        f"Results/{monkey}/decoding/crackles")
+_RESULTS = os.path.join(_ROOT, f"Results/{monkey}/decoding/crackles")
 
-path_cv = os.path.join(_RESULTS,
-                       f"cv_crackle_{band}_{s_id}.nc")
-path_cv_surr = os.path.join(_RESULTS,
-                       f"cv_surr_crackle_{band}_{s_id}.nc")
+path_cv = os.path.join(_RESULTS, f"cv_crackle_{band}_{s_id}.nc")
+path_cv_surr = os.path.join(_RESULTS, f"cv_surr_crackle_{band}_{s_id}.nc")
 
 cv_scores.to_netcdf(path_cv)
 cv_scores_surr.to_netcdf(path_cv_surr)

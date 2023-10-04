@@ -18,20 +18,15 @@ from tqdm import tqdm
 ###############################################################################
 
 parser = argparse.ArgumentParser()
-parser.add_argument("TT",   help="type of the trial",
-                    type=int)
-parser.add_argument("BR",   help="behavioral response",
-                    type=int)
-parser.add_argument("ALIGN", help="wheter to align data to cue or match",
-                    type=str)
-parser.add_argument("AVERAGED", help="wheter to analyse the avg. power or not",
-                    type=int)
-parser.add_argument("MONKEY", help="which monkey to use",
-                    type=str)
-parser.add_argument("SLVR", help="Whether to use SLVR channels or not",
-                    type=str)
-parser.add_argument("THR", help="Threshold used to compute co-crackle mat.",
-                    type=float)
+parser.add_argument("TT", help="type of the trial", type=int)
+parser.add_argument("BR", help="behavioral response", type=int)
+parser.add_argument("ALIGN", help="wheter to align data to cue or match", type=str)
+parser.add_argument(
+    "AVERAGED", help="wheter to analyse the avg. power or not", type=int
+)
+parser.add_argument("MONKEY", help="which monkey to use", type=str)
+parser.add_argument("SLVR", help="Whether to use SLVR channels or not", type=str)
+parser.add_argument("THR", help="Threshold used to compute co-crackle mat.", type=float)
 
 args = parser.parse_args()
 
@@ -54,11 +49,11 @@ sessions = get_dates(monkey)
 # Get root path
 ###############################################################################
 
-_ROOT = os.path.expanduser('~/funcog/gda')
+_ROOT = os.path.expanduser("~/funcog/gda")
 
 
 ##############################################################################
-# utility functions 
+# utility functions
 ###############################################################################
 @nb.jit(nopython=True)
 def co_crackling_adj(A):
@@ -123,7 +118,7 @@ def co_crackle_mat(A, verbose=False, n_jobs=1):
     trials = A.trials.data
 
     nroi, nfreqs, ntrials, ntimes = A.shape
-    
+
     A = A.stack(obs=("trials", "times")).data
 
     def _for_freq(f):
@@ -137,8 +132,7 @@ def co_crackle_mat(A, verbose=False, n_jobs=1):
     # Compute surrogate for each frequency
     co_k = parallel(p_fun(f) for f in range(nfreqs))
 
-    co_k = np.stack(co_k, axis=2).reshape((nroi, nroi, nfreqs,
-                                           ntrials, ntimes))
+    co_k = np.stack(co_k, axis=2).reshape((nroi, nroi, nfreqs, ntrials, ntimes))
 
     x_s, x_t = np.triu_indices(nroi, k=1)
     npairs = len(x_s)
@@ -160,6 +154,7 @@ def co_crackle_mat(A, verbose=False, n_jobs=1):
 
     return co_k
 
+
 ###############################################################################
 # Iterate over all sessions and concatenate power
 ###############################################################################
@@ -168,10 +163,7 @@ sxx = []
 stim = []
 for s_id in tqdm(sessions):
     _FILE_NAME = f"power_tt_{tt}_br_{br}_at_{at}.nc"
-    path_pow = \
-        os.path.join(_ROOT,
-                     f"Results/{monkey}/{s_id}/session01",
-                     _FILE_NAME)
+    path_pow = os.path.join(_ROOT, f"Results/{monkey}/{s_id}/session01", _FILE_NAME)
     power = xr.load_dataarray(path_pow)
     attrs = power.attrs
 
@@ -195,8 +187,8 @@ for s_id in tqdm(sessions):
     out = xr.concat(out, "times")
     out = out.transpose("trials", "roi", "freqs", "times")
     out.attrs = attrs
-    sxx += [out.isel(roi=[r]) for r in range(len(out['roi']))]
-    stim += [out.attrs["stim"].astype(int)]*len(out['roi'])
+    sxx += [out.isel(roi=[r]) for r in range(len(out["roi"]))]
+    stim += [out.attrs["stim"].astype(int)] * len(out["roi"])
 
 
 ##############################################################################
@@ -204,11 +196,10 @@ for s_id in tqdm(sessions):
 ##############################################################################
 
 # Convert to DatasetEphy
-dt = DatasetEphy(sxx, y=stim, nb_min_suj=10,
-                 times="times", roi="roi")
+dt = DatasetEphy(sxx, y=stim, nb_min_suj=10, times="times", roi="roi")
 
-mi_type = 'cd'
-inference = 'rfx'
+mi_type = "cd"
+inference = "rfx"
 kernel = None
 
 if avg:
@@ -218,9 +209,15 @@ else:
 
 mi_type = "cd"
 
-estimator = GCMIEstimator(mi_type="cd", copnorm=True,
-                          biascorrect=True, demeaned=False, tensor=True,
-                          gpu=False, verbose=None)
+estimator = GCMIEstimator(
+    mi_type="cd",
+    copnorm=True,
+    biascorrect=True,
+    demeaned=False,
+    tensor=True,
+    gpu=False,
+    verbose=None,
+)
 wf = WfMi(mi_type, inference, verbose=True, kernel=kernel, estimator=estimator)
 
 kw = dict(n_jobs=20, n_perm=200)
@@ -233,15 +230,17 @@ mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
 ###############################################################################
 
 # Path to results folder
-_RESULTS = os.path.join(_ROOT,
-                        f"Results/{monkey}/mutual_information/power/")
+_RESULTS = os.path.join(_ROOT, f"Results/{monkey}/mutual_information/power/")
 
-path_mi = os.path.join(_RESULTS,
-                       f"mi_cok_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
-path_tv = os.path.join(_RESULTS,
-                       f"tval_cok_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
-path_pv = os.path.join(_RESULTS,
-                       f"pval_cok_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc")
+path_mi = os.path.join(
+    _RESULTS, f"mi_cok_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc"
+)
+path_tv = os.path.join(
+    _RESULTS, f"tval_cok_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc"
+)
+path_pv = os.path.join(
+    _RESULTS, f"pval_cok_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_slvr_{slvr}.nc"
+)
 
 mi.to_netcdf(path_mi)
 wf.tvalues.to_netcdf(path_tv)

@@ -24,10 +24,8 @@ from GDa.util import _extract_roi
 # Argument parsing
 ###############################################################################
 parser = argparse.ArgumentParser()
-parser.add_argument("SIDX", help="index of the session to run",
-                    type=int)
-parser.add_argument("METRIC", help="which dFC metric to use",
-                    type=str)
+parser.add_argument("SIDX", help="index of the session to run", type=int)
+parser.add_argument("METRIC", help="which dFC metric to use", type=str)
 args = parser.parse_args()
 # The index of the session to use
 sidx = args.SIDX
@@ -75,8 +73,7 @@ def detect_peaks(
     peaks = parallel(p_fun(i) for i in range(n_rois))
 
     peaks = xr.DataArray(
-        np.stack(peaks, 1), dims=data.dims, coords=data.coords,
-        name="prominence"
+        np.stack(peaks, 1), dims=data.dims, coords=data.coords, name="prominence"
     )
 
     return peaks
@@ -131,33 +128,31 @@ data_surr = trial_swap_surrogates(data, seed=123456, verbose=False)
 ###############################################################################
 
 # w = _tf_decomp(
-    # data,
-    # data.attrs["fsample"],
-    # freqs,
-    # mode=mode,
-    # n_cycles=n_cycles,
-    # mt_bandwidth=None,
-    # decim=decim,
-    # kw_cwt={},
-    # kw_mt={},
-    # n_jobs=20,
+# data,
+# data.attrs["fsample"],
+# freqs,
+# mode=mode,
+# n_cycles=n_cycles,
+# mt_bandwidth=None,
+# decim=decim,
+# kw_cwt={},
+# kw_mt={},
+# n_jobs=20,
 # )
 
 # # Compute power spectra and average over time
 # w = (w * np.conj(w)).real.mean(-1)
 
 # w = xr.DataArray(
-    # w,
-    # name="power",
-    # dims=("trials", "roi", "freqs"),
-    # coords=(data.trials.values, data.roi.values, freqs),
+# w,
+# name="power",
+# dims=("trials", "roi", "freqs"),
+# coords=(data.trials.values, data.roi.values, freqs),
 # )
 
 sfreq = data.fsample
 
-w, fr_psd = psd_array_multitaper(
-    data, sfreq, fmin=6, fmax=80, bandwidth=8, n_jobs=20
-)
+w, fr_psd = psd_array_multitaper(data, sfreq, fmin=6, fmax=80, bandwidth=8, n_jobs=20)
 
 w = xr.DataArray(
     w,
@@ -186,8 +181,7 @@ kw = dict(
 
 # compute the coherence
 coh = conn_spec(data, **kw).astype(np.float32, keep_attrs=True).mean("times")
-coh_surr = conn_spec(data_surr, **kw).astype(np.float32,
-                                             keep_attrs=True).mean("times")
+coh_surr = conn_spec(data_surr, **kw).astype(np.float32, keep_attrs=True).mean("times")
 
 coh = np.clip(coh - coh_surr.quantile(0.95, "trials"), 0, np.inf)
 ###############################################################################
@@ -227,8 +221,7 @@ for roi in tqdm(rois):
     i = i + 1
 
 peak_freqs = xr.DataArray(
-    peak_freqs, dims=("freqs", "trials", "roi"),
-    coords={"trials": trials, "roi": rois}
+    peak_freqs, dims=("freqs", "trials", "roi"), coords={"trials": trials, "roi": rois}
 )
 
 
@@ -261,8 +254,7 @@ p_band = (peak_freqs > 0).astype(int)
 p_coh_band = []
 for i, label in enumerate(bands.labels):
     flow, fhigh = bands[label][0], bands[label][1]
-    p_coh_band += [(p_coh.sel(freqs=slice(flow, fhigh)
-                              ).sum("freqs") > 0).astype(int)]
+    p_coh_band += [(p_coh.sel(freqs=slice(flow, fhigh)).sum("freqs") > 0).astype(int)]
 
 p_coh_band = xr.concat(p_coh_band, "freqs")
 
@@ -275,14 +267,16 @@ for i in tqdm(range(p_coh_band.sizes["roi"])):
 
     G = (p_band.sel(roi=s) + p_band.sel(roi=t)) == 2
 
-    Om[..., i] = p_coh_band.isel(roi=i) * (p_band.sel(roi=s) +
-                                           p_band.sel(roi=t)) + p_coh_band.isel(roi=i)
+    Om[..., i] = p_coh_band.isel(roi=i) * (
+        p_band.sel(roi=s) + p_band.sel(roi=t)
+    ) + p_coh_band.isel(roi=i)
 
     Om[..., i] = Om[..., i] - (1 - p_coh_band.isel(roi=i)) * G
 
 Om = xr.DataArray(
-    Om, dims=("freqs", "trials", "roi"),
-    coords={"trials": trials, "roi": p_coh_band.roi.data}
+    Om,
+    dims=("freqs", "trials", "roi"),
+    coords={"trials": trials, "roi": p_coh_band.roi.data},
 )
 
 ###############################################################################
@@ -311,6 +305,7 @@ def compute_FDR(data):
     FP = (np.logical_or(data == 2, data == 1)).sum("trials")
 
     return FP / (FP + TP)
+
 
 roi_s, roi_t = _extract_roi(Om.roi.values, "-")
 

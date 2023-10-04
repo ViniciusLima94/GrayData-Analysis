@@ -30,14 +30,10 @@ from GDa.util import _extract_roi, get_areas
 ##############################################################################
 
 parser = argparse.ArgumentParser()
-parser.add_argument("SESSION", help="which session to load",
-                    type=int)
-parser.add_argument("MONKEY", help="which monkey to use",
-                    type=str)
-parser.add_argument("THR", help="which threshold to use",
-                    type=float)
-parser.add_argument("RECTF", help="Wheather to rectfy or not",
-                    type=int)
+parser.add_argument("SESSION", help="which session to load", type=int)
+parser.add_argument("MONKEY", help="which monkey to use", type=str)
+parser.add_argument("THR", help="which threshold to use", type=float)
+parser.add_argument("RECTF", help="Wheather to rectfy or not", type=int)
 
 args = parser.parse_args()
 
@@ -337,22 +333,27 @@ def return_co_crackle_mat(A, nruns=100, verbose=False, surrogate=False):
 
 
 def _for_freq(A, nruns=100, verbose=False, surrogate=False, n_jobs=1):
-    
+
     nfreqs, freqs = A.sizes["freqs"], A.freqs.data
     attrs = A.attrs
-    
+
     # define the function to compute in parallel
     parallel, p_fun = parallel_func(
         return_co_crackle_mat, n_jobs=n_jobs, verbose=verbose, total=nfreqs
     )
     # Compute surrogate for each frequency
-    kij = parallel(p_fun(A.isel(freqs=f), verbose=verbose, surrogate=surrogate) for f in range(nfreqs))
+    kij = parallel(
+        p_fun(A.isel(freqs=f), verbose=verbose, surrogate=surrogate)
+        for f in range(nfreqs)
+    )
     kij = xr.concat(kij, "freqs")
     kij = kij.assign_coords(dict(freqs=freqs))
 
     kij.attrs = attrs
 
     return kij
+
+
 ##############################################################################
 # CRACKLE DURATION
 ##############################################################################
@@ -361,37 +362,39 @@ kw_loader = dict(
 )
 
 power_task = data_loader.load_power(**kw_loader, trial_type=1, behavioral_response=1)
-power_task_incorrect = data_loader.load_power(**kw_loader, trial_type=1, behavioral_response=0)
+power_task_incorrect = data_loader.load_power(
+    **kw_loader, trial_type=1, behavioral_response=0
+)
 power_fix = data_loader.load_power(**kw_loader, trial_type=2, behavioral_response=0)
 
 
 # qs = np.arange(0.5, 1, 0.1)
 
 # delta_ci_task = [
-    # compute_crackle_duration(
-        # power_task, q=q, twin=stages, n_boots=200, n_jobs=10, verbose=True
-    # )
-    # for q in qs
+# compute_crackle_duration(
+# power_task, q=q, twin=stages, n_boots=200, n_jobs=10, verbose=True
+# )
+# for q in qs
 # ]
 
 # delta_ci_surr = [
-    # compute_crackle_duration(
-        # power_task,
-        # q=q,
-        # twin=stages,
-        # surrogate=True,
-        # n_boots=200,
-        # n_jobs=10,
-        # verbose=True,
-    # )
-    # for q in qs
+# compute_crackle_duration(
+# power_task,
+# q=q,
+# twin=stages,
+# surrogate=True,
+# n_boots=200,
+# n_jobs=10,
+# verbose=True,
+# )
+# for q in qs
 # ]
 
 # delta_ci_task = xr.concat(delta_ci_task, "q")
 # delta_ci_surr = xr.concat(delta_ci_surr, "q")
 
 # delta_ci_task.to_netcdf(os.path.join(_RESULTS,
-                                     # f"delta_ci_task_{session}.nc"))
+# f"delta_ci_task_{session}.nc"))
 
 
 ##############################################################################
@@ -408,7 +411,9 @@ if thr > 0:
     A_fix = power_fix >= thr_fix
 else:
     A_task = (power_task - power_task.mean("times")) / power_task.std("times")
-    A_task_incorrect = (power_task_incorrect - power_task_incorrect.mean("times")) / power_task_incorrect.std("times")
+    A_task_incorrect = (
+        power_task_incorrect - power_task_incorrect.mean("times")
+    ) / power_task_incorrect.std("times")
     A_fix = (power_fix - power_fix.mean("times")) / power_fix.std("times")
     if rectf == 1:
         A_task = A_task * (A_task >= 0)
@@ -422,37 +427,40 @@ else:
 # A_surrI_T = create_typeI_surr(A_task, seed=0, verbose=True, n_jobs=1)
 # A_surrII_T = create_typeII_surr(A_task, seed=0, verbose=True, n_jobs=10)
 
-kij_task = _for_freq(A_task, nruns=100, verbose=False,
-                     surrogate=False, n_jobs=10)
-kij_task_in = _for_freq(A_task_incorrect, nruns=100, verbose=False,
-                     surrogate=False, n_jobs=10)
-kij_fix = _for_freq(A_fix, nruns=100, verbose=False,
-                    surrogate=False, n_jobs=10)
+kij_task = _for_freq(A_task, nruns=100, verbose=False, surrogate=False, n_jobs=10)
+kij_task_in = _for_freq(
+    A_task_incorrect, nruns=100, verbose=False, surrogate=False, n_jobs=10
+)
+kij_fix = _for_freq(A_fix, nruns=100, verbose=False, surrogate=False, n_jobs=10)
 
 # kij_surr = []
 # for i in range(50):
-    # kij_surr += [_for_freq(A_task, nruns=100, verbose=False,
-                           # surrogate=True, n_jobs=10)]
+# kij_surr += [_for_freq(A_task, nruns=100, verbose=False,
+# surrogate=True, n_jobs=10)]
 # kij_surr = xr.concat(kij_surr, "boot")
 
 
 quantile = int(thr * 100)
 
 if rectf in [1, 2]:
-    kij_task.to_netcdf(os.path.join(_RESULTS,
-                                    f"kij_task_{session}_q_{quantile}_rectf_{rectf}.nc"))
-    kij_task_in.to_netcdf(os.path.join(_RESULTS,
-                                    f"kij_task_incorrect_{session}_q_{quantile}_rectf_{rectf}.nc"))
-    kij_fix.to_netcdf(os.path.join(_RESULTS,
-                                    f"kij_fix_{session}_q_{quantile}_rectf_{rectf}.nc"))
+    kij_task.to_netcdf(
+        os.path.join(_RESULTS, f"kij_task_{session}_q_{quantile}_rectf_{rectf}.nc")
+    )
+    kij_task_in.to_netcdf(
+        os.path.join(
+            _RESULTS, f"kij_task_incorrect_{session}_q_{quantile}_rectf_{rectf}.nc"
+        )
+    )
+    kij_fix.to_netcdf(
+        os.path.join(_RESULTS, f"kij_fix_{session}_q_{quantile}_rectf_{rectf}.nc")
+    )
     # kij_surr.to_netcdf(os.path.join(_RESULTS,
-                                    # f"kij_surr_{session}_q_{quantile}_rectf.nc"))
+    # f"kij_surr_{session}_q_{quantile}_rectf.nc"))
 else:
-    kij_task.to_netcdf(os.path.join(_RESULTS,
-                                    f"kij_task_{session}_q_{quantile}.nc"))
-    kij_task_in.to_netcdf(os.path.join(_RESULTS,
-                                    f"kij_task_incorrect_{session}_q_{quantile}.nc"))
-    kij_fix.to_netcdf(os.path.join(_RESULTS,
-                                    f"kij_fix_{session}_q_{quantile}.nc"))
+    kij_task.to_netcdf(os.path.join(_RESULTS, f"kij_task_{session}_q_{quantile}.nc"))
+    kij_task_in.to_netcdf(
+        os.path.join(_RESULTS, f"kij_task_incorrect_{session}_q_{quantile}.nc")
+    )
+    kij_fix.to_netcdf(os.path.join(_RESULTS, f"kij_fix_{session}_q_{quantile}.nc"))
     # kij_surr.to_netcdf(os.path.join(_RESULTS,
-                                    # f"kij_surr_{session}_q_{quantile}.nc"))
+    # f"kij_surr_{session}_q_{quantile}.nc"))

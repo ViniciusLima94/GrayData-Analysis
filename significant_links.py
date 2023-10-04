@@ -16,10 +16,8 @@ from GDa.util import _extract_roi, _create_roi_area_mapping
 # Argument parsing
 #######################################################################
 parser = argparse.ArgumentParser()
-parser.add_argument("IDX", help="index of the session to run",
-                    type=int)
-parser.add_argument("METRIC", help="which dFC metric to use",
-                    type=str)
+parser.add_argument("IDX", help="index of the session to run", type=int)
+parser.add_argument("METRIC", help="which dFC metric to use", type=str)
 
 args = parser.parse_args()
 # The index of the session to use
@@ -27,7 +25,7 @@ idx = args.IDX
 # Get name of the dFC metric
 metric = args.METRIC
 
-at = 'cue'
+at = "cue"
 _SEED = 8179273
 
 #######################################################################
@@ -95,7 +93,7 @@ def significance_test(coh=None, verbose=False, n_jobs=5):
             coh_surr[:, band, :, :].values.reshape(n_rois, n_trials * n_times),
             alternative="greater",
             axis=-1,
-            #equal_var=False,
+            # equal_var=False,
         )[1]
         return np.array([ks, tt])
 
@@ -161,8 +159,7 @@ targets += [mapping[t] for t in roi_t]
 p_mat = xr.DataArray(
     np.zeros((n_rois, n_rois, 2, p_sig.sizes["freqs"])),
     dims=("sources", "targets", "p", "freqs"),
-    coords=dict(sources=areas, targets=areas, p=[
-                "ks", "t"], freqs=p_sig.freqs.data),
+    coords=dict(sources=areas, targets=areas, p=["ks", "t"], freqs=p_sig.freqs.data),
 )
 
 for p, roi in enumerate(roi):
@@ -175,12 +172,11 @@ for p, roi in enumerate(roi):
 # Saving to data frame
 #######################################################################
 
-df = p_sig.to_dataframe(name='n_edges').reset_index()
-x_s, x_t = _extract_roi(df['roi'].values, '-')
-df['sources'] = x_s
-df['targets'] = x_t
+df = p_sig.to_dataframe(name="n_edges").reset_index()
+x_s, x_t = _extract_roi(df["roi"].values, "-")
+df["sources"] = x_s
+df["targets"] = x_t
 # df = p_values.to_dataframe(name='pval').reset_index()
-file_path = os.path.join(
-    _ROOT, _RESULTS, f"nedges_{metric}_{sessions[idx]}_sum.csv")
+file_path = os.path.join(_ROOT, _RESULTS, f"nedges_{metric}_{sessions[idx]}_sum.csv")
 # p_values.to_netcdf(file_path)
 df.to_csv(file_path)
