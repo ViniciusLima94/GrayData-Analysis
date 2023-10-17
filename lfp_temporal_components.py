@@ -8,11 +8,13 @@ import pickle
 import argparse
 from brainconn.modularity import modularity_louvain_und
 from frites.utils import parallel_func
+from frites.conn import define_windows
+from GDa.session import session
 from tqdm import tqdm
 from GDa.loader import loader
 from GDa.util import _extract_roi
 from GDa.misc.downsample import downsample
-from config import get_dates, freqs
+from config import get_dates, freqs, return_evt_dt
 
 ###############################################################################
 # Argument parsing
@@ -35,9 +37,6 @@ parser.add_argument(
     choices=["P", "S", "D1", "D2", "Dm", "all"],
     type=str,
 )
-parser.add_argument(
-    "DECIM", help="decimation used to compute power",  type=int
-)
 
 args = parser.parse_args()
 
@@ -49,7 +48,6 @@ surr = args.SURR
 ttype = args.TTYPE
 behav = args.BEHAVIOR
 epoch = args.EPOCH
-decim = args.DECIM
 
 # To be sure of using the right parameter when using fixation trials
 if ttype == 2:
@@ -287,111 +285,125 @@ def shuffle_along_axis(a, axis):
 
 if __name__ == "__main__":
 
+    ##########################################################################
+    # LOAD LFP DATA
+    ##########################################################################
+
+    evt_dt = return_evt_dt("cue", monkey=monkey)
+    # Path to LFP data
+    raw_path = os.path.expanduser("~/funcog/gda/GrayLab/")
+    # Instantiate class
+    ses = session(
+        raw_path=raw_path,
+        monkey=monkey,
+        date=s_id,
+        session=1,
+        slvr_msmod=True,
+        align_to="cue",
+        evt_dt=evt_dt,
+    )
+
+    # Read data from .mat files
+    ses.read_from_mat()
+    
+    # Filtering by trials
+    if ttype in [2, 3]:
+        data = ses.filter_trials(trial_type=[ttype], behavioral_response=None)
+    else:
+        data = ses.filter_trials(trial_type=[ttype], behavioral_response=[behav])
+
     # Get time range of the epoch analysed
     ti, tf = stages[epoch]
-    # For loop over frequency bands
-    for freq in freqs.astype(int):
-        ######################################################################
-        # Loading data
-        ######################################################################
-        kw_loader = dict(
-            session=s_id, aligned_at="cue", channel_numbers=False,
-            monkey=monkey, decim=decim
+
+    times_array = data.time.values
+    trials_array = data.trials.values
+    rois = data.roi.data
+
+    dt = np.diff(times_array)[0]
+
+    if ttype == 1:
+        stim = data.attrs["stim"]
+
+    # Rename time dimension
+    data = data.rename({"time": "times"})
+    # z-score power
+    data = z_score(data)
+    # select epoch
+    data = data.sel(times=slice(ti, tf))
+    # Binarize power
+    raster = data >= thr
+    # Compute mean population ISI
+
+    #  ('trials', 'roi', 'time')
+    raster = downsample(
+        raster.transpose("trials", "roi", "times"),
+        dt * 20,
+        freqs=False
+    ).transpose('roi', 'trials', 'times')
+
+    # Get regions with time labels
+    roi_time = []
+    for t in range(data.sizes["times"]):
+        roi_time += [f"{r}_{t}" for r in rois]
+    roi_time = np.hstack(roi_time)
+
+    ######################################################################
+    # Compute temporal components
+    ######################################################################
+
+    if bool(surr):
+        raster_shuffle = shuffle_along_axis(raster.data, 0)
+
+        raster = xr.DataArray(
+            raster_shuffle, dims=raster.dims, coords=raster.coords
         )
 
-        power = data_loader.load_power(
-            **kw_loader, trial_type=ttype, behavioral_response=behav
-        ).sel(freqs=freq)
+    avalanches = parallel_wrapper(
+        raster, roi_time, min_size=1, n_jobs=30, verbose=False
+    )
 
-        times_array = power.times.data
-        trials_array = power.trials.data
-        rois = power.roi.data
-
-        # dt
-        dt = np.diff(times_array)[0]
-
+    # Get trials and stim label
+    trials, stims = [], []
+    for T in range(raster.sizes["trials"]):
+        trials += [[trials_array[T]] * len(avalanches[T])]
         if ttype == 1:
-            stim = power.attrs["stim"]
+            stims += [[stim[T]] * len(avalanches[T])]
 
-        # z-score power
-        power = z_score(power)
-        # select epoch
-        power = power.sel(times=slice(ti, tf))
+    trials = np.hstack(trials)
+    if ttype == 1:
+        stims = np.hstack(stims)
 
-        # Binarize power
-        raster = power >= thr
+    # Areas and times lists
+    areas, times, trials, stims = get_areas_times(avalanches, trials,
+                                                  stims)
 
-        # Downsample
-        if decim == 1:
-            raster = downsample(
-                raster.transpose("trials", "roi", "times"),
-                dt * 20,
-                freqs=True,
-            ).transpose('roi', 'trials', 'times')
+    # Coavalanching and precedence
+    T, P, delta = get_coavalanche_matrix(areas, times)
 
-        # Get regions with time labels
-        roi_time = []
-        for t in range(power.sizes["times"]):
-            roi_time += [f"{r}_{t}" for r in rois]
-        roi_time = np.hstack(roi_time)
+    ######################################################################
+    # Save results
+    ######################################################################
 
-        ######################################################################
-        # Compute temporal components
-        ######################################################################
+    _SAVE = os.path.expanduser(f"~/funcog/gda/Results/{monkey}/avalanches")
 
-        if bool(surr):
-            raster_shuffle = shuffle_along_axis(raster.data, 0)
+    names = ["lfp_areas", "lfp_trials", "lfp_times"]
+    results = [areas, trials, times]
 
-            raster = xr.DataArray(
-                raster_shuffle, dims=raster.dims, coords=raster.coords
-            )
+    if ttype == 1:
+        names += ["lfp_stim"]
+        results += [stims]
 
-        avalanches = parallel_wrapper(
-            raster, roi_time, min_size=1, n_jobs=30, verbose=False
-        )
+    def _fname(name):
+        return f"{name}_tt_{ttype}_br_{behav}_{epoch}_{s_id}_thr_{thr}_surr_{surr}.pkl"
 
-        # Get trials and stim label
-        trials, stims = [], []
-        for T in range(raster.sizes["trials"]):
-            trials += [[trials_array[T]] * len(avalanches[T])]
-            if ttype == 1:
-                stims += [[stim[T]] * len(avalanches[T])]
+    for pos, data in enumerate(results):
+        fname = _fname(names[pos])
+        with open(os.path.join(_SAVE, fname), "wb") as fp:
+            pickle.dump(data, fp)
 
-        trials = np.hstack(trials)
-        if ttype == 1:
-            stims = np.hstack(stims)
+    # Coavalanche and precedence
+    fname = f"lfp_T_tt_{ttype}_br_{behav}_{epoch}_{s_id}_thr_{thr}_surr_{surr}.nc"
+    T.to_netcdf(os.path.join(_SAVE, fname))
 
-        # Areas and times lists
-        areas, times, trials, stims = get_areas_times(avalanches, trials,
-                                                      stims)
-
-        # Coavalanching and precedence
-        T, P, delta = get_coavalanche_matrix(areas, times)
-
-        ######################################################################
-        # Save results
-        ######################################################################
-
-        _SAVE = os.path.expanduser(f"~/funcog/gda/Results/{monkey}/avalanches")
-
-        names = ["areas", "trials", "times"]
-        results = [areas, trials, times]
-
-        if ttype == 1:
-            names += ["stim"]
-            results += [stims]
-
-        def _fname(name):
-            return f"{name}_tt_{ttype}_br_{behav}_{epoch}_{s_id}_freq_{freq}_thr_{thr}_decim_{decim}_surr_{surr}.pkl"
-
-        for pos, data in enumerate(results):
-            fname = _fname(names[pos])
-            with open(os.path.join(_SAVE, fname), "wb") as fp:
-                pickle.dump(data, fp)
-
-        # Coavalanche and precedence
-        fname = f"T_tt_{ttype}_br_{behav}_{epoch}_{s_id}_freq_{freq}_thr_{thr}_decim_{decim}_surr_{surr}.nc"
-        T.to_netcdf(os.path.join(_SAVE, fname))
-
-        fname = f"P_tt_{ttype}_br_{behav}_{epoch}_{s_id}_freq_{freq}_thr_{thr}_decim_{decim}_surr_{surr}.nc"
-        P.to_netcdf(os.path.join(_SAVE, fname))
+    fname = f"lfp_P_tt_{ttype}_br_{behav}_{epoch}_{s_id}_thr_{thr}_surr_{surr}.nc"
+    P.to_netcdf(os.path.join(_SAVE, fname))

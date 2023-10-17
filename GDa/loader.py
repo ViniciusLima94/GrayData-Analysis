@@ -23,6 +23,7 @@ class loader:
         aligned_at: str = "cue",
         channel_numbers: bool = False,
         monkey: str = "lucy",
+        decim: int = 20
     ):
         """
         Load file containing the power time series
@@ -47,6 +48,8 @@ class loader:
 
         monkey: str | "lucy"
             The monkey for which to load the data.
+        decim: int | 20
+            The decimation factor used
 
         Returns:
         -------
@@ -57,7 +60,7 @@ class loader:
         _RESULTS = os.path.join("Results", monkey, session, "session01")
         # Name of the power file
         power_file = self.__return_power_file_name(
-            trial_type, behavioral_response, aligned_at
+            trial_type, behavioral_response, aligned_at, decim
         )
         # Load power data
         power = xr.load_dataarray(os.path.join(self._ROOT, _RESULTS, power_file))
@@ -348,11 +351,11 @@ class loader:
         return _name
 
 
-    def __return_power_file_name(self, trial_type, behavioral_response, aligned_at):
+    def __return_power_file_name(self, trial_type, behavioral_response, aligned_at, decim):
         """
         Return the name of the file containing the power time series.
         """
-        _name = f"power_tt_{trial_type}_br_{behavioral_response}_at_{aligned_at}.nc"
+        _name = f"power_tt_{trial_type}_br_{behavioral_response}_at_{aligned_at}_decim_{decim}.nc"
         return _name
 
 

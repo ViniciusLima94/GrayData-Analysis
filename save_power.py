@@ -3,9 +3,11 @@ import argparse
 import numpy as np
 import xarray as xr
 
+from GDa.session import session
+from frites.conn import define_windows
 from tqdm import tqdm
 from GDa.session import session
-from config import decim, mode, freqs, n_cycles, get_dates, return_evt_dt
+from config import mode, freqs, n_cycles, get_dates, return_evt_dt
 from frites.conn.conn_tf import _tf_decomp
 
 ###############################################################################
@@ -18,6 +20,7 @@ parser.add_argument("TT", help="type of the trial", type=int)
 parser.add_argument("BR", help="behavioral response", type=int)
 parser.add_argument("ALIGN", help="wheter to align data to cue or match", type=str)
 parser.add_argument("MONKEY", help="which monkey to use", type=str)
+parser.add_argument("DECIM", help="downsample factor", type=int)
 
 args = parser.parse_args()
 
@@ -27,6 +30,7 @@ tt = args.TT
 br = args.BR
 at = args.ALIGN
 monkey = args.MONKEY
+decim = args.DECIM
 
 print(monkey)
 
@@ -78,7 +82,7 @@ sxx = _tf_decomp(
     decim=decim,
     kw_cwt={},
     kw_mt={},
-    n_jobs=10,
+    n_jobs=5,
 )
 
 sxx = xr.DataArray(
@@ -102,9 +106,8 @@ results_path = os.path.join(_ROOT, "Results", monkey, s_id, "session01")
 if not os.path.exists(results_path):
     os.makedirs(results_path)
 
-file_name = f"power_tt_{tt}_br_{br}_at_{at}.nc"
+file_name = f"power_tt_{tt}_br_{br}_at_{at}_decim_{decim}.nc"
 path_pow = os.path.join(results_path, file_name)
-# print(path_pow)
 
 sxx.attrs = data.attrs
 sxx.attrs["evt_dt"] = evt_dt
