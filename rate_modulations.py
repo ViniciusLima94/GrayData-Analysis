@@ -18,6 +18,7 @@ parser.add_argument("SIDX", help="index of the session to load", type=int)
 parser.add_argument("MONKEY", help="which monkey to use", type=str)
 parser.add_argument("ALIGNED", help="wheter power was align to cue or match", type=str)
 parser.add_argument("THR", help="which threshold value to use", type=float)
+parser.add_argument("DECIM", help="decimation used on the power", type=int)
 
 args = parser.parse_args()
 
@@ -25,6 +26,7 @@ sid = args.SIDX
 at = args.ALIGNED
 monkey = args.MONKEY
 thr = args.THR
+decim = args.DECIM
 
 # early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=ds)
 sessions = get_dates(monkey)
@@ -139,9 +141,11 @@ def compute_median_rate(
         # Otherwise get all trials
         idx_trials = [True] * data.sizes["trials"]
 
+    data = (data - data.mean("times")) / data.std("times")
+
     if thr > 0:
         # Compute quantile based threshold
-        thr = data.quantile(thr, ("trials", "times"))
+        # thr = data.quantile(thr, ("trials", "times"))
         # Apply threshold
         data = data >= thr
     else:
@@ -294,7 +298,9 @@ def return_burst_prob(power, conditional=False, thr=0.95, verbose=False):
 
 data_loader = loader(_ROOT=_ROOT)
 
-kw_loader = dict(session=s_id, aligned_at=at, channel_numbers=False, monkey=monkey)
+kw_loader = dict(
+    session=s_id, aligned_at=at, channel_numbers=False, monkey=monkey, decim=decim
+)
 
 power_task = data_loader.load_power(**kw_loader, trial_type=1, behavioral_response=1)
 power_fix = data_loader.load_power(**kw_loader, trial_type=2, behavioral_response=0)
@@ -308,7 +314,8 @@ P_b_fix, SP_b_fix = return_burst_prob(power_fix, thr=thr)
 # Computes burst probability for task and fixation
 P_b_task_stim, SP_b_task_stim = return_burst_prob(power_task, conditional=True, thr=thr)
 
-percentile = int(thr * 100)
+# percentile = int(thr * 100)
+percentile = thr
 
 P_b_task.to_netcdf(os.path.join(_SAVE, f"P_b_task_{s_id}_at_{at}_q_{percentile}.nc"))
 SP_b_task.to_netcdf(os.path.join(_SAVE, f"SP_b_task_{s_id}_at_{at}_q_{percentile}.nc"))

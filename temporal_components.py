@@ -322,11 +322,12 @@ if __name__ == "__main__":
         raster = power >= thr
 
         # Downsample
-        if decim == 1:
+        if decim in [1, 5]:
+            _gamma = {1: 20, 5: 3}
             raster = downsample(
                 raster.transpose("trials", "roi", "times"),
-                dt * 20,
-                freqs=True,
+                dt * _gamma[decim],
+                freqs=False,
             ).transpose('roi', 'trials', 'times')
 
         # Get regions with time labels
@@ -339,8 +340,10 @@ if __name__ == "__main__":
         # Compute temporal components
         ######################################################################
 
+        print(raster.dims)
+
         if bool(surr):
-            raster_shuffle = shuffle_along_axis(raster.data, 0)
+            raster_shuffle = shuffle_along_axis(raster.data, 1)
 
             raster = xr.DataArray(
                 raster_shuffle, dims=raster.dims, coords=raster.coords
