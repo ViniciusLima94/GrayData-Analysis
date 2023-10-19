@@ -1367,11 +1367,11 @@ def compute_for_session(session):
     kw_loader = dict(aligned_at="cue", channel_numbers=False, monkey=monkey)
 
     power_task = data_loader.load_power(
-        **kw_loader, trial_type=1, behavioral_response=1, session=session
+        **kw_loader, trial_type=1, behavioral_response=1, session=session, decim=5
     )
 
     power_fix = data_loader.load_power(
-        **kw_loader, trial_type=2, behavioral_response=0, session=session
+        **kw_loader, trial_type=2, behavioral_response=0, session=session, decim=5
     )
 
     freqs = power_task.freqs.data
@@ -1523,7 +1523,7 @@ crk_pval = node_xr_remove_sca(crk_pval)
 
 
 kw_loader = dict(
-    session="141024", aligned_at="cue", channel_numbers=False, monkey=monkey
+    session="141024", aligned_at="cue", channel_numbers=False, monkey=monkey, decim=5
 )
 
 power_task = data_loader.load_power(**kw_loader, trial_type=1, behavioral_response=1)
