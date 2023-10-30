@@ -1,7 +1,7 @@
 import numpy as np
 import numba 
 import scipy.stats
-
+import matplotlib.pyplot as plt
 import sys
 
 sys.path.insert(1, "/home/vinicius/storage1/projects/GrayData-Analysis")

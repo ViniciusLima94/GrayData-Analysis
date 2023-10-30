@@ -149,7 +149,7 @@ def compute_median_rate(
         # Apply threshold
         data = data >= thr
     else:
-        data = (data - data.mean("times")) / data.std("times")
+        # data = (data - data.mean("times")) / data.std("times")
         data = data * (data >= 0)
 
     # Get time-series for specific trials, roi and time slice
@@ -315,7 +315,7 @@ P_b_fix, SP_b_fix = return_burst_prob(power_fix, thr=thr)
 P_b_task_stim, SP_b_task_stim = return_burst_prob(power_task, conditional=True, thr=thr)
 
 # percentile = int(thr * 100)
-percentile = thr
+percentile = int(thr)
 
 P_b_task.to_netcdf(os.path.join(_SAVE, f"P_b_task_{s_id}_at_{at}_q_{percentile}.nc"))
 SP_b_task.to_netcdf(os.path.join(_SAVE, f"SP_b_task_{s_id}_at_{at}_q_{percentile}.nc"))
