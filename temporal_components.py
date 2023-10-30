@@ -359,10 +359,11 @@ if __name__ == "__main__":
             trials += [[trials_array[T]] * len(avalanches[T])]
             if ttype == 1:
                 stims += [[stim[T]] * len(avalanches[T])]
+            else:
+                stims += [[0] * len(avalanches[T])]
 
         trials = np.hstack(trials)
-        if ttype == 1:
-            stims = np.hstack(stims)
+        stims = np.hstack(stims)
 
         # Areas and times lists
         areas, times, trials, stims = get_areas_times(avalanches, trials,
