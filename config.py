@@ -130,7 +130,7 @@ sm_kernel = "square"
 
 # Defining parameters
 decim = 20  # Downsampling factor
-mode = "multitaper"  # Wheter to use Morlet or Multitaper
+mode = "morlet"  # Wheter to use Morlet or Multitaper
 
 n_freqs = 10  # How many frequencies to use
 freqs = np.linspace(3, 75, n_freqs)  # Frequency array

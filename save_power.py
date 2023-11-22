@@ -32,8 +32,6 @@ at = args.ALIGN
 monkey = args.MONKEY
 decim = args.DECIM
 
-print(monkey)
-
 sessions = get_dates(monkey)
 
 s_id = sessions[idx]
@@ -89,7 +87,8 @@ sxx = xr.DataArray(
     (sxx * np.conj(sxx)).real,
     name="power",
     dims=("trials", "roi", "freqs", "times"),
-    coords=(data.trials.values, data.roi.values, freqs, data.time.values[::decim]),
+    coords=(data.trials.values, data.roi.values, freqs,
+            data.time.values[::decim]),
 )
 
 # sm_times = int(np.round(0.1 * data.attrs["fsample"]  / decim))
@@ -106,7 +105,7 @@ results_path = os.path.join(_ROOT, "Results", monkey, s_id, "session01")
 if not os.path.exists(results_path):
     os.makedirs(results_path)
 
-file_name = f"power_tt_{tt}_br_{br}_at_{at}_decim_{decim}.nc"
+file_name = f"power_tt_{tt}_br_{br}_at_{at}_decim_{decim}_{mode}.nc"
 path_pow = os.path.join(results_path, file_name)
 
 sxx.attrs = data.attrs

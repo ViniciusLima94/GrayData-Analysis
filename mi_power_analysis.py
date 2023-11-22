@@ -39,9 +39,6 @@ monkey = args.MONKEY
 slvr = args.SLVR
 
 
-stages = {}
-stages["lucy"] = [[-0.5, -0.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
-stages["ethyl"] = [[-0.5, -0.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5]]
 stage_labels = ["P", "S", "D1", "D2", "Dm"]
 
 assert metric in ["pow", "zpow"]
@@ -65,9 +62,12 @@ sxx = []
 stim = []
 for s_id in tqdm(sessions):
     power = data_loader.load_power(
-        **kw_loader, trial_type=tt, behavioral_response=br, session=s_id
+        **kw_loader, trial_type=tt, behavioral_response=br, session=s_id,
+        decim=5
     )
     attrs = power.attrs
+
+    t_match_on = ( power.attrs["t_match_on"] - power.attrs["t_cue_on"] ) / 1000
 
     # Remove SLVR channels
     if not bool(slvr):
@@ -86,9 +86,14 @@ for s_id in tqdm(sessions):
     # Average epochs
     out = []
     if avg:
-        for t0, t1 in stages[monkey]:
-            out += [power.sel(times=slice(t0, t1)).mean("times")]
-        out = xr.concat(out, "times")
+        for i in range(power.sizes["trials"]):
+            stages = [[-0.5, -0.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3],
+                      [t_match_on[i] - .4, t_match_on[i]]]
+            temp = []
+            for t0, t1 in stages:
+                temp += [power.sel(times=slice(t0, t1)).isel(trials=i).mean("times")]
+            out += [xr.concat(temp, "times")]
+        out = xr.concat(out, "trials")
         out = out.transpose("trials", "roi", "freqs", "times")
     else:
         out = power

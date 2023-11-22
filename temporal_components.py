@@ -306,6 +306,7 @@ if __name__ == "__main__":
         times_array = power.times.data
         trials_array = power.trials.data
         rois = power.roi.data
+        attrs = power.attrs
 
         # dt
         dt = np.diff(times_array)[0]
@@ -315,8 +316,20 @@ if __name__ == "__main__":
 
         # z-score power
         power = z_score(power)
+        power.attrs = attrs
+
         # select epoch
-        power = power.sel(times=slice(ti, tf))
+        if epoch == "Dm":
+            temp = []
+            t_match_on = ( power.attrs["t_match_on"] - power.attrs["t_cue_on"] ) / 1000
+            new_time_array = np.arange(-0.4, 0, dt)
+            for i in range(power.sizes["trials"]):
+                ti, tf = t_match_on[i] - .4, t_match_on[i]
+                temp += [power.sel(times=slice(ti, tf)).isel(trials=i)]
+                temp[-1] = temp[-1].assign_coords({"times": new_time_array})
+            temp = xr.concat(temp, "trials")
+        else:
+            power = power.sel(times=slice(ti, tf))
 
         # Binarize power
         raster = power >= thr
@@ -339,8 +352,6 @@ if __name__ == "__main__":
         ######################################################################
         # Compute temporal components
         ######################################################################
-
-        print(raster.dims)
 
         if bool(surr):
             raster_shuffle = shuffle_along_axis(raster.data, 1)
