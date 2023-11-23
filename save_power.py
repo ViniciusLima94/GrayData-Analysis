@@ -161,11 +161,11 @@ if mode in ["morlet", "multitaper"]:
         coords=(data.trials.values, data.roi.values, freqs,
                 data.time.values[::decim]),
     )
-else:
+elif mode == "hilbert":
     sxx = hilbert_spectra(
         data, data.attrs["fsample"], freqs, 4, n_jobs=20,
         verbose=False, kw_filter={}
-    )[::decim]
+    )[..., ::decim]
 
 # sm_times = int(np.round(0.1 * data.attrs["fsample"]  / decim))
 # kernel = _create_kernel(sm_times, 1)
