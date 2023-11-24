@@ -27,6 +27,7 @@ parser.add_argument("SIDX", help="index of the session to load", type=int)
 parser.add_argument("ALIGNED", help="wheter to align data to cue or match", type=str)
 parser.add_argument("MONKEY", help="which monkey to use", type=str)
 parser.add_argument("SURR", help="which monkey to use", type=int)
+parser.add_argument("DECIM", help="decimation factor", type=int)
 
 args = parser.parse_args()
 
@@ -40,6 +41,7 @@ at = args.ALIGNED
 monkey = args.MONKEY
 # whether to use surrogate data or not
 surr = args.SURR
+decim = args.DECIM
 
 early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=0)
 
@@ -64,13 +66,13 @@ if not os.path.isdir(_RESULTS):
 # Get root path
 ##############################################################################
 if not bool(surr):
-    coh_file = f"{metric}_at_{at}.nc"
+    coh_file = f"{metric}_at_{at}_decim_{decim}.nc"
 else:
-    coh_file = f"{metric}_at_{at}_surr.nc"
+    coh_file = f"{metric}_at_{at}_decim_{decim}_surr.nc"
 
 coh_sig_file = None
 if metric == "coh":
-    coh_sig_file = f"thr_{metric}_at_{at}_surr.nc"
+    coh_sig_file = f"thr_{metric}_at_{at}_{decim}_surr.nc"
 wt = None
 
 ##############################################################################
@@ -118,9 +120,9 @@ degree = degree.transpose("trials", "roi", "freqs", "times")
 degree.attrs = net.super_tensor.attrs
 
 if not bool(surr):
-    fname = f"{metric}_degree_at_{at}.nc"
+    fname = f"{metric}_degree_at_{at}_decim_{decim}.nc"
 else:
-    fname = f"{metric}_degree_at_{at}_surr.nc"
+    fname = f"{metric}_degree_at_{at}_decim_{decim}_surr.nc"
 
 path_degree = os.path.join(_ROOT, _RESULTS, fname)
 

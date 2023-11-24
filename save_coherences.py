@@ -7,7 +7,6 @@ from config import (
     sm_times,
     sm_kernel,
     sm_freqs,
-    decim,
     mode,
     freqs,
     n_cycles,
@@ -28,6 +27,7 @@ parser.add_argument(
 )
 parser.add_argument("SEED", help="seed for create surrogates", type=int)
 parser.add_argument("MONKEY", help="which monkey to use", type=str)
+parser.add_argument("DECIM", help="decimation factor", type=int)
 
 args = parser.parse_args()
 # The connectivity metric that should be used
@@ -42,6 +42,7 @@ surr = bool(args.SURR)
 seed = args.SEED
 # Wheter to use Lucy or Ethyl's data
 monkey = args.MONKEY
+decim = args.DECIM
 
 sessions = get_dates(monkey)
 
@@ -68,7 +69,7 @@ if __name__ == "__main__":
         os.makedirs(path_st)
 
     # Add name of the coherence file
-    path_st_coh = os.path.join(path_st, f"{metric}_at_{at}.nc")
+    path_st_coh = os.path.join(path_st, f"{metric}_at_{at}_decim_{decim}.nc")
 
     # Remove file if it was already created
     if os.path.isfile(path_st_coh):
@@ -137,7 +138,7 @@ if __name__ == "__main__":
         coh_surr = coh_surr.transpose("roi", "freqs", "trials", "times")
         coh_surr.attrs = attrs
         # Add name of the coherence file
-        path_st_surr = os.path.join(path_st, f"{metric}_at_{at}_surr.nc")
+        path_st_surr = os.path.join(path_st, f"{metric}_at_{at}_decim_{decim}_surr.nc")
         coh_surr.to_netcdf(path_st_surr)
         del coh_surr
 
