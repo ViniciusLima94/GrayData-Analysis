@@ -17,5 +17,6 @@
 *.png
 *.pdf
 plot_scripts/
+paper/
 __pycache__/
 .ipynb_checkpoints
