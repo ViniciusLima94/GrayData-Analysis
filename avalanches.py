@@ -137,22 +137,27 @@ if __name__ == "__main__":
         # Summed activity
         rho = raster.sum("roi")
         # Get baseline level
-        Q = rho.quantile(.7, "times")
+        Q = rho.quantile(0.7, "times")
         # Filter raster
         mask = rho >= Q
 
         # select epoch
         if epoch == "Dm":
             temp = []
+            temp_mask = []
             t_match_on = ( power.attrs["t_match_on"] - power.attrs["t_cue_on"] ) / 1000
             new_time_array = np.arange(-0.4, 0, dt)
             for i in range(power.sizes["trials"]):
                 ti, tf = t_match_on[i] - .4, t_match_on[i]
-                temp += [raster.sel(times=slice(ti, tf)).isel(trials=i)]
+                temp += [raster.isel(trials=i).sel(times=slice(ti, tf))]
+                temp_mask += [mask.isel(trials=i).sel(times=slice(ti, tf))]
                 temp[-1] = temp[-1].assign_coords({"times": new_time_array})
-            temp = xr.concat(temp, "trials")
+                temp_mask[-1] = temp_mask[-1].assign_coords({"times": new_time_array})
+            raster = xr.concat(temp, "trials")
+            mask = xr.concat(temp_mask, "trials")
         else:
             raster = raster.sel(times=slice(ti, tf))
+            mask = mask.sel(times=slice(ti, tf))
 
         # Downsample
         # if decim in [1, 5]:
@@ -162,13 +167,6 @@ if __name__ == "__main__":
                 # dt * _gamma[decim],
                 # freqs=False,
             # ).transpose('roi', 'trials', 'times')
-
-
-        # Get regions with time labels
-        roi_time = []
-        for t in range(power.sizes["times"]):
-            roi_time += [f"{r}_{t}" for r in rois]
-        roi_time = np.hstack(roi_time)
 
         ######################################################################
         # Compute co-crackling graphlets

@@ -86,6 +86,7 @@ class loader:
         metric: float = "pec",
         aligned_at: str = "cue",
         monkey: str = "lucy",
+        decim: int = 10
     ):
         """
         Load file containing the power time series
@@ -115,7 +116,7 @@ class loader:
                                 "session01", "network")
         # Name of the power file
         pec_file = self.__return_pecst_file_name(
-            metric, aligned_at
+            metric, aligned_at, decim
         )
         # Load power data
         pecst = xr.load_dataarray(os.path.join(self._ROOT, _RESULTS, pec_file))
@@ -344,11 +345,11 @@ class loader:
         return data
 
 
-    def __return_pecst_file_name(self, metric, aligned_at):
+    def __return_pecst_file_name(self, metric, aligned_at, decim):
         """
         Return the name of the file containing the power time series.
         """
-        _name = f"{metric}_degree_at_{aligned_at}.nc"
+        _name = f"{metric}_degree_at_{aligned_at}_decim_{decim}.nc"
         return _name
 
 
