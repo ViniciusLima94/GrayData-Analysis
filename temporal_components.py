@@ -1,11 +1,11 @@
 """ Find temporal communities in the supraadjacency """
 import os
+import pickle
+import argparse
 import numpy as np
 import xarray as xr
 import networkx as nx
 import igraph as ig
-import pickle
-import argparse
 from brainconn.modularity import modularity_louvain_und
 from frites.utils import parallel_func
 from tqdm import tqdm
@@ -29,15 +29,13 @@ parser.add_argument("TTYPE", help="which trial type to use", choices=[1, 2], typ
 parser.add_argument(
     "BEHAVIOR", help="which behavioral response to use", choices=[0, 1], type=int
 )
-parser.add_argument(
-    "EPOCH",
-    help="which stage to use",
-    choices=["P", "S", "D1", "D2", "Dm", "all"],
-    type=str,
-)
-parser.add_argument(
-    "DECIM", help="decimation used to compute power",  type=int
-)
+# parser.add_argument(
+    # "EPOCH",
+    # help="which stage to use",
+    # choices=["P", "S", "D1", "D2", "Dm", "all"],
+    # type=str,
+# )
+parser.add_argument("DECIM", help="decimation used to compute power", type=int)
 
 args = parser.parse_args()
 
@@ -48,7 +46,7 @@ monkey = args.MONKEY
 surr = args.SURR
 ttype = args.TTYPE
 behav = args.BEHAVIOR
-epoch = args.EPOCH
+# epoch = args.EPOCH
 decim = args.DECIM
 
 # To be sure of using the right parameter when using fixation trials
@@ -64,7 +62,7 @@ _ROOT = os.path.expanduser("~/funcog/gda")
 
 data_loader = loader(_ROOT=_ROOT)
 
-stages = [[-0.5, -0.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5], [-0.5, 2.0]]
+stages = [[-0.5, -0.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5], [-.5, 2]]
 stage_labels = ["P", "S", "D1", "D2", "Dm", "all"]
 stages = dict(zip(stage_labels, stages))
 
@@ -288,15 +286,25 @@ def shuffle_along_axis(a, axis):
 if __name__ == "__main__":
 
     # Get time range of the epoch analysed
-    ti, tf = stages[epoch]
+    # ti, tf = stages[epoch]
     # For loop over frequency bands
-    for freq in freqs.astype(int):
+    # for freq in freqs.astype(int):
+    def _for_freq(freq, epoch):
+
+        ######################################################################
+        # Get time epochs onset and offset
+        ######################################################################
+        ti, tf = stages[epoch]
+
         ######################################################################
         # Loading data
         ######################################################################
         kw_loader = dict(
-            session=s_id, aligned_at="cue", channel_numbers=False,
-            monkey=monkey, decim=decim
+            session=s_id,
+            aligned_at="cue",
+            channel_numbers=False,
+            monkey=monkey,
+            decim=decim,
         )
 
         power = data_loader.load_power(
@@ -321,10 +329,10 @@ if __name__ == "__main__":
         # select epoch
         if epoch == "Dm":
             temp = []
-            t_match_on = ( power.attrs["t_match_on"] - power.attrs["t_cue_on"] ) / 1000
+            t_match_on = (power.attrs["t_match_on"] - power.attrs["t_cue_on"]) / 1000
             new_time_array = np.arange(-0.4, 0, dt)
             for i in range(power.sizes["trials"]):
-                ti, tf = t_match_on[i] - .4, t_match_on[i]
+                ti, tf = t_match_on[i] - 0.4, t_match_on[i]
                 temp += [power.sel(times=slice(ti, tf)).isel(trials=i)]
                 temp[-1] = temp[-1].assign_coords({"times": new_time_array})
             temp = xr.concat(temp, "trials")
@@ -333,6 +341,7 @@ if __name__ == "__main__":
 
         # Binarize power
         raster = power >= thr
+        # raster = power >= power.quantile(thr / 100, ("times"))
 
         # Downsample
         if decim in [1, 5]:
@@ -341,7 +350,7 @@ if __name__ == "__main__":
                 raster.transpose("trials", "roi", "times"),
                 dt * _gamma[decim],
                 freqs=False,
-            ).transpose('roi', 'trials', 'times')
+            ).transpose("roi", "trials", "times")
 
         # Get regions with time labels
         roi_time = []
@@ -377,8 +386,7 @@ if __name__ == "__main__":
         stims = np.hstack(stims)
 
         # Areas and times lists
-        areas, times, trials, stims = get_areas_times(avalanches, trials,
-                                                      stims)
+        areas, times, trials, stims = get_areas_times(avalanches, trials, stims)
 
         # Coavalanching and precedence
         T, P, delta = get_coavalanche_matrix(areas, times)
@@ -410,3 +418,11 @@ if __name__ == "__main__":
 
         fname = f"P_tt_{ttype}_br_{behav}_{epoch}_{s_id}_freq_{freq}_thr_{thr}_decim_{decim}_surr_{surr}.nc"
         P.to_netcdf(os.path.join(_SAVE, fname))
+
+    freqs_vector = freqs.astype(int)
+    for epoch in stage_labels:
+        [_for_freq(freq, epoch) for freq in freqs_vector]
+    # parallel, p_fun = parallel_func(
+        # _for_freq, n_jobs=1, verbose=False, total=len(freqs_vector)
+    # )
+    # parallel(p_fun(freq) for freq in freqs_vector)
