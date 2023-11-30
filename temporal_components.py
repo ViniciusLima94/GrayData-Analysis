@@ -313,7 +313,7 @@ if __name__ == "__main__":
 
         power = data_loader.load_power(
             **kw_loader, trial_type=ttype, behavioral_response=behav
-        ).sel(freqs=freq, times=slice(-.5, 2.))
+        ).sel(freqs=freq, times=slice(-.5, 2.1))
 
         times_array = power.times.data
         trials_array = power.trials.data
