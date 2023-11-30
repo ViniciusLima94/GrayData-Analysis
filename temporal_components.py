@@ -30,11 +30,12 @@ parser.add_argument(
     "BEHAVIOR", help="which behavioral response to use", choices=[0, 1], type=int
 )
 # parser.add_argument(
-    # "EPOCH",
-    # help="which stage to use",
-    # choices=["P", "S", "D1", "D2", "Dm", "all"],
-    # type=str,
+# "EPOCH",
+# help="which stage to use",
+# choices=["P", "S", "D1", "D2", "Dm", "all"],
+# type=str,
 # )
+parser.add_argument("THR_TYPE", help="Whether to thrshold based on a single trial or the entire session", type=str)
 parser.add_argument("DECIM", help="decimation used to compute power", type=int)
 
 args = parser.parse_args()
@@ -46,7 +47,7 @@ monkey = args.MONKEY
 surr = args.SURR
 ttype = args.TTYPE
 behav = args.BEHAVIOR
-# epoch = args.EPOCH
+thr_type = args.THR_TYPE
 decim = args.DECIM
 
 # To be sure of using the right parameter when using fixation trials
@@ -62,7 +63,10 @@ _ROOT = os.path.expanduser("~/funcog/gda")
 
 data_loader = loader(_ROOT=_ROOT)
 
-stages = [[-0.5, -0.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5], [-.5, 2]]
+if monkey == "lucy":
+    stages = [[-0.5, -0.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5], [-0.5, 2]]
+else:
+    stages = [[-0.3, -0.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5], [-0.5, 2]]
 stage_labels = ["P", "S", "D1", "D2", "Dm", "all"]
 stages = dict(zip(stage_labels, stages))
 
@@ -309,7 +313,7 @@ if __name__ == "__main__":
 
         power = data_loader.load_power(
             **kw_loader, trial_type=ttype, behavioral_response=behav
-        ).sel(freqs=freq)
+        ).sel(freqs=freq, times=slice(-.5, 2.))
 
         times_array = power.times.data
         trials_array = power.trials.data
@@ -322,8 +326,15 @@ if __name__ == "__main__":
         if ttype == 1:
             stim = power.attrs["stim"]
 
+        if thr_type == "absolute":
+            thr_dims = ("times", "trials")
+        else:
+            thr_dims = ("times")
+
         # z-score power
-        power = z_score(power)
+        # power = z_score(power)
+        # power = power >= power.quantile(thr / 100, thr_dims)
+        q = power.quantile(thr / 100, thr_dims)
         power.attrs = attrs
 
         # select epoch
@@ -335,13 +346,13 @@ if __name__ == "__main__":
                 ti, tf = t_match_on[i] - 0.4, t_match_on[i]
                 temp += [power.sel(times=slice(ti, tf)).isel(trials=i)]
                 temp[-1] = temp[-1].assign_coords({"times": new_time_array})
-            temp = xr.concat(temp, "trials")
+            power = xr.concat(temp, "trials")
         else:
             power = power.sel(times=slice(ti, tf))
 
         # Binarize power
-        raster = power >= thr
-        # raster = power >= power.quantile(thr / 100, ("times"))
+        # raster = power >= thr
+        raster = power >= q  # raster = power >= power.quantile(thr / 100, ("times"))
 
         # Downsample
         if decim in [1, 5]:
@@ -423,6 +434,6 @@ if __name__ == "__main__":
     for epoch in stage_labels:
         [_for_freq(freq, epoch) for freq in freqs_vector]
     # parallel, p_fun = parallel_func(
-        # _for_freq, n_jobs=1, verbose=False, total=len(freqs_vector)
+    # _for_freq, n_jobs=1, verbose=False, total=len(freqs_vector)
     # )
     # parallel(p_fun(freq) for freq in freqs_vector)
