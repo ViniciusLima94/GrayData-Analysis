@@ -2,7 +2,7 @@ import numpy as np
 import xarray as xr
 from frites.conn import define_windows
 
-def downsample(data, slwin_len, freqs=False):
+def downsample(data, slwin_len, min_events=0, freqs=False):
     """
     Downsample a 4D data array by sliding a window over it and setting it
     to one if any value is one inside the window.
@@ -13,6 +13,8 @@ def downsample(data, slwin_len, freqs=False):
         The input 4D data array with dimensions ("trials", "roi", "freqs", "times").
     slwin_len : float
         The length of the sliding window in seconds.
+    min_events: int
+        Minimum number of events inside the window required to consider it as active.
     freqs : bool, optional
         If True, the data array includes a "freqs" dimension; otherwise, it only
         has "trials" and "roi" dimensions.
@@ -73,7 +75,7 @@ def downsample(data, slwin_len, freqs=False):
     data_ds = np.zeros(_shape, dtype=int)
 
     for pos, (t_i, t_f) in enumerate(win):
-        data_ds[..., pos] = data_array[..., t_i:t_f].sum(axis=-1) > 0
+        data_ds[..., pos] = data_array[..., t_i:t_f].sum(axis=-1) > min_events
 
     data_ds = xr.DataArray(data_ds, dims=_dims, coords=_coords)
 

@@ -416,7 +416,7 @@ if __name__ == "__main__":
             results += [stims]
 
         def _fname(name):
-            return f"{name}_tt_{ttype}_br_{behav}_{epoch}_{s_id}_freq_{freq}_thr_{thr}_decim_{decim}_surr_{surr}.pkl"
+            return f"{name}_tt_{ttype}_br_{behav}_{epoch}_{s_id}_freq_{freq}_{thr_type}_thr_{thr}_decim_{decim}_surr_{surr}.pkl"
 
         for pos, data in enumerate(results):
             fname = _fname(names[pos])
@@ -424,16 +424,12 @@ if __name__ == "__main__":
                 pickle.dump(data, fp)
 
         # Coavalanche and precedence
-        fname = f"T_tt_{ttype}_br_{behav}_{epoch}_{s_id}_freq_{freq}_thr_{thr}_decim_{decim}_surr_{surr}.nc"
+        fname = f"T_tt_{ttype}_br_{behav}_{epoch}_{s_id}_freq_{freq}_{thr_type}_thr_{thr}_decim_{decim}_surr_{surr}.nc"
         T.to_netcdf(os.path.join(_SAVE, fname))
 
-        fname = f"P_tt_{ttype}_br_{behav}_{epoch}_{s_id}_freq_{freq}_thr_{thr}_decim_{decim}_surr_{surr}.nc"
+        fname = f"P_tt_{ttype}_br_{behav}_{epoch}_{s_id}_freq_{freq}_{thr_type}_thr_{thr}_decim_{decim}_surr_{surr}.nc"
         P.to_netcdf(os.path.join(_SAVE, fname))
 
     freqs_vector = freqs.astype(int)
     for epoch in stage_labels:
         [_for_freq(freq, epoch) for freq in freqs_vector]
-    # parallel, p_fun = parallel_func(
-    # _for_freq, n_jobs=1, verbose=False, total=len(freqs_vector)
-    # )
-    # parallel(p_fun(freq) for freq in freqs_vector)
