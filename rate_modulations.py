@@ -141,15 +141,15 @@ def compute_median_rate(
         # Otherwise get all trials
         idx_trials = [True] * data.sizes["trials"]
 
-    data = (data - data.mean("times")) / data.std("times")
+    # data = (data - data.mean("times")) / data.std("times")
 
     if thr > 0:
         # Compute quantile based threshold
-        # thr = data.quantile(thr, ("trials", "times"))
+        thr = data.quantile(thr, ("times"))
         # Apply threshold
         data = data >= thr
     else:
-        # data = (data - data.mean("times")) / data.std("times")
+        data = (data - data.mean("times")) / data.std("times")
         data = data * (data >= 0)
 
     # Get time-series for specific trials, roi and time slice
@@ -307,12 +307,12 @@ power_fix = data_loader.load_power(**kw_loader, trial_type=2, behavioral_respons
 
 
 # Computes burst probability for task and fixation
-P_b_task, SP_b_task = return_burst_prob(power_task, thr=thr)
-P_b_fix, SP_b_fix = return_burst_prob(power_fix, thr=thr)
+P_b_task, SP_b_task = return_burst_prob(power_task, thr=thr / 100)
+P_b_fix, SP_b_fix = return_burst_prob(power_fix, thr=thr / 100)
 
 
 # Computes burst probability for task and fixation
-P_b_task_stim, SP_b_task_stim = return_burst_prob(power_task, conditional=True, thr=thr)
+# P_b_task_stim, SP_b_task_stim = return_burst_prob(power_task, conditional=True, thr=thr / 100)
 
 # percentile = int(thr * 100)
 percentile = int(thr)
@@ -323,9 +323,9 @@ SP_b_task.to_netcdf(os.path.join(_SAVE, f"SP_b_task_{s_id}_at_{at}_q_{percentile
 P_b_fix.to_netcdf(os.path.join(_SAVE, f"P_b_fix_{s_id}_at_{at}_q_{percentile}.nc"))
 SP_b_fix.to_netcdf(os.path.join(_SAVE, f"SP_b_fix_{s_id}_at_{at}_q_{percentile}.nc"))
 
-P_b_task_stim.to_netcdf(
-    os.path.join(_SAVE, f"P_b_task_stim_{s_id}_at_{at}_q_{percentile}.nc")
-)
-SP_b_task_stim.to_netcdf(
-    os.path.join(_SAVE, f"SP_b_task_stim_{s_id}_at_{at}_q_{percentile}.nc")
-)
+# P_b_task_stim.to_netcdf(
+# os.path.join(_SAVE, f"P_b_task_stim_{s_id}_at_{at}_q_{percentile}.nc")
+# )
+# SP_b_task_stim.to_netcdf(
+# os.path.join(_SAVE, f"SP_b_task_stim_{s_id}_at_{at}_q_{percentile}.nc")
+# )
