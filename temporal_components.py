@@ -6,7 +6,6 @@ import numpy as np
 import xarray as xr
 import networkx as nx
 import igraph as ig
-from brainconn.modularity import modularity_louvain_und
 from frites.utils import parallel_func
 from tqdm import tqdm
 from GDa.loader import loader
@@ -35,7 +34,11 @@ parser.add_argument(
 # choices=["P", "S", "D1", "D2", "Dm", "all"],
 # type=str,
 # )
-parser.add_argument("THR_TYPE", help="Whether to thrshold based on a single trial or the entire session", type=str)
+parser.add_argument(
+    "THR_TYPE",
+    help="Whether to thrshold based on a single trial or the entire session",
+    type=str,
+)
 parser.add_argument("DECIM", help="decimation used to compute power", type=int)
 
 args = parser.parse_args()
@@ -145,9 +148,9 @@ def return_connected_components(raster, node_labels, min_size=1, verbose=False):
     # Decompose graph
     dG = ig.Graph.from_networkx(G).components(mode="strong")
     # Number of connected components
-    ncomp = len(dG)
+    # ncomp = len(dG)
     # Size of components
-    sizes = np.array(dG.sizes())
+    # sizes = np.array(dG.sizes())
     # Bigger than min_size components
     idx = np.where(np.array(dG.sizes()) > min_size)[0]
     # Components
@@ -313,7 +316,7 @@ if __name__ == "__main__":
 
         power = data_loader.load_power(
             **kw_loader, trial_type=ttype, behavioral_response=behav
-        ).sel(freqs=freq, times=slice(-.5, 2.1))
+        ).sel(freqs=freq, times=slice(-0.5, 2.1))
 
         times_array = power.times.data
         trials_array = power.trials.data
@@ -329,7 +332,7 @@ if __name__ == "__main__":
         if thr_type == "absolute":
             thr_dims = ("times", "trials")
         else:
-            thr_dims = ("times")
+            thr_dims = "times"
 
         # z-score power
         # power = z_score(power)
@@ -356,7 +359,7 @@ if __name__ == "__main__":
 
         # Downsample
         if decim in [1, 5]:
-            _gamma = {1: 20, 5: 3}
+            _gamma = {1: 10, 5: 3}
             raster = downsample(
                 raster.transpose("trials", "roi", "times"),
                 dt * _gamma[decim],

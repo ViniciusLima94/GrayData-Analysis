@@ -4,9 +4,9 @@ import argparse
 import numpy as np
 import xarray as xr
 from tqdm import tqdm
-from config import get_dates, return_delay_split
+from config import get_dates
 from frites.utils import parallel_func
-from GDa.util import average_stages, shuffle_along_axis
+from GDa.util import shuffle_along_axis
 from GDa.loader import loader
 
 ###############################################################################
@@ -161,7 +161,7 @@ def compute_median_rate(
         freqs = ts.freqs.data
 
     times = ts.times.data
-    nfreqs, ntimes = len(freqs), len(times)
+    nfreqs = len(freqs)
 
     def _for_freq(f):
         """
@@ -252,7 +252,7 @@ def return_burst_prob(power, conditional=False, thr=0.95, verbose=False):
         n_jobs=10,
     )
 
-    trials, stim = power.trials.data, power.attrs["stim"]
+    stim = power.attrs["stim"]
     rois = np.unique(power.roi.values)
 
     def _for_roi():

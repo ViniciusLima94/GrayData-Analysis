@@ -4,9 +4,6 @@ import numpy as np
 import xarray as xr
 
 from GDa.session import session
-from frites.conn import define_windows
-from tqdm import tqdm
-from GDa.session import session
 from config import mode, freqs, n_cycles, get_dates, return_evt_dt
 from frites.conn.conn_tf import _tf_decomp
 import scipy
@@ -74,7 +71,7 @@ def hilbert_spectra(
 
     dims = data.dims
     coords = data.coords
-    attrs = data.attrs
+    # attrs = data.attrs
 
     np.testing.assert_array_equal(dims, ("trials", "roi", "time"))
 
@@ -151,7 +148,7 @@ if mode in ["morlet", "multitaper"]:
         decim=decim,
         kw_cwt={},
         kw_mt={},
-        n_jobs=5,
+        n_jobs=15,
     )
 
     sxx = xr.DataArray(
