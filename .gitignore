@@ -4,6 +4,8 @@
 *.mp4
 *.sh
 *.csv
+*.svg
+*.config
 *.eps
 *.nc
 *.gif
