@@ -2,11 +2,10 @@ import os
 import xarray as xr
 import argparse
 
-from config import get_dates, return_delay_split
+from config import get_dates
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
-from GDa.util import average_stages
 from tqdm import tqdm
 
 ###############################################################################

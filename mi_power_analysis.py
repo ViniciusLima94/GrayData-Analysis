@@ -3,11 +3,10 @@ import numpy as np
 import xarray as xr
 import argparse
 
-from config import get_dates, return_delay_split
+from config import get_dates
 from frites.dataset import DatasetEphy
 from frites.estimator import GCMIEstimator
 from frites.workflow import WfMi
-from GDa.util import average_stages
 from GDa.session import session_info
 from GDa.loader import loader
 from tqdm import tqdm
@@ -20,6 +19,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("METRIC", help="whether to use power or zpower", type=str)
 parser.add_argument("TT", help="type of the trial", type=int)
 parser.add_argument("BR", help="behavioral response", type=int)
+parser.add_argument("Q", help="threshold to use", type=int)
 parser.add_argument("ALIGN", help="wheter to align data to cue or match", type=str)
 parser.add_argument(
     "AVERAGED", help="wheter to analyse the avg. power or not", type=int
@@ -33,6 +33,7 @@ args = parser.parse_args()
 metric = args.METRIC
 tt = args.TT
 br = args.BR
+q = args.Q
 at = args.ALIGN
 avg = args.AVERAGED
 monkey = args.MONKEY
@@ -62,12 +63,11 @@ sxx = []
 stim = []
 for s_id in tqdm(sessions):
     power = data_loader.load_power(
-        **kw_loader, trial_type=tt, behavioral_response=br, session=s_id,
-        decim=5
-    )
+        **kw_loader, trial_type=tt, behavioral_response=br, session=s_id, decim=1
+    ).astype(np.float32)
     attrs = power.attrs
 
-    t_match_on = ( power.attrs["t_match_on"] - power.attrs["t_cue_on"] ) / 1000
+    t_match_on = (power.attrs["t_match_on"] - power.attrs["t_cue_on"]) / 1000
 
     # Remove SLVR channels
     if not bool(slvr):
@@ -80,6 +80,11 @@ for s_id in tqdm(sessions):
         slvr_idx = info.recording_info["slvr"].astype(bool)
         power = power.isel(roi=np.logical_not(slvr_idx))
 
+    if q > 0:
+        # Compute and apply thresholds
+        thr = power.quantile(q / 100, ("trials", "times"))
+        power.values = (power >= thr).values
+
     if metric == "zpow":
         power = (power - power.mean("times")) / power.std("times")
 
@@ -87,8 +92,13 @@ for s_id in tqdm(sessions):
     out = []
     if avg:
         for i in range(power.sizes["trials"]):
-            stages = [[-0.5, -0.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3],
-                      [t_match_on[i] - .4, t_match_on[i]]]
+            stages = [
+                [-0.5, -0.2],
+                [0, 0.4],
+                [0.5, 0.9],
+                [0.9, 1.3],
+                [t_match_on[i] - 0.4, t_match_on[i]],
+            ]
             temp = []
             for t0, t1 in stages:
                 temp += [power.sel(times=slice(t0, t1)).isel(trials=i).mean("times")]
@@ -100,6 +110,7 @@ for s_id in tqdm(sessions):
     out.attrs = attrs
     sxx += [out.isel(roi=[r]) for r in range(len(out["roi"]))]
     stim += [out.attrs["stim"].astype(int)] * len(out["roi"])
+    del power
 
 
 ###############################################################################
@@ -110,8 +121,8 @@ for s_id in tqdm(sessions):
 dt = DatasetEphy(sxx, y=stim, nb_min_suj=10, times="times", roi="roi")
 
 mi_type = "cd"
-# inference = 'rfx'
-inference = "ffx"
+inference = "rfx"
+# inference = "ffx"
 kernel = None
 
 if avg:
@@ -144,6 +155,10 @@ mi, pvalues = wf.fit(dt, mcp=mcp, cluster_th=cluster_th, **kw)
 # Path to results folder
 _RESULTS = os.path.join(_ROOT, f"Results/{monkey}/mutual_information/power/")
 
+
+if not os.path.exists(_RESULTS):
+    os.makedirs(_RESULTS)
+
 # path_mi = os.path.join(_RESULTS,
 # f"mi_pow_tt_{tt}_br_{br}_aligned_{at}_ds_{ds}_avg_{avg}_{mcp}.nc")
 # path_tv = os.path.join(_RESULTS,
@@ -153,15 +168,15 @@ _RESULTS = os.path.join(_ROOT, f"Results/{monkey}/mutual_information/power/")
 
 path_mi = os.path.join(
     _RESULTS,
-    f"mi_{metric}_tt_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc",
+    f"mi_{metric}_tt_{tt}_br_{br}_q_{q}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc",
 )
 path_tv = os.path.join(
     _RESULTS,
-    f"tval_{metric}_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc",
+    f"tval_{metric}_{tt}_br_{br}_q_{q}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc",
 )
 path_pv = os.path.join(
     _RESULTS,
-    f"pval_{metric}_{tt}_br_{br}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc",
+    f"pval_{metric}_{tt}_br_{br}_q_{q}_aligned_{at}_avg_{avg}_{mcp}_{inference}_slvr_{slvr}.nc",
 )
 
 mi.to_netcdf(path_mi)
