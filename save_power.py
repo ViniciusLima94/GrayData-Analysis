@@ -3,10 +3,11 @@ import argparse
 import numpy as np
 import xarray as xr
 
+from frites.conn import conn_io
 from GDa.session import session
-from config import mode, freqs, n_cycles, get_dates, return_evt_dt
-from frites.conn.conn_tf import _tf_decomp
+from config import bands, get_dates, return_evt_dt
 import scipy
+from mne.filter import filter_data
 
 ###############################################################################
 # Argument parsing
@@ -37,73 +38,123 @@ s_id = sessions[idx]
 # Root directory
 _ROOT = os.path.expanduser("~/funcog/gda")
 
+
 ###############################################################################
 # Define Hilbert spectra method
 ###############################################################################
-def hilbert_spectra(
-    data, fsample, freqs, bandwidth, n_jobs=1, verbose=False, kw_filter={}
+def hilbert_decomposition(
+    data,
+    sfreq=None,
+    times=None,
+    roi=None,
+    bands=None,
+    n_jobs=1,
+    verbose=None,
+    dtype=np.float32,
 ):
     """
-    Compute the Hilbert spectra of a 3D data array.
+    Perform Hilbert decomposition on time-series data to extract power, phase, and phase differences.
 
-    Parameters:
-    - data (xr.DataArray): Input data array with dimensions ("trials", "roi", "time").
-    - fsample (float): Sampling frequency of the data.
-    - freqs (array-like): Center frequencies for the spectral analysis.
-    - bandwidth (float): Half-width of the frequency bands. n_jobs (int, optional): Number of parallel jobs to run for filtering. Default is 1.
-    - verbose (bool, optional): If True, print verbose messages during filtering. Default is False.
-    - kw_filter (dict, optional): Additional keyword arguments for the `filter_data` function.
+    Parameters
+    ----------
+    data : xarray.DataArray or) ndarray
+        The input time-series data. Expected to be in the shape (n_trials, n_rois, n_times).
+    sfreq : float, optional
+        The sampling frequency of the data in Hz. Required for band-pass filtering.
+    times : ndarray, optional
+        The time points corresponding to the data samples.
+    roi : list or ndarray, optional
+        The regions of interest (ROIs) to analyze. Can be indices or names corresponding to the data.
+    bands : list of tuple, optional
+        The frequency bands to filter the data. Each tuple should contain the low and high frequency (in Hz) of the band.
+    n_jobs : int, optional
+        The number of parallel jobs to use for computations (default is 1).
+    verbose : bool or int, optional
+        Verbosity level for logging.
+    dtype : data-type, optional
+        The data type of the returned arrays (default is np.float32).
+    **kw_links : dict
+        Additional arguments for connection analysis.
 
-    Returns:
-    - xr.DataArray: Hilbert spectra of the input data, with dimensions ("trials", "roi", "freqs", "times").
+    Returns
+    -------
+    power : xarray.DataArray
+        Power time-series of the filtered signals across the specified frequency bands.
+        Dimensions: (n_trials, n_rois, n_freqs, n_times).
+    phase : xarray.DataArray
+        Phase time-series of the filtered signals across the specified frequency bands.
+        Dimensions: (n_trials, n_rois, n_freqs, n_times).
+    delta_phase : xarray.DataArray
+        Pairwise phase differences between the ROIs across frequency bands.
+        Dimensions: (n_trials, n_roi_pairs, n_freqs, n_times).
 
-    Note:
-    The input data is filtered into frequency bands centered at the specified frequencies with the given bandwidth.
-    The Hilbert transform is then applied to obtain the analytic signal, and the squared magnitude of the analytic
-    signal is computed to obtain the Hilbert spectra.
-
-    The resulting DataArray has dimensions representing trials, regions of interest (ROIs), frequency bins, and time points.
+    Notes
+    -----
+    The Hilbert decomposition is applied after band-pass filtering the data to extract the analytic signal,
+    from which power and phase are derived. Pairwise phase differences are computed in parallel
+    for specified pairs of ROIs.
     """
+    # ________________________________ INPUTS _________________________________
+    # inputs conversion
+    data, cfg = conn_io(
+        data,
+        times=times,
+        roi=roi,
+        agg_ch=False,
+        win_sample=None,
+        sfreq=sfreq,
+        verbose=verbose,
+        name="Hilbert Decomposition",
+        kw_links={},
+    )
 
-    from mne.filter import filter_data
+    # Extract variables
+    x, trials, attrs = data.data, data["y"].data, cfg["attrs"]
+    times, _ = data["times"].data, len(trials)
+    x_s, x_t, roi_p, roi = cfg["x_s"], cfg["x_t"], cfg["roi_p"], data["roi"].data
+    _, sfreq = cfg["blocks"], cfg["sfreq"]
+    n_pairs, f_vec, n_freqs = len(x_s), np.mean(bands, axis=1), len(bands)
+    # If no bands are passed use broadband signal
 
-    assert isinstance(data, xr.DataArray)
+    _dims = ("trials", "roi", "freqs", "times")
+    _coord_nodes = (trials, roi, f_vec, times)
+    _coord_links = (trials, roi_p, f_vec, times)
 
-    dims = data.dims
-    coords = data.coords
-    # attrs = data.attrs
+    # Filter data in the specified bands
+    x_filt = []
 
-    np.testing.assert_array_equal(dims, ("trials", "roi", "time"))
-
-    lfreqs = np.clip(freqs - bandwidth, 0, np.inf)
-    hfreqs = freqs + bandwidth
-
-    bands = np.stack((lfreqs, hfreqs), axis=1)
-
-    data_filtered = []
-    for lf, hf in bands:
-        data_filtered += [
-            filter_data(
-                data.values,
-                fsample,
-                lf,
-                hf,
-                n_jobs=n_jobs,
-                **kw_filter,
-                verbose=verbose,
+    for f_low, f_high in bands:
+        x_filt += [
+            xr.DataArray(
+                filter_data(
+                    x,
+                    sfreq,
+                    f_low,
+                    f_high,
+                    n_jobs=n_jobs,
+                    verbose=verbose,
+                    method="iir",
+                ),
+                dims=data.dims,
+                coords=data.coords,
+                attrs=attrs,
             )
         ]
-    data_filtered = np.stack(data_filtered, axis=1)
-    hilbert = scipy.signal.hilbert(data_filtered, axis=-1)
-    sxx = hilbert * np.conj(hilbert)
 
-    sxx = xr.DataArray(
-        sxx.real,
-        dims=("trials", "freqs", "roi", "times"),
-        coords=(coords["trials"], freqs, coords["roi"], coords["time"]),
-    ).transpose("trials", "roi", "freqs", "times")
+    x_filt = xr.concat(x_filt, "freqs").transpose("trials", "roi", "freqs", "times")
 
-    return sxx
+    # Hilbert coefficients
+    h = scipy.signal.hilbert(x_filt, axis=3)
+
+    # Power and phase time-series
+    power = (h * np.conj(h)).real
+
+    # Wrapp to xrray
+    power = xr.DataArray(
+        power, dims=_dims, coords=_coord_nodes, attrs=attrs, name="power"
+    )
+
+    return power.astype(dtype)
 
 
 ###########################################################################
@@ -137,32 +188,34 @@ else:
 ###########################################################################
 # Compute power spectra
 ###########################################################################
-if mode in ["morlet", "multitaper"]:
-    sxx = _tf_decomp(
-        data,
-        data.attrs["fsample"],
-        freqs,
-        mode=mode,
-        n_cycles=n_cycles,
-        mt_bandwidth=None,
-        decim=decim,
-        kw_cwt={},
-        kw_mt={},
-        n_jobs=15,
-    )
+# if mode in ["morlet", "multitaper"]:
+#    sxx = _tf_decomp(
+#        data,
+#        data.attrs["fsample"],
+#        freqs,
+#        mode=mode,
+#        n_cycles=n_cycles,
+#        mt_bandwidth=None,
+#        decim=decim,
+#        kw_cwt={},
+#        kw_mt={},
+#        n_jobs=15,
+#    )
+#
+#    sxx = xr.DataArray(
+#        (sxx * np.conj(sxx)).real,
+#        name="power",
+#        dims=("trials", "roi", "freqs", "times"),
+#        coords=(data.trials.values, data.roi.values, freqs, data.time.values[::decim]),
+#    )
+# elif mode == "hilbert":
+#    sxx = hilbert_spectra(
+#        data, data.attrs["fsample"], freqs, 4, n_jobs=20, verbose=False, kw_filter={}
+#    )[..., ::decim]
 
-    sxx = xr.DataArray(
-        (sxx * np.conj(sxx)).real,
-        name="power",
-        dims=("trials", "roi", "freqs", "times"),
-        coords=(data.trials.values, data.roi.values, freqs,
-                data.time.values[::decim]),
-    )
-elif mode == "hilbert":
-    sxx = hilbert_spectra(
-        data, data.attrs["fsample"], freqs, 4, n_jobs=20,
-        verbose=False, kw_filter={}
-    )[..., ::decim]
+sxx = hilbert_decomposition(
+    data, data.attrs["fsample"], "times", "roi", bands["lucy"], 1
+)
 
 # sm_times = int(np.round(0.1 * data.attrs["fsample"]  / decim))
 # kernel = _create_kernel(sm_times, 1)

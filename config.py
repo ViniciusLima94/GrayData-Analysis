@@ -132,10 +132,16 @@ sm_kernel = "square"
 decim = 20  # Downsampling factor
 mode = "morlet"  # Wheter to use Morlet or Multitaper
 
-n_freqs = 10  # How many frequencies to use
-freqs = np.linspace(3, 75, n_freqs)  # Frequency array
-n_cycles = freqs / 4  # Number of cycles
-mt_bandwidth = None
+bands = {}
+
+bands["lucy"] = {
+    [[0, 6], [6, 14], [14, 26], [26, 43], [43, 80]],
+}
+
+
+bands["ethyl"] = {
+    [[0, 8], [8, 21], [21, 32], [32, 80]],
+}
 
 
 def return_evt_dt(align_at, monkey="lucy"):
@@ -150,20 +156,3 @@ def return_evt_dt(align_at, monkey="lucy"):
     if align_at == "cue":
         return [-0.5, 2.7]
     return [-2.2, 0.65]
-
-
-def return_delay_split(monkey="lucy", delay_type=0):
-    assert monkey in ["lucy", "ethyl"]
-    assert delay_type in [0, 1, 2]
-
-    early_cue = 0.2
-    early_delay = 0.5
-
-    if delay_type == 0:
-        early_delay = None
-    elif delay_type == 1:
-        if monkey == "lucy":
-            early_delay = 0.3
-        else:
-            early_delay = 0.24
-    return early_cue, early_delay
