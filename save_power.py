@@ -81,12 +81,6 @@ def hilbert_decomposition(
     power : xarray.DataArray
         Power time-series of the filtered signals across the specified frequency bands.
         Dimensions: (n_trials, n_rois, n_freqs, n_times).
-    phase : xarray.DataArray
-        Phase time-series of the filtered signals across the specified frequency bands.
-        Dimensions: (n_trials, n_rois, n_freqs, n_times).
-    delta_phase : xarray.DataArray
-        Pairwise phase differences between the ROIs across frequency bands.
-        Dimensions: (n_trials, n_roi_pairs, n_freqs, n_times).
 
     Notes
     -----
@@ -122,6 +116,7 @@ def hilbert_decomposition(
 
     # Filter data in the specified bands
     x_filt = []
+    print(x.shape)
 
     for f_low, f_high in bands:
         x_filt += [
