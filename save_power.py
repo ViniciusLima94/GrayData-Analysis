@@ -5,7 +5,7 @@ import xarray as xr
 
 from frites.conn import conn_io
 from GDa.session import session
-from config import bands, get_dates, return_evt_dt
+from config import mode, bands, get_dates, return_evt_dt
 import scipy
 from mne.filter import filter_data
 

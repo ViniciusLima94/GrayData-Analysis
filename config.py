@@ -130,7 +130,7 @@ sm_kernel = "square"
 
 # Defining parameters
 decim = 20  # Downsampling factor
-mode = "morlet"  # Wheter to use Morlet or Multitaper
+mode = "hilbert"  # Wheter to use Morlet or Multitaper
 
 bands = {}
 
