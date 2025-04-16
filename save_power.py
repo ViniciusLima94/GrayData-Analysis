@@ -214,7 +214,7 @@ else:
 #    )[..., ::decim]
 
 sxx = hilbert_decomposition(
-    data, data.attrs["fsample"], "times", "roi", bands["lucy"], 1
+    data, data.attrs["fsample"], "time", "roi", bands["lucy"], 1, True
 )
 
 # sm_times = int(np.round(0.1 * data.attrs["fsample"]  / decim))
