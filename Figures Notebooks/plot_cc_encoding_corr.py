@@ -26,6 +26,8 @@ from GDa.flatmap.flatmap import flatmap
 from GDa.loader import loader
 from utils import *  # noqa
 
+thr = 95
+
 ### Auxiliar functions
 
 
@@ -487,14 +489,14 @@ def get_encoding(monkey):
     p_pow = node_xr_remove_sca(
         xr.load_dataarray(
             os.path.join(
-                path, "mi_pow_tt_1_br_1_q_80_aligned_cue_avg_1_fdr_rfx_slvr_0.nc"
+                path, f"mi_pow_tt_1_br_1_q_{thr}_aligned_cue_avg_1_fdr_rfx_slvr_0.nc"
             )
         )
     )
     t_pow = node_xr_remove_sca(
         xr.load_dataarray(
             os.path.join(
-                path, "tval_pow_1_br_1_q_80_aligned_cue_avg_1_fdr_rfx_slvr_0.nc"
+                path, f"tval_pow_1_br_1_q_{thr}_aligned_cue_avg_1_fdr_rfx_slvr_0.nc"
             )
         )
     )
@@ -557,7 +559,7 @@ def get_correlations(feature, encoding, freqs):
     return np.stack(correlations, axis=1)
 
 
-def get_gcs(monkey, surr=0, thr=95):
+def get_gcs(monkey, surr=0, thr=80):
 
     _path_to_ava = os.path.expanduser(f"~/funcog/gda/Results/{monkey}/avalanches/")
 
@@ -660,8 +662,12 @@ correlations_POWER_ENC_e = get_correlations(power_e, t_pow_e, freqs)
 
 ### GCS vs. encoding
 
-CS_l = get_gcs("lucy", surr=0, thr=80)
-CS_e = get_gcs("ethyl", surr=0, thr=80)
+CS_l = get_gcs("lucy", surr=0, thr=thr)
+CS_e = get_gcs("ethyl", surr=0, thr=thr)
+
+CS_l.to_netcdf(f"CS_lucy_{thr}.nc")
+CS_e.to_netcdf(f"CS_ethyl_{thr}.nc")
+
 
 correlations_CS_ENC_l = get_correlations(CS_l, t_pow_l, freqs)
 correlations_CS_ENC_e = get_correlations(CS_e, t_pow_e, freqs)
