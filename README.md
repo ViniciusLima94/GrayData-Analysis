@@ -25,10 +25,6 @@ sbatch run.sh "ratemod" MONKEY_NAME
 
 sbatch run.sh "powerenc" MONKEY_NAME
 
-4. mi_crackle_analysis SIDX MONDEY ALIGNED THR DECIM 
-
-sbatch run.sh "crkenc" MONKEY_NAME
-
-5. temporal_components SIDX THR MONKEY SURR TTYPE BEHAVIOR THR_TYPE DECIM 
+4. temporal_components SIDX THR MONKEY SURR TTYPE BEHAVIOR THR_TYPE DECIM 
 
 sbatch run.sh "avalanche" MONKEY_NAME

@@ -11,7 +11,7 @@ from tqdm import tqdm
 from GDa.loader import loader
 from GDa.util import _extract_roi
 from GDa.misc.downsample import downsample
-from config import get_dates, freqs
+from config import get_dates, bands
 
 ###############################################################################
 # Argument parsing
@@ -72,6 +72,8 @@ else:
     stages = [[-0.3, -0.2], [0, 0.4], [0.5, 0.9], [0.9, 1.3], [1.1, 1.5], [-0.5, 2]]
 stage_labels = ["P", "S", "D1", "D2", "Dm", "all"]
 stages = dict(zip(stage_labels, stages))
+
+freqs = np.mean(bands[monkey], 1)
 
 
 ###############################################################################

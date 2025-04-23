@@ -1,6 +1,7 @@
 """
 Edge-based encoding analysis done on the coherence dFC
 """
+
 import os
 import argparse
 
@@ -169,20 +170,31 @@ if __name__ == "__main__":
     if surr:
         power = trial_swap_surrogates(power, seed=seed, verbose=False)
     cc = power_correlations(power, verbose=False)
+
+    # Average for each epoch
+    t_match_on = (cc.attrs["t_match_on"] - cc.attrs["t_cue_on"]) / 1000
+
+    out = []
+    for i in range(cc.sizes["trials"]):
+        stages = [
+            [-0.5, -0.2],
+            [0, 0.4],
+            [0.5, 0.9],
+            [0.9, 1.3],
+            [t_match_on[i] - 0.4, t_match_on[i]],
+        ]
+        temp = []
+        for t0, t1 in stages:
+            temp += [power.sel(times=slice(t0, t1)).isel(trials=i).mean("times")]
+        out += [xr.concat(temp, "times")]
+    out = xr.concat(out, "trials")
+    out = out.transpose("trials", "roi", "freqs", "times")
+
     cc_mat = convert_to_mat(cc.sel(freqs=[27]))
     # cc_mat = cc_mat.sum("targets")
     dd = convert_to_degree(cc)
     cc.attrs = power.attrs
     dd.attrs = power.attrs
-    # if not surr:
-    # cc.to_netcdf(os.path.join(_ROOT, "Results",
-    # monkey, session, "session01",
-    # f"pec_tt_{tt}_br_{br}_at_cue.nc"))
-    # else:
-    # cc.to_netcdf(os.path.join(_ROOT, "Results",
-    # monkey, session, "session01",
-    # f"pec_tt_{tt}_br_{br}_at_cue_surr.nc"))
-    # dd.to_netcdf(os.path.join(_ROOT, "Results", monkey, "pec", f"pec_st_{session}_at_{at}.nc"))
     cc_mat.to_netcdf(
         os.path.join(_ROOT, "Results", monkey, "pec", f"pec_mat_{session}.nc")
     )
