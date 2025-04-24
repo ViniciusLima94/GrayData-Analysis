@@ -190,10 +190,10 @@ if __name__ == "__main__":
         out += [xr.concat(temp, "times")]
     out = xr.concat(out, "trials")
     cc = out.transpose("trials", "roi", "freqs", "times")
+    cc.attrs = attrs
+    print(cc.shape)
 
-    cc_mat = convert_to_mat(cc)
-    cc_mat.attrs = attrs
+    # cc_mat = [convert_to_mat(cc.sel(freqs=[freq])) for freq in cc.freqs.values]
+    # cc_mat.attrs = attrs
 
-    cc_mat.to_netcdf(
-        os.path.join(_ROOT, "Results", monkey, "pec", f"pec_mat_{session}.nc")
-    )
+    cc.to_netcdf(os.path.join(_ROOT, "Results", monkey, "pec", f"pec_mat_{session}.nc"))
