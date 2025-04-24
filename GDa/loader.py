@@ -24,7 +24,7 @@ class loader:
         channel_numbers: bool = False,
         monkey: str = "lucy",
         decim: int = 20,
-        mode: str = "morlet"
+        mode: str = "hilbert"
     ):
         """
         Load file containing the power time series
