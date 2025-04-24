@@ -54,7 +54,7 @@ _ROOT = os.path.expanduser("~/funcog/gda")
 
 
 def load_session_power(s_id, z_score=False, avg=0, roi=None):
-    _FILE_NAME = f"power_tt_{tt}_br_{br}_at_{at}.nc"
+    _FILE_NAME = f"power_tt_{tt}_br_{br}_at_{at}_decim_1_hilbert.nc"
     path_pow = os.path.join(_ROOT, f"Results/{monkey}/{s_id}/session01", _FILE_NAME)
     power = xr.load_dataarray(path_pow)
     if z_score:
