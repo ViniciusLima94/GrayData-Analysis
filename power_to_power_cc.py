@@ -9,8 +9,8 @@ import numpy as np
 import xarray as xr
 from tqdm import tqdm
 import numba as nb
-from config import get_dates, return_delay_split
-from GDa.util import average_stages, _extract_roi
+from config import get_dates
+from GDa.util import _extract_roi
 from GDa.signal.surrogates import trial_swap_surrogates
 
 
@@ -36,7 +36,7 @@ at = args.ALIGN
 surr = args.SURR
 monkey = args.MONKEY
 
-early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=0)
+# early_cue, early_delay = return_delay_split(monkey=monkey, delay_type=0)
 
 sessions = get_dates(monkey)
 
@@ -60,14 +60,14 @@ def load_session_power(s_id, z_score=False, avg=0, roi=None):
     if z_score:
         power.values = (power - power.mean("times")) / power.std("times")
     # Averages power for each period (baseline, cue, delay, match) if needed
-    out = average_stages(power, avg, early_cue=early_cue, early_delay=early_delay)
+    # out = average_stages(power, avg, early_cue=early_cue, early_delay=early_delay)
 
-    if isinstance(roi, str):
-        out = out.sel(roi=roi)
+    # if isinstance(roi, str):
+    #    out = out.sel(roi=roi)
 
     trials, stim = power.trials.data, power.stim
 
-    return out, trials, stim
+    return power, trials, stim
 
 
 def power_correlations(power, verbose=False):
