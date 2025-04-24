@@ -170,6 +170,7 @@ if __name__ == "__main__":
     if surr:
         power = trial_swap_surrogates(power, seed=seed, verbose=False)
     cc = power_correlations(power, verbose=False)
+    attrs = cc.attrs
 
     # Average for each epoch
     t_match_on = (cc.attrs["t_match_on"] - cc.attrs["t_cue_on"]) / 1000
@@ -185,16 +186,14 @@ if __name__ == "__main__":
         ]
         temp = []
         for t0, t1 in stages:
-            temp += [power.sel(times=slice(t0, t1)).isel(trials=i).mean("times")]
+            temp += [cc.sel(times=slice(t0, t1)).isel(trials=i).mean("times")]
         out += [xr.concat(temp, "times")]
     out = xr.concat(out, "trials")
-    out = out.transpose("trials", "roi", "freqs", "times")
+    cc = out.transpose("trials", "roi", "freqs", "times")
 
-    cc_mat = convert_to_mat(cc.sel(freqs=[27]))
-    # cc_mat = cc_mat.sum("targets")
-    dd = convert_to_degree(cc)
-    cc.attrs = power.attrs
-    dd.attrs = power.attrs
+    cc_mat = convert_to_mat(cc)
+    cc_mat.attrs = attrs
+
     cc_mat.to_netcdf(
         os.path.join(_ROOT, "Results", monkey, "pec", f"pec_mat_{session}.nc")
     )
