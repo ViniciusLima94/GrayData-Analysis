@@ -25,7 +25,7 @@ data_loader = loader(_ROOT=_ROOT)
 kw_loader = dict(aligned_at="cue", channel_numbers=False, monkey=monkey)
 
 
-def get_power(monkey):
+def get_power(monkey, decim=1):
 
     sessions = get_dates(monkey)
 
@@ -38,7 +38,7 @@ def get_power(monkey):
 
         temp = data_loader.load_power(
             **kw_loader, trial_type=1, behavioral_response=1, session=session
-        )
+        )[..., ::decim]
 
         t_match_on = (temp.attrs["t_match_on"] - temp.attrs["t_cue_on"]) / 1000
 
