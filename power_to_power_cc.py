@@ -53,7 +53,7 @@ _ROOT = os.path.expanduser("~/funcog/gda")
 #############################################################################
 
 
-def load_session_power(s_id, z_score=False, avg=0, roi=None):
+def load_session_power(s_id, z_score=False, avg=0, roi=None, decim=1):
     _FILE_NAME = f"power_tt_{tt}_br_{br}_at_{at}_decim_1_hilbert.nc"
     path_pow = os.path.join(_ROOT, f"Results/{monkey}/{s_id}/session01", _FILE_NAME)
     power = xr.load_dataarray(path_pow)
@@ -67,7 +67,7 @@ def load_session_power(s_id, z_score=False, avg=0, roi=None):
 
     trials, stim = power.trials.data, power.stim
 
-    return power, trials, stim
+    return power[..., ::decim], trials, stim
 
 
 def power_correlations(power, verbose=False):
@@ -166,7 +166,8 @@ def convert_to_mat(cc):
 
 
 if __name__ == "__main__":
-    power, trials, stim = load_session_power(session, z_score=True, avg=0, roi=None)
+
+    power, trials, stim = load_session_power(session, z_score=True, avg=0, roi=None, decim=10)
     if surr:
         power = trial_swap_surrogates(power, seed=seed, verbose=False)
     cc = power_correlations(power, verbose=True)
