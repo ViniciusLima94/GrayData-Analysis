@@ -169,7 +169,7 @@ if __name__ == "__main__":
     power, trials, stim = load_session_power(session, z_score=True, avg=0, roi=None)
     if surr:
         power = trial_swap_surrogates(power, seed=seed, verbose=False)
-    cc = power_correlations(power, verbose=False)
+    cc = power_correlations(power, verbose=True)
     attrs = cc.attrs
 
     # Average for each epoch
