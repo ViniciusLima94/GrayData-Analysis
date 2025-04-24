@@ -66,5 +66,5 @@ def get_power(monkey):
     return powers
 
 
-power_l = get_power("lucy")
+power_l = get_power(monkey)
 power_l.to_netcdf(f"data/power_{monkey}.nc")
