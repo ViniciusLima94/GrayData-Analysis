@@ -8,11 +8,15 @@ import xarray as xr
 from config import get_dates
 from tqdm import tqdm
 from GDa.loader import loader
+import argparse
 
 _ROOT = os.path.expanduser("~/funcog/gda/")
 
-metric = "coh"
-monkey = "lucy"
+parser = argparse.ArgumentParser()
+parser.add_argument("MONKEY", help="which monkey to use", type=str)
+args = parser.parse_args()
+
+monkey = args.MONKEY
 
 sessions = get_dates(monkey)
 
@@ -66,5 +70,5 @@ def get_power(monkey, decim=1):
     return powers
 
 
-power_l = get_power(monkey)
-power_l.to_netcdf(f"data/power_{monkey}.nc")
+power = get_power(monkey)
+power.to_netcdf(f"data/power_{monkey}.nc")
