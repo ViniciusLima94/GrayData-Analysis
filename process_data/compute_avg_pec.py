@@ -37,6 +37,8 @@ for session in tqdm(sessions):
         xr.load_dataarray(
             os.path.join(_ROOT, "Results", monkey, "pec", f"pec_mat_{session}.nc")
         )
+        .groupby("roi")
+        .mean("roi")
     ]
 
 pec = xr.concat(pec, "sessions")
