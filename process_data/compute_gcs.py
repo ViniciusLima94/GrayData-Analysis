@@ -29,7 +29,7 @@ sessions = get_dates(monkey)
 
 stage_labels = ["P", "S", "D1", "D2", "Dm"]
 
-freqs = np.median(bands[monkey], axis=1)
+freqs = np.median(bands[monkey], axis=1).astype(int)
 
 ##############################################################################
 # FUNCTIONS
