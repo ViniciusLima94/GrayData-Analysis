@@ -35,7 +35,7 @@ for session in tqdm(sessions):
 
     pec += [
         xr.load_dataarray(
-            os.path.join(_ROOT, "Results", monkey, pec, f"pec_mat_{session}.nc")
+            os.path.join(_ROOT, "Results", monkey, "pec", f"pec_mat_{session}.nc")
         )
     ]
 
