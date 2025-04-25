@@ -1,4 +1,7 @@
 import sys
+
+sys.path.insert(1, "/home/vinicius/storage1/projects/GrayData-Analysis")  # noqa
+
 import os
 import argparse
 
@@ -7,7 +10,6 @@ import xarray as xr
 
 from config import get_dates, bands
 
-sys.path.insert(1, "/home/vinicius/storage1/projects/GrayData-Analysis")
 
 ##############################################################################
 # ARGUMENTS
@@ -27,7 +29,7 @@ sessions = get_dates(monkey)
 
 stage_labels = ["P", "S", "D1", "D2", "Dm"]
 
-freqs = np.median(bands["monkey"], axis=1)
+freqs = np.median(bands[monkey], axis=1)
 
 ##############################################################################
 # FUNCTIONS
