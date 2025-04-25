@@ -39,6 +39,7 @@ for session in tqdm(sessions):
         )
         .groupby("roi")
         .mean("roi")
+        .mean("trials")
     ]
 
 pec = xr.concat(pec, "sessions")
