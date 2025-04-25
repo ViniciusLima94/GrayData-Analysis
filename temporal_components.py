@@ -1,4 +1,5 @@
 """ Find temporal communities in the supraadjacency """
+
 import os
 import pickle
 import argparse
@@ -435,6 +436,6 @@ if __name__ == "__main__":
         fname = f"P_tt_{ttype}_br_{behav}_{epoch}_{s_id}_freq_{freq}_{thr_type}_thr_{thr}_decim_{decim}_surr_{surr}.nc"
         P.to_netcdf(os.path.join(_SAVE, fname))
 
-    freqs_vector = freqs.astype(int)
+    freqs_vector = freqs
     for epoch in stage_labels:
         [_for_freq(freq, epoch) for freq in freqs_vector]
