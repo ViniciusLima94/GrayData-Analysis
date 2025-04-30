@@ -94,4 +94,4 @@ def get_gcs(monkey, surr=0, thr=80):
 
 
 CS_l = get_gcs(monkey, surr=0, thr=thr)
-CS_l.to_netcdf(f"CS_{monkey}_{thr}.nc")
+CS_l.to_netcdf(f"data/CS_{monkey}_{thr}.nc")
