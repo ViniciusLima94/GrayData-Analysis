@@ -81,14 +81,14 @@ def get_gcs(monkey, surr=0, thr=80):
                         br=1,
                         surr=surr,
                         thr=thr,
-                    )  # .sum("targets")
+                    ).sum("targets")
                 ]
             T_all_sessions += [xr.concat(T, "times")]
         CS += [xr.concat(T_all_sessions, "sessions")]
 
     CS = xr.concat(CS, "freqs")
     CS = CS.assign_coords({"freqs": freqs})
-    # CS = CS.rename({"sources": "roi"})
+    CS = CS.rename({"sources": "roi"})
 
     return CS
 
