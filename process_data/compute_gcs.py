@@ -93,4 +93,5 @@ def get_gcs(monkey, surr=0, thr=80):
     return CS
 
 
-CS_l = get_gcs("lucy", surr=0, thr=thr)
+CS_l = get_gcs(monkey, surr=0, thr=thr)
+CS_l.to_netcdf(f"CS_{monkey}_{thr}.nc")
