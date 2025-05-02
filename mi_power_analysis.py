@@ -66,6 +66,7 @@ for s_id in tqdm(sessions):
         **kw_loader, trial_type=tt, behavioral_response=br, session=s_id, decim=1
     ).astype(np.float32)
     attrs = power.attrs
+    print(power.freqs)
 
     t_match_on = (power.attrs["t_match_on"] - power.attrs["t_cue_on"]) / 1000
 

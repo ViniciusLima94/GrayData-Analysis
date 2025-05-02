@@ -302,8 +302,12 @@ kw_loader = dict(
     session=s_id, aligned_at=at, channel_numbers=False, monkey=monkey, decim=decim
 )
 
-power_task = data_loader.load_power(**kw_loader, trial_type=1, behavioral_response=1)
-power_fix = data_loader.load_power(**kw_loader, trial_type=2, behavioral_response=0)
+power_task = data_loader.load_power(**kw_loader, trial_type=1, behavioral_response=1)[
+    ..., ::10
+]
+power_fix = data_loader.load_power(**kw_loader, trial_type=2, behavioral_response=0)[
+    ..., ::10
+]
 
 
 # Computes burst probability for task and fixation
