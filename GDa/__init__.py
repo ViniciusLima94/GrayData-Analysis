@@ -1,1 +1,1 @@
-from .flatmap.flatmap import flatmap
+from .flatmap.flatmap import flatmap  # noqa
