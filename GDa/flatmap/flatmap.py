@@ -5,21 +5,20 @@ import scipy.io
 import os
 
 # Root path containing the coordinates file
-_ROOT = os.path.expanduser(
-    "~/storage1/projects/GrayData-Analysis/GDa/flatmap")
+_ROOT = os.path.dirname(os.path.realpath(__file__))
 
 
 def plot_flatmap(ax):
     """
     Auxiliary function to read flatmap image in jpeg.
     """
-    png = plt.imread(os.path.join(_ROOT, 'Flatmap_outlines.jpg'))
+    png = plt.imread(os.path.join(_ROOT, "Flatmap_outlines.jpg"))
     plt.sca(ax)
-    plt.imshow(png, interpolation='none')
-    plt.axis('off')
+    plt.imshow(png, interpolation="none")
+    plt.axis("off")
 
 
-class flatmap():
+class flatmap:
 
     # Name of the file with the areas' coordinates
     try:
@@ -61,9 +60,21 @@ class flatmap():
         self.values = values
         self.areas = areas
 
-    def plot(self, ax, ax_colorbar=None, colormap="viridis", alpha=0.2,
-             vmin=None, vmax=None, extend=None, cbar_title=None, cbar_fontsize=12,
-             figsize=None, colors=None, dpi=None):
+    def plot(
+        self,
+        ax,
+        ax_colorbar=None,
+        colormap="viridis",
+        alpha=0.2,
+        vmin=None,
+        vmax=None,
+        extend=None,
+        cbar_title=None,
+        cbar_fontsize=12,
+        figsize=None,
+        colors=None,
+        dpi=None,
+    ):
         """
         ax: pyplot.axis | None
             Axis in which to plot the flatmap.
@@ -92,14 +103,13 @@ class flatmap():
             vmin = np.min(self.values)
         if vmax is None:
             vmax = np.max(self.values)
-        norm = matplotlib.colors.Normalize(vmin=vmin,
-                                           vmax=vmax)
+        norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
         # Get colormap
         if isinstance(colormap, str):
             cmap = matplotlib.cm.get_cmap(colormap)
             colors = [cmap(norm(val)) for val in self.values]
         else:
-            assert isinstance(colors, (list, np.ndarray, tuple)) 
+            assert isinstance(colors, (list, np.ndarray, tuple))
 
         ####################################################################
         # Plot flatmap and colors
@@ -120,9 +130,10 @@ class flatmap():
         if ax_colorbar is not None:
             cbar = plt.colorbar(
                 mappable=plt.cm.ScalarMappable(cmap=cmap, norm=norm),
-                cax=ax_colorbar, extend=extend)
-            cbar.ax.set_ylabel(
-                cbar_title, rotation='vertical', fontsize=cbar_fontsize)
+                cax=ax_colorbar,
+                extend=extend,
+            )
+            cbar.ax.set_ylabel(cbar_title, rotation="vertical", fontsize=cbar_fontsize)
 
     def get_flatmap_coordinates(self, area):
         """
