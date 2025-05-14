@@ -66,13 +66,15 @@ def bootstrap(ts_stacked, n_trials, n_rois, n_boot):
     ndarray
         The bootstrapped confidence interval
     """
-    trials = np.arange(n_trials, dtype=int)
+
     ci = []
     for i in range(n_boot):
         ci += [
             np.take_along_axis(
                 ts_stacked,
-                np.asarray([np.random.choice(trials, n_trials) for _ in range(n_rois)]),
+                np.asarray(
+                    [np.random.choice(range(n_trials), n_trials) for _ in range(n_rois)]
+                ),
                 axis=-1,
             ).mean(-1)
         ]
@@ -83,7 +85,7 @@ def bootstrap(ts_stacked, n_trials, n_rois, n_boot):
 def compute_median_rate(
     data: xr.DataArray,
     roi: str = None,
-    thr: float = 0.95,
+    thr: float = 0.8,
     stim_label: int = None,
     freqs: float = None,
     time_slice: slice = None,
@@ -145,7 +147,7 @@ def compute_median_rate(
 
     if thr > 0:
         # Compute quantile based threshold
-        thr = data.quantile(thr, ("times"))
+        thr = data.quantile(thr, ("trials", "times"))
         # Apply threshold
         data = data >= thr
     else:
@@ -161,7 +163,7 @@ def compute_median_rate(
         freqs = ts.freqs.data
 
     times = ts.times.data
-    nfreqs = len(freqs)
+    nfreqs, ntimes = len(freqs), len(times)
 
     def _for_freq(f):
         """
@@ -249,10 +251,10 @@ def return_burst_prob(power, conditional=False, thr=0.95, verbose=False):
         time_slice=slice(-0.5, 2.0),
         n_boot=100,
         verbose=False,
-        n_jobs=10,
+        n_jobs=1,
     )
 
-    stim = power.attrs["stim"]
+    trials, stim = power.trials.data, power.attrs["stim"]
     rois = np.unique(power.roi.values)
 
     def _for_roi():
@@ -276,11 +278,10 @@ def return_burst_prob(power, conditional=False, thr=0.95, verbose=False):
     if not conditional:
         return _for_roi()
     else:
-        __iter = range(1, 6)
         # Stimulus dependent rate modulation
         P_b_stim = []
         SP_b_stim = []
-        for stim in tqdm(__iter) if verbose else __iter:
+        for stim in tqdm(range(1, 6)) if verbose else range(1, 6):
             kw_args["stim_label"] = stim
             P_b, SP_b = _for_roi()
 
