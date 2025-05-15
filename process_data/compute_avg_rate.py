@@ -63,4 +63,4 @@ def get_power(monkey, session, decim=1, trial_type=1, behavioral_response=1):
 
 
 power_task = get_power(monkey, "141017")
-power_fix = get_power(monkey, "141017", trial_type=2, behavioral_response=None)
+power_fix = get_power(monkey, "141017", trial_type=2, behavioral_response=0)
