@@ -4,7 +4,9 @@ sys.path.insert(1, "/home/vinicius/storage1/projects/GrayData-Analysis")
 
 import os
 import xarray as xr
+import scipy
 
+from tqdm import tqdm
 from config import get_dates
 from GDa.loader import loader
 import argparse
@@ -62,5 +64,21 @@ def get_power(monkey, session, decim=1, trial_type=1, behavioral_response=1):
     return out
 
 
-power_task = get_power(monkey, "141017")
-power_fix = get_power(monkey, "141017", trial_type=2, behavioral_response=0)
+for session in tqdm(sessions):
+
+    power_task = get_power(monkey, session)
+    power_fix = get_power(monkey, session, trial_type=2, behavioral_response=0)
+
+    pvalues = scipy.stats.ttest_ind(power_task, power_fix, axis=0).pvalue < 0.001
+
+    pvalues = xr.DataArray(
+        pvalues,
+        dims=("roi", "freqs", "times"),
+        coords={
+            "roi": power_task.roi.values,
+            "freqs": power_task.freqs.values,
+            "times": power_task.times.values,
+        },
+    )
+
+    pvalues = pvalues.groupby("roi").mean("roi")
