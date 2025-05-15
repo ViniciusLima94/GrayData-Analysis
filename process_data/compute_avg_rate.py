@@ -28,7 +28,7 @@ data_loader = loader(_ROOT=_ROOT)
 kw_loader = dict(aligned_at="cue", channel_numbers=False, monkey=monkey)
 
 
-def get_power(monkey, session, decim=1, trial_type=1, behavioral_response=None):
+def get_power(monkey, session, decim=1, trial_type=1, behavioral_response=1):
 
     sessions = get_dates(monkey)
 
