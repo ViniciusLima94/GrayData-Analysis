@@ -64,15 +64,17 @@ def get_power(monkey, session, decim=1, trial_type=1, behavioral_response=1):
     return out
 
 
+pvalues = []
+
 for session in tqdm(sessions):
 
     power_task = get_power(monkey, session)
     power_fix = get_power(monkey, session, trial_type=2, behavioral_response=0)
 
-    pvalues = scipy.stats.ttest_ind(power_task, power_fix, axis=0).pvalue < 0.001
+    pvalues_ = scipy.stats.ttest_ind(power_task, power_fix, axis=0).pvalue < 0.001
 
-    pvalues = xr.DataArray(
-        pvalues,
+    pvalues_ = xr.DataArray(
+        pvalues_,
         dims=("roi", "freqs", "times"),
         coords={
             "roi": power_task.roi.values,
@@ -81,4 +83,8 @@ for session in tqdm(sessions):
         },
     )
 
-    pvalues = pvalues.groupby("roi").mean("roi")
+    pvalues += [pvalues_.groupby("roi").mean("roi")]
+
+
+pvalues = xr.concat(pvalues, "sessions")
+pvalues.to_netcdf(f"data/pvalues_{monkey}.nc")
