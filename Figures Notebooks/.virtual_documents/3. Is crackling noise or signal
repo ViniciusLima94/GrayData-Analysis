@@ -21,7 +21,7 @@ from mne.stats import fdr_correction
 from scipy.signal import fftconvolve
 from tqdm import tqdm
 
-from config import get_dates, return_delay_split
+from config import get_dates
 from GDa.flatmap.flatmap import flatmap
 from GDa.graphics import plot
 from GDa.loader import loader
@@ -38,9 +38,6 @@ _ROOT = os.path.expanduser("~/funcog/gda/")
 metric = "coh"
 monkey = "lucy"
 ds = 1
-
-
-early_cue, early_delay = return_delay_split(monkey, delay_type=ds)
 
 
 sessions = get_dates(monkey)
@@ -431,8 +428,11 @@ def return_burst_prob(power, conditional=False, thr=0.95, verbose=False):
 
 
 # Computes burst probability for task and fixation
-P_b_task, SP_b_task = return_burst_prob(power_task, thr=.95)
-P_b_fix, SP_b_fix = return_burst_prob(power_fix, thr=.95)
+P_b_task, SP_b_task = return_burst_prob(power_task, thr=0.)
+P_b_fix, SP_b_fix = return_burst_prob(power_fix, thr=0.)
+
+
+P_b_task[0, 0].median("boot").plot()
 
 
 # Computes burst probability for task and fixation
