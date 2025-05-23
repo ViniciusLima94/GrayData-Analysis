@@ -14,13 +14,9 @@ _ROOT = os.path.expanduser("~/funcog/gda/")
 
 parser = argparse.ArgumentParser()
 parser.add_argument("MONKEY", help="which monkey to use", type=str)
-parser.add_argument("TT", help="trial type", type=int)
-parser.add_argument("BR", help="behavioral_response", type=int)
 args = parser.parse_args()
 
 monkey = args.MONKEY
-tt = args.TT
-br = args.BR
 
 sessions = get_dates(monkey)
 
@@ -45,7 +41,7 @@ def get_power(monkey, decim=1):
         )
 
         temp = data_loader.load_power(
-            **kw_loader, trial_type=tt, behavioral_response=br, session=session
+            **kw_loader, trial_type=1, behavioral_response=1, session=session
         )[..., ::decim]
 
         t_match_on = (temp.attrs["t_match_on"] - temp.attrs["t_cue_on"]) / 1000
@@ -75,4 +71,4 @@ def get_power(monkey, decim=1):
 
 
 power = get_power(monkey)
-power.to_netcdf(f"data/power_{monkey}_tt_{tt}_br_{br}.nc")
+power.to_netcdf(f"data/power_{monkey}.nc")
