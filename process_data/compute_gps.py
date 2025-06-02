@@ -106,7 +106,7 @@ def load_areas_times(
     freq,
     ttype=1,
     br=1,
-    decim=5,
+    decim=1,
     trials=False,
     surr=0,
     thr_type="relative",
