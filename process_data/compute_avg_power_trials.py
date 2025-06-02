@@ -22,7 +22,8 @@ monkey = args.MONKEY
 tt = args.TT
 br = args.BR
 
-sessions = get_dates(monkey)
+sessions = get_dates(monkey)[:2]
+print(sessions)
 
 ##############################################################
 # POWER
@@ -35,7 +36,7 @@ kw_loader = dict(aligned_at="cue", channel_numbers=False, monkey=monkey)
 
 def get_power(monkey, decim=1):
 
-    sessions = get_dates(monkey)
+    # sessions = get_dates(monkey)
 
     powers = []
 
@@ -69,10 +70,10 @@ def get_power(monkey, decim=1):
         # out = out.transpose("trials", "roi", "freqs", "times")
         powers += [out]
 
-    powers = xr.concat(powers, "sessions")
+    # powers = xr.concat(powers, "sessions")
 
     return powers
 
 
 power = get_power(monkey)
-power.to_netcdf(f"data/power_trials_{monkey}_tt_{tt}_br_{br}.nc")
+# power.to_netcdf(f"data/power_trials_{monkey}_tt_{tt}_br_{br}.nc")
