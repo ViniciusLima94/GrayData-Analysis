@@ -19,8 +19,6 @@ parser.add_argument("MONKEY", help="which monkey to use", type=str)
 args = parser.parse_args()
 
 monkey = args.MONKEY
-tt = args.TT
-br = args.BR
 
 sessions = get_dates(monkey)[:2]
 
