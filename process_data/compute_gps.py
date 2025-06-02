@@ -353,4 +353,14 @@ GPS = xr.concat(GPS, "sessions")
 GPS.to_netcdf(f"data/GPS_{monkey}.nc")
 
 # Stats
-bet_l, phi_l = compute_GPS_stats_sessions(GPS, t_pow, 20, True)
+bet, phi = [], []
+for freq in freqs:
+    out = compute_GPS_stats_sessions(GPS, t_pow, 20, True)
+    bet += [out[0]]
+    phi += [out[1]]
+
+bet = xr.concat(bet, "freqs").assign_coords({"freqs": freqs})
+phi = xr.concat(phi, "freqs").assign_coords({"freqs": freqs})
+
+bet.to_netcdf(f"data/bet_{monkey}.nc")
+phi.to_netcdf(f"data/phi_{monkey}.nc")
