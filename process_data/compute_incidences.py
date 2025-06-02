@@ -20,7 +20,7 @@ args = parser.parse_args()
 
 monkey = args.MONKEY
 
-sessions = get_dates(monkey)[:2]
+sessions = get_dates(monkey)
 
 ##############################################################
 # POWER
