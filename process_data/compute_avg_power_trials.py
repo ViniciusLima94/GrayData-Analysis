@@ -65,7 +65,8 @@ def get_power(monkey, decim=1):
                     temp.sel(times=slice(t0, t1)).isel(trials=i).mean("times")
                 ]
             out += [xr.concat(temp_stages, "times")]
-        out = out.transpose("trials", "roi", "freqs", "times")
+        out = xr.concat(out, "trials")
+        # out = out.transpose("trials", "roi", "freqs", "times")
         powers += [out]
 
     powers = xr.concat(powers, "sessions")
