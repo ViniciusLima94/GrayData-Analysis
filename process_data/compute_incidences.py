@@ -22,7 +22,7 @@ monkey = args.MONKEY
 tt = args.TT
 br = args.BR
 
-sessions = get_dates(monkey)
+sessions = get_dates(monkey)[:2]
 
 ##############################################################
 # POWER
