@@ -292,6 +292,8 @@ def compute_GPS_stats(GPS, t_pow):
 
     bet = np.zeros((ntimes, nfreqs, nroi))
     phi = np.zeros((ntimes, nfreqs, nroi))
+    inS = np.zeros((ntimes, nfreqs, nroi))
+    outS = np.zeros((ntimes, nfreqs, nroi))
 
     for t in range(ntimes):
         for f in range(nfreqs):
@@ -304,6 +306,9 @@ def compute_GPS_stats(GPS, t_pow):
             bet[t, f] = betweenness_wei(distance_inv_wei(G))
             ins, outs, _ = strengths_dir(G)
             phi[t, f] = ins - outs
+            inS[t, f] = inS
+            outS[t, f] = outS
+
     bet = xr.DataArray(
         bet,
         dims=("times", "freqs", "roi"),
@@ -314,8 +319,18 @@ def compute_GPS_stats(GPS, t_pow):
         dims=("times", "freqs", "roi"),
         coords={"roi": t_pow.roi.astype(str), "freqs": t_pow.freqs},
     )
+    inS = xr.DataArray(
+        inS,
+        dims=("times", "freqs", "roi"),
+        coords={"roi": t_pow.roi.astype(str), "freqs": t_pow.freqs},
+    )
+    outS = xr.DataArray(
+        outS,
+        dims=("times", "freqs", "roi"),
+        coords={"roi": t_pow.roi.astype(str), "freqs": t_pow.freqs},
+    )
 
-    return bet, phi
+    return bet, phi, inS, outS
 
 
 def compute_GPS_stats_sessions(GPS, t_pow, n_jobs=1, verbose=False):
@@ -330,11 +345,15 @@ def compute_GPS_stats_sessions(GPS, t_pow, n_jobs=1, verbose=False):
 
     bet = [out[i][0] for i in range(n_sessions)]
     phi = [out[i][1] for i in range(n_sessions)]
+    inS = [out[i][2] for i in range(n_sessions)]
+    outS = [out[i][3] for i in range(n_sessions)]
 
     bet = xr.concat(bet, "sessions").mean("sessions")
     phi = xr.concat(phi, "sessions").mean("sessions")
+    inS = xr.concat(inS, "sessions").mean("sessions")
+    outS = xr.concat(outS, "sessions").mean("sessions")
 
-    return bet, phi
+    return bet, phi, inS, outS
 
 
 _RESULTS = os.path.join(_ROOT, f"Results/{monkey}/mutual_information/power/")
@@ -354,16 +373,18 @@ GPS.to_netcdf(f"data/GPS_{monkey}.nc")
 
 # Stats
 bet, phi = [], []
-#for freq in freqs:
+# for freq in freqs:
 #    out = compute_GPS_stats_sessions(GPS, t_pow, freq, True)
 #    bet += [out[0]]
 #    phi += [out[1]]
 #
-#bet = xr.concat(bet, "freqs").assign_coords({"freqs": freqs})
-#phi = xr.concat(phi, "freqs").assign_coords({"freqs": freqs})
+# bet = xr.concat(bet, "freqs").assign_coords({"freqs": freqs})
+# phi = xr.concat(phi, "freqs").assign_coords({"freqs": freqs})
 
 
-bet, phi = compute_GPS_stats_sessions(GPS, t_pow, 20, True)
+bet, phi, inS, outS = compute_GPS_stats_sessions(GPS, t_pow, 20, True)
 
 bet.to_netcdf(f"data/bet_{monkey}.nc")
 phi.to_netcdf(f"data/phi_{monkey}.nc")
+inS.to_netcdf(f"data/inS_{monkey}.nc")
+outS.to_netcdf(f"data/outS_{monkey}.nc")
