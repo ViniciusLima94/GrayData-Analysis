@@ -306,8 +306,8 @@ def compute_GPS_stats(GPS, t_pow):
             bet[t, f] = betweenness_wei(distance_inv_wei(G))
             ins, outs, _ = strengths_dir(G)
             phi[t, f] = ins - outs
-            inS[t, f] = inS
-            outS[t, f] = outS
+            inS[t, f] = ins
+            outS[t, f] = outs
 
     bet = xr.DataArray(
         bet,
